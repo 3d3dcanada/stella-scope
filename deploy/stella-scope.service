@@ -1,0 +1,25 @@
+[Unit]
+Description=Stella Scope read-only Klipper recorder
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=stella-scope
+Group=stella-scope
+StateDirectory=stella-scope
+WorkingDirectory=/var/lib/stella-scope
+EnvironmentFile=-/etc/stella-scope.env
+ExecStart=/usr/local/bin/stella-scope --config /etc/stella-scope.json
+Restart=on-failure
+RestartSec=3
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/var/lib/stella-scope
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+
+[Install]
+WantedBy=multi-user.target

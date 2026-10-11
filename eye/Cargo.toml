@@ -1,0 +1,19 @@
+[package]
+name = "stella-eye"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "Print failure detection for Stella Scope: Obico's open model on the camera, Obico's scoring, run on the computer."
+
+[dependencies]
+tract-onnx = "0.21"
+image = { version = "0.25", default-features = false, features = ["jpeg", "png"] }
+ureq = { version = "3.1", default-features = false }
+serde_json = "1"
+anyhow = "1"
+
+[profile.release]
+codegen-units = 1
+lto = "thin"
+opt-level = 3
+strip = true

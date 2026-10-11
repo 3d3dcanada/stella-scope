@@ -1,0 +1,12 @@
+{
+  "name": "stella-scope-asset-import",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node test.mjs"
+  },
+  "dependencies": {
+    "occt-import-js": "0.0.23",
+    "three": "0.186.0"
+  }
+}

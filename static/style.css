@@ -1,0 +1,70 @@
+:root{
+  --bg:#0e1116; --panel:#161b23; --panel2:#1d2430; --line:#2a323f;
+  --fg:#e8ecf2; --mut:#93a0b4; --accent:#4da3ff; --good:#3ddc97; --warn:#ffbe4d; --bad:#ff5f56;
+  --nozzle:#ff8f5e; --bed:#4da3ff; --z:#c792ea; --v:#3ddc97;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);
+  font:15px/1.45 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+header{position:sticky;top:0;z-index:5;display:flex;gap:16px;align-items:center;flex-wrap:wrap;
+  padding:12px 18px;background:rgba(14,17,22,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.brand{font-weight:700;letter-spacing:.3px;display:flex;align-items:center;gap:8px}
+.dot{width:10px;height:10px;border-radius:50%;background:var(--bad);box-shadow:0 0 10px currentColor}
+.dot.ok{background:var(--good)}
+.state{color:var(--mut);flex:1;min-width:200px;font-variant-numeric:tabular-nums}
+.modes{display:flex;gap:6px}
+button{background:var(--panel2);color:var(--fg);border:1px solid var(--line);border-radius:8px;
+  padding:7px 12px;font:inherit;cursor:pointer}
+button:hover{border-color:var(--accent)}
+button.on{background:var(--accent);border-color:var(--accent);color:#06121f;font-weight:600}
+
+#timeline{padding:10px 18px;background:var(--panel);border-bottom:1px solid var(--line)}
+#scrub{width:100%;accent-color:var(--accent)}
+.tl-labels{display:flex;justify-content:space-between;color:var(--mut);font-size:13px;
+  font-variant-numeric:tabular-nums}
+.tl-labels .strong{color:var(--fg);font-weight:600}
+.tl-jumps{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+
+main{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:16px;padding:16px;max-width:1500px;margin:0 auto}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px;min-width:0}
+.card h2{margin:0 0 10px;font-size:15px;letter-spacing:.3px;text-transform:uppercase;color:var(--mut)}
+.card h2 small{text-transform:none;letter-spacing:0;color:var(--mut);opacity:.75;font-weight:400}
+.map-card{grid-column:span 2}
+@media (max-width:820px){.map-card{grid-column:span 1}}
+.map-wrap{background:var(--panel2);border-radius:10px;padding:8px}
+#map{width:100%;height:auto;display:block}
+#map .clickable{cursor:pointer}
+.hint{color:var(--mut);font-size:13px;margin:8px 0 0}
+
+canvas{width:100%;height:150px;display:block;background:var(--panel2);border-radius:10px}
+.legend{margin-top:8px;color:var(--mut);font-size:13px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.k{width:12px;height:3px;border-radius:2px;display:inline-block}
+.k.nozzle{background:var(--nozzle)} .k.bed{background:var(--bed)}
+.k.z{background:var(--z)} .k.v{background:var(--v)} .k.target{background:var(--mut)}
+
+.detail dl{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;margin:0}
+.detail dt{color:var(--mut)}
+.detail dd{margin:0;font-variant-numeric:tabular-nums}
+.badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;border:1px solid var(--line)}
+.badge.ok{color:var(--good);border-color:var(--good)}
+.badge.warn{color:var(--warn);border-color:var(--warn)}
+.badge.bad{color:var(--bad);border-color:var(--bad)}
+
+.motors{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.motor{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px;cursor:pointer}
+.motor:hover{border-color:var(--accent)}
+.motor .name{font-weight:600;font-size:13px}
+.motor .sub{color:var(--mut);font-size:12px;font-variant-numeric:tabular-nums}
+.bar{height:6px;border-radius:3px;background:#0b0f15;margin-top:8px;overflow:hidden}
+.bar span{display:block;height:100%;background:var(--accent)}
+
+.events{max-height:280px;overflow:auto;font:12.5px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace}
+.events div{padding:3px 0;border-bottom:1px solid var(--line);white-space:pre-wrap;word-break:break-word}
+.events .err{color:var(--bad)}
+.events time{color:var(--mut);margin-right:8px}
+
+.qgl table{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums}
+.qgl th,.qgl td{text-align:right;padding:4px 6px;border-bottom:1px solid var(--line)}
+.qgl th:first-child,.qgl td:first-child{text-align:left}
+.qgl tr.pass td.range{color:var(--good)} .qgl tr.fail td.range{color:var(--bad)}

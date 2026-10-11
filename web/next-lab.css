@@ -1,0 +1,72 @@
+/* Stella Scope NEXT · instrument style lab (see next-lab.js). */
+html{overflow:auto!important;height:auto!important}
+body.lab{overflow:auto;height:auto;min-height:100%;background:radial-gradient(120% 80% at 50% 0%,#141b24 0%,#0a0d12 60%,#07090c 100%)}
+.lab-head{display:flex;justify-content:space-between;align-items:flex-start;gap:24px;padding:32px clamp(16px,4vw,56px) 8px;max-width:1500px;margin:0 auto}
+.lab-head h1{margin:0 0 8px;font:650 26px/1.15 var(--sans);letter-spacing:-.01em}
+.lab-head p{margin:0;max-width:760px;color:var(--ink-2);font:500 15px/1.5 var(--sans)}
+.lab-head b{color:var(--ink-1)}
+.lab-back{flex:none;color:var(--accent);text-decoration:none;font:600 13px var(--sans);padding:12px 16px;border:1px solid rgba(4,217,196,.35);border-radius:12px}
+#lab{max-width:1500px;margin:0 auto;padding:12px clamp(16px,4vw,56px) 80px;display:flex;flex-direction:column;gap:28px}
+.lab-var{padding:24px;border-radius:28px;background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.01));border:1px solid var(--glass-line);box-shadow:inset 0 1px 0 rgba(255,255,255,.08)}
+.lab-var-head{display:grid;grid-template-columns:auto 1fr;column-gap:14px;align-items:baseline;margin-bottom:22px}
+.lab-id{grid-row:span 2;width:44px;height:44px;border-radius:12px;display:grid;place-items:center;font:700 20px var(--sans);color:var(--accent-ink);background:linear-gradient(180deg,var(--accent-hi),var(--accent))}
+.lab-var-head h2{margin:0;font:650 19px var(--sans)}
+.lab-var-head p{margin:4px 0 0;color:var(--ink-2);font:500 14px/1.45 var(--sans)}
+.lab-row{display:flex;flex-wrap:wrap;gap:28px;justify-content:space-around;align-items:center}
+[role=slider]{touch-action:none;user-select:none;-webkit-user-select:none;outline:none}
+[role=slider]:focus-visible{outline:2px solid var(--accent);outline-offset:6px}
+
+/* ---- A. climate knob ---- */
+.knob{--col:#A7B0BA;--deg:0deg;position:relative;width:236px;height:236px;border-radius:50%;cursor:grab}
+.knob[data-drag]{cursor:grabbing}
+.knob-track,.knob-ring{position:absolute;inset:0;border-radius:50%;-webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 16px),#000 calc(100% - 15px));mask:radial-gradient(farthest-side,transparent calc(100% - 16px),#000 calc(100% - 15px))}
+.knob-track{background:conic-gradient(from 225deg,rgba(255,255,255,.08) 0 270deg,transparent 270deg)}
+.knob-ring{background:conic-gradient(from 225deg,color-mix(in srgb,var(--col) 45%,transparent) 0,var(--col) var(--deg),transparent var(--deg));filter:drop-shadow(0 0 10px var(--col))}
+.knob-cur{position:absolute;left:50%;top:0;width:2px;height:50%;margin-left:-1px;transform-origin:50% 100%;pointer-events:none}
+.knob-cur::before{content:"";position:absolute;left:-3px;top:2px;width:8px;height:20px;border-radius:4px;background:#fff;box-shadow:0 0 8px rgba(255,255,255,.8)}
+.knob-handle{position:absolute;width:30px;height:30px;margin:-15px 0 0 -15px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff,#dfe5ea 60%,#b9c1c9);box-shadow:0 4px 12px rgba(0,0,0,.6),0 0 0 4px color-mix(in srgb,var(--col) 55%,transparent),0 0 18px var(--col);pointer-events:none;transition:box-shadow .3s}
+.knob-face{position:absolute;inset:26px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
+ background:radial-gradient(circle at 50% 30%,#252e39,#141920 62%,#0c1015);box-shadow:inset 0 2px 1px rgba(255,255,255,.1),inset 0 -14px 30px rgba(0,0,0,.55),0 18px 40px rgba(0,0,0,.55);transition:background .6s}
+.knob[data-active=true] .knob-face{background:radial-gradient(circle at 50% 30%,color-mix(in srgb,var(--col) 26%,#252e39),#161b22 62%,#0c1015)}
+.knob-big{font:300 60px/1 var(--sans);letter-spacing:-.04em;font-variant-numeric:tabular-nums}
+.knob-big small{font-size:.36em;font-weight:500;color:var(--ink-2);vertical-align:1.3em;margin-left:2px}
+.knob-now{font:600 12px/1 var(--mono);letter-spacing:.06em;color:var(--col)}
+.knob-label{font:650 11px/1 var(--sans);letter-spacing:.2em;color:var(--ink-3);margin-top:4px}
+
+/* ---- B. control-center sliders ---- */
+.lab-row-B{gap:22px}
+.pill{--col:#04D9C4;--f:.5;--c:.2;position:relative;width:112px;height:300px;border-radius:30px;overflow:hidden;cursor:ns-resize;
+ background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.03)),rgba(20,25,32,.7);border:1px solid rgba(255,255,255,.08);
+ box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 20px 40px rgba(0,0,0,.5)}
+.pill-fill{position:absolute;left:0;right:0;bottom:0;height:calc(var(--f) * 100%);background:linear-gradient(0deg,color-mix(in srgb,var(--col) 70%,#000),var(--col));box-shadow:0 0 30px color-mix(in srgb,var(--col) 60%,transparent);transition:height .08s linear}
+.pill-fill::after{content:"";position:absolute;left:0;right:0;top:0;height:2px;background:rgba(255,255,255,.7)}
+.pill-cur{position:absolute;left:14px;right:14px;bottom:calc(var(--c) * 100%);height:3px;border-radius:2px;background:#fff;box-shadow:0 0 10px #fff;transition:bottom .12s linear}
+.pill-top{position:absolute;top:18px;left:0;right:0;text-align:center}
+.pill-val{font:600 32px/1 var(--sans);letter-spacing:-.03em;font-variant-numeric:tabular-nums;text-shadow:0 2px 10px rgba(0,0,0,.6)}
+.pill-val small{font-size:.45em;font-weight:500;margin-left:1px;opacity:.8}
+.pill-bot{position:absolute;bottom:16px;left:0;right:0;text-align:center;display:flex;flex-direction:column;gap:5px}
+.pill-lab{font:700 11px/1 var(--sans);letter-spacing:.18em;text-shadow:0 1px 6px rgba(0,0,0,.7)}
+.pill-now{font:600 11px/1 var(--mono);opacity:.85;text-shadow:0 1px 6px rgba(0,0,0,.7)}
+
+/* ---- C. cluster with target marker ---- */
+.clu{--col:#04D9C4;position:relative;width:250px;height:250px;cursor:grab;filter:drop-shadow(0 18px 30px rgba(0,0,0,.55))}
+.clu[data-drag]{cursor:grabbing}
+.clu svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.c-bezel{fill:url(#lab-bezel);stroke:rgba(255,255,255,.12)}
+.c-face{fill:#0e1319;stroke:rgba(0,0,0,.7)}
+.c-track{fill:none;stroke:rgba(255,255,255,.07);stroke-width:8}
+.c-set{fill:none;stroke:color-mix(in srgb,var(--col) 35%,transparent);stroke-width:8}
+.c-now{fill:none;stroke:var(--col);stroke-width:8;filter:drop-shadow(0 0 6px var(--col))}
+.c-scale line{stroke:rgba(255,255,255,.28);stroke-width:1.2}.c-scale line.m{stroke:#e2e8ee;stroke-width:2.2}
+.c-scale text{font:600 11px var(--mono);fill:#9aa5b0;text-anchor:middle}
+.c-needle,.c-bug{transform-box:view-box;transform-origin:120px 120px;transition:transform .5s cubic-bezier(.25,.9,.3,1.1)}
+.c-needle path{fill:#f4f7fa;filter:drop-shadow(0 0 3px var(--col))}
+.c-hub{fill:#3b444e;stroke:rgba(255,255,255,.3)}
+.c-bug path{fill:var(--col);stroke:#fff;stroke-width:1.2;filter:drop-shadow(0 0 5px var(--col))}
+.clu[data-drag] .c-bug,.clu[data-drag] .c-needle{transition:none}
+.clu-read{position:absolute;left:0;right:0;top:63%;display:flex;flex-direction:column;align-items:center;gap:4px;pointer-events:none}
+.clu-val{font:600 34px/1 var(--mono);letter-spacing:-.03em}
+.clu-val small{font-size:.42em;color:var(--ink-2);margin-left:2px}
+.clu-lab{font:650 11px/1 var(--sans);letter-spacing:.18em;color:var(--ink-2)}
+.clu-set{font:600 11px/1 var(--mono);color:var(--col)}
+@media (max-width:600px){.lab-head{flex-direction:column}.knob{width:200px;height:200px}.knob-big{font-size:50px}.pill{width:76px;height:240px}.pill-val{font-size:22px}.clu{width:210px;height:210px}}

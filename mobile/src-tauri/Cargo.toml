@@ -1,0 +1,27 @@
+[package]
+name = "stella-app"
+version = "0.4.2"
+edition = "2021"
+publish = false
+description = "Stella: the phone app for Stella Scope. Dials a paired Stella Scope over iroh and shows it."
+
+[lib]
+name = "stella_app_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-barcode-scanner = "2"
+tauri-plugin-deep-link = "2"
+stella-link = { path = "../../link" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[profile.release]
+codegen-units = 1
+lto = "thin"
+opt-level = "s"
+strip = true

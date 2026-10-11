@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Stella Scope
+GenericName=Printer flight recorder
+Comment=Record, rewind and inspect a Klipper printer - by 3D3D
+Exec=stella-scope-launch.sh
+Icon=stella-scope
+Terminal=false
+StartupNotify=true
+StartupWMClass=Stella-desktop
+Categories=Utility;Engineering;
+Keywords=stella;voron;klipper;printer;3d3d;

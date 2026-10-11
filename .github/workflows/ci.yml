@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Rust tests
+        run: cargo test --locked -j 2
+      - name: Release build
+        run: cargo build --release --locked -j 2
+      - name: Interface tests
+        run: |
+          for t in service-core hud-core hud-gcode next-core next-gesture next-pages workspace-core; do
+            node scripts/$t-tests.mjs
+          done
+      - name: HTTP smoke tests
+        run: |
+          node scripts/service-http-smoke.mjs
+          node scripts/workspace-http-smoke.mjs
+          node scripts/investigation-smoke.mjs

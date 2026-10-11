@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#07090C">
+<title>Stella Scope</title>
+<link rel="preload" as="font" type="font/woff2" href="/fonts/geist.woff2" crossorigin>
+<link rel="preload" as="font" type="font/woff2" href="/fonts/geist-mono.woff2" crossorigin>
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/logo.svg">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="stylesheet" href="/next.css">
+<script type="module" src="/next.js"></script>
+</head>
+<body data-layout="desktop" data-mode="checking">
+<div id="nx-backdrop" aria-hidden="true"></div>
+<div id="nx-loading" class="nx-glass" aria-live="polite"><i></i>LOADING</div>
+<canvas id="nx-scene" aria-label="Live 3D view of the printer"></canvas>
+<div id="nx-ui">
+ <header id="nx-top">
+  <a class="nx-id" href="/" aria-label="Stella Scope home">
+   <img class="nx-id-mark" src="/logo.svg" alt="">
+   <span class="nx-id-text"><b id="nx-id-name">STELLA SCOPE</b><small id="nx-id-model"></small></span>
+  </a>
+  <div id="nx-job" class="nx-job" hidden></div>
+  <div id="nx-idle" class="nx-idle nx-glass" hidden></div>
+  <div class="nx-top-right">
+   <button id="nx-state" class="nx-state" type="button" data-state="checking"><i class="nx-state-dot"></i><span class="nx-state-label">CHECKING</span><span class="nx-state-since"></span></button>
+   <button id="nx-estop" class="nx-estop" type="button" data-cmd="emergency_stop" aria-label="Emergency stop"><svg class="nx-ico" aria-hidden="true"><use href="#i-estop"></use></svg><span>STOP</span></button>
+  </div>
+ </header>
+ <nav id="nx-rail" aria-label="Pages"></nav>
+ <section id="nx-left" class="nx-cluster" aria-label="Temperatures"></section>
+ <section id="nx-right" class="nx-cluster" aria-label="Motion and cooling"></section>
+ <div id="nx-pager" aria-label="Instruments" hidden></div>
+ <div id="nx-pos" class="nx-pos" aria-label="Toolhead position"></div>
+ <nav id="nx-dock" class="nx-dock" aria-label="Printer actions"></nav>
+ <div id="nx-kit" hidden></div>
+</div>
+<aside id="nx-sheet" class="nx-sheet" aria-modal="true" role="dialog" hidden></aside>
+<div id="nx-radial" class="nx-radial" hidden></div>
+<div id="nx-toasts" class="nx-toasts" role="status" aria-live="polite"></div>
+<div id="nx-tip" class="nx-tip" role="tooltip" hidden></div>
+</body>
+</html>

@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark"><title>Stella Scope — Printer recorder</title><link rel="stylesheet" href="/style.css"><script src="/app.js" defer></script></head>
+<body>
+<header><div><p class="eyebrow">PRINTER FLIGHT RECORDER</p><h1>Stella <span>Scope</span></h1></div><div class="header-right"><span class="pill">READ ONLY</span><strong id="connection" role="status">Opening recording…</strong></div></header>
+<section class="timeline" aria-label="Recording timeline">
+<div class="timeline-top"><div class="switch"><button id="live" class="active">Live</button><button id="rewind">Rewind</button></div><output id="view-time">Waiting for the first sample</output><div class="jumps"><button data-back="60">−1 min</button><button data-back="300">−5 min</button><button data-back="1800">−30 min</button><button data-back="7200">−2 hours</button></div></div>
+<label class="sr-only" for="scrubber">Choose a time across the whole recording</label><input id="scrubber" type="range" min="0" max="1" step="0.001" value="1" disabled><div class="range-labels"><span id="start-time">No recording yet</span><span id="end-time"></span></div>
+</section>
+<main>
+<div id="notice" class="notice" role="status" hidden></div><details id="warnings" hidden><summary id="warning-count">Collection limitations</summary><div id="warning-list"></div></details>
+<div class="machine-layout">
+<section class="panel machine"><div class="panel-heading"><h2>The machine</h2><span id="bed-size" class="muted">Top view</span></div><canvas id="machine" aria-label="Top view of the printer; use the motor buttons below to select a corner"></canvas><div class="map-legend"><span class="nozzle-key">Nozzle</span><span class="probe-key">Probe</span><button id="head-select" class="text-button">Inspect print head</button></div><p class="footnote">Front of the printer is at the bottom. Motion is reported, not measured position feedback.</p></section>
+<section class="panel"><div class="panel-heading"><h2 id="detail-title">Print head</h2><span id="detail-badge" class="pill">DETAILS</span></div><dl id="details" class="details"></dl><p id="detail-note" class="footnote"></p></section>
+</div>
+<section class="panel motors-panel"><div class="panel-heading"><h2>Every motor</h2><span class="muted">Click to inspect</span></div><div id="motors" class="motor-strip"></div><p class="footnote">Drive level is the driver's current scale, not a load sensor. A high bar alone does not prove binding or lost steps.</p></section>
+<div class="panel-heading chart-controls"><h2>Recorded motion &amp; heat</h2><label>Chart window <select id="window"><option value="300">5 minutes</option><option value="900" selected>15 minutes</option><option value="1800">30 minutes</option><option value="7200">2 hours</option></select></label></div>
+<div class="charts"><section class="panel"><h3>Temperatures <span class="muted">°C · dashed lines are targets</span></h3><canvas id="temperature" class="chart" aria-label="Nozzle and bed temperatures over time"></canvas><div class="chart-legend"><span class="nozzle-key">Nozzle</span><span class="probe-key">Bed</span></div></section><section class="panel"><h3>Height &amp; speed <span class="muted">mm / mm per second</span></h3><canvas id="motion" class="chart" aria-label="Head height and speed over time"></canvas><div class="chart-legend"><span class="nozzle-key">Height · left scale</span><span class="probe-key">Speed · right scale</span></div></section></div>
+<p class="footnote">Charts use representative samples at wide zoom; brief peaks may be omitted. Click a chart to rewind. Blank spans mean no samples, not zero.</p>
+<section class="panel history"><div class="panel-heading"><h2>Gantry levelling history</h2><span id="qgl-count" class="muted"></span></div><div class="table-wrap"><table><thead><tr><th>Run / round</th><th>Time</th><th>Range</th><th>Front left</th><th>Back left</th><th>Back right</th><th>Front right</th><th>Round result</th></tr></thead><tbody id="qgl"></tbody></table></div><p class="footnote">Corrections are in millimetres. A failed round can be followed by a successful one. A dash means the correction was not captured.</p></section>
+<section class="panel console-panel"><div class="panel-heading"><h2>What the printer said</h2><span id="event-count" class="muted"></span></div><div id="console" class="console" aria-label="Recorded printer messages"></div></section>
+<footer><span id="recording-info">Local recording · no cloud or printer controls</span><span>STELLA SCOPE</span></footer>
+</main>
+</body></html>

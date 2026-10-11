@@ -1,0 +1,787 @@
+/* Stella Scope HUD. One screen, no scroll. The printer fills the viewport; instruments are
+   overlays with no boxes; specialist pages live in a bottom drawer; actions are modals.
+   Palette: matte black ground, teal leads, orange = heat, magenta = fault, green = ok. */
+/* 3D3D brand: the four cyber-neons at their exact hexes, used as accents. Never a neon flood.
+   Depth is glass + a neon hairline + a soft glow. Two themes; the dark one is neon-lit, not grey. */
+.hud-app{--teal:#04D9C4;--orange:#FF6A00;--magenta:#FF2D92;--green:#18E36B;
+ --heat:var(--orange);--fault:var(--magenta);--ok:var(--green);--blue:var(--teal);--teal-dim:#0a6f66;
+ --bg:#101314;--ink:#edf4f2;--text:var(--ink);--muted:#a5b2b2;--line:#354342;--glass:rgba(16,19,20,.94);
+ --panel:#1b2021;--panel-solid:var(--panel);--edge:#354342;--surface:#14191a;--track:#283332;--accent-ink:#04D9C4;--heat-ink:#ff9c55;--ok-ink:#64eaa0;--fault-ink:#ff70b4;--hairline:var(--line);color-scheme:dark;
+ height:100vh;height:100dvh;overflow:hidden;display:flex;flex-direction:column;background:var(--bg);color:var(--ink)}
+.hud-app[data-theme=light]{--bg:#edf1f0;--ink:#142322;--text:var(--ink);--muted:#506360;--line:#bacbc7;--glass:rgba(245,248,246,.96);--panel:#f8faf9;--panel-solid:var(--panel);--surface:#e3ebe8;--edge:#bacbc7;--track:#c7d4d0;--accent-ink:#006e62;--heat-ink:#984400;--ok-ink:#147443;--fault-ink:#af175f;--teal-dim:#006e62;color-scheme:light}
+.hud-app header{flex:none;height:52px;padding:0 16px;display:flex;align-items:center;gap:14px;background:var(--glass);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.hud-app header .machine-label{font:12px var(--mono);color:var(--muted)}.hud-app header .machine-label strong{color:var(--ink);font-weight:500}
+.hud-app .header-actions{margin-left:auto;display:flex;align-items:center;gap:10px}.hud-app .header-actions>a{display:none}
+.hud-app .badge{font:12px var(--mono);letter-spacing:.14em;color:var(--muted);border:1px solid #1e3a3a;padding:4px 8px;border-radius:2px}
+.hud-app[data-controls=on] .badge{color:var(--accent-ink);border-color:var(--teal-dim)}
+.hud-emergency{font:700 12px var(--mono);letter-spacing:.18em;padding:7px 14px;background:var(--surface);border:1px solid var(--magenta);color:var(--fault-ink);border-radius:2px}
+.hud-emergency:not(:disabled){background:#3a0d1f;border-color:var(--fault-ink);color:#ffd2e6;box-shadow:0 0 18px #ff4fa333}
+.hud-emergency:disabled{opacity:.35}
+.hud-app #pages{display:none}
+.hud-app main{flex:1;min-height:0;position:relative;padding:0;max-width:none;margin:0}
+.hud-app #page-machine{position:absolute;inset:0;margin:0}
+.hud-app .cockpit,.hud-app .viewer{position:absolute;inset:0;display:block;padding:0;border:0;border-radius:0;background:none;box-shadow:none;backdrop-filter:none;-webkit-backdrop-filter:none;overflow:visible}
+.hud-app .canvas-wrap{position:absolute;inset:108px 0 206px;height:auto;min-height:0;border:0;background:var(--bg)}
+.hud-app #machine-view{display:block;width:100%;height:100%;min-height:0;touch-action:none;outline:none}
+.hud-app .cockpit>.rail,.hud-app #instrument-wall,.hud-app .viewer-toolbar,.hud-app .scene-tag,.hud-app .scene-key,.hud-legacy-bottom,.hud-app .page-heading{display:none!important}
+.hud-app #scene-tip{position:absolute;z-index:6;pointer-events:none;padding:6px 10px;border:1px solid var(--teal-dim);background:var(--surface);font:12px var(--mono);color:var(--ink);max-width:260px}
+/* state rim: the whole frame tells you what the machine is doing */
+.hud-app .canvas-wrap:after{content:'';position:absolute;inset:0;pointer-events:none;box-shadow:inset 0 0 0 1px var(--rim,transparent),inset 0 0 90px -40px var(--rim,transparent);transition:box-shadow .6s}
+.hud-app .cockpit[data-state=idle]{--rim:rgba(46,230,207,.35)}.hud-app .cockpit[data-state=heating]{--rim:rgba(255,154,60,.6)}.hud-app .cockpit[data-state=printing]{--rim:rgba(94,242,154,.55)}.hud-app .cockpit[data-state=paused]{--rim:rgba(109,184,255,.6)}.hud-app .cockpit[data-state=error]{--rim:rgba(255,79,163,.8);animation:hud-pulse 1.2s ease-in-out infinite}
+@keyframes hud-pulse{50%{--rim:rgba(255,79,163,.25)}}
+/* overlays */
+.hud{position:absolute;z-index:3;font-family:var(--mono);pointer-events:none}.hud button,.hud input,.hud select{pointer-events:auto}
+.hud button{font:12px var(--mono);letter-spacing:.06em;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:3px;padding:6px 10px;cursor:pointer;backdrop-filter:none}
+.hud button:hover{border-color:var(--accent-ink);color:var(--ink)}.hud button:disabled{opacity:.4;cursor:default}
+.hud-primary{background:var(--surface)!important;border-color:var(--accent-ink)!important;color:var(--ink)!important;font-weight:600!important;box-shadow:0 0 20px #2ee6cf22}
+.hud-heading{top:16px;left:20px;display:grid;gap:4px}
+.hud-machine-name{font:700 26px/1 var(--sans);letter-spacing:.26em;color:var(--ink);text-shadow:0 0 30px #2ee6cf44}
+.hud-machine-spec{font:12px var(--mono);letter-spacing:.2em;color:var(--muted)}
+.hud-state-row{display:flex;gap:8px;align-items:center;margin-top:6px}
+.hud-state-pill{font:600 12px var(--mono);letter-spacing:.14em;padding:4px 9px;border:1px solid var(--rim,var(--line));color:var(--ink);background:var(--surface);border-radius:2px}
+.hud-fresh,.hud-readiness{font:12px var(--mono);color:var(--muted);letter-spacing:.08em}
+.hud-jobstrip{top:14px;left:50%;transform:translateX(-50%);width:min(520px,44vw);text-align:center;pointer-events:auto;cursor:pointer}
+.hud-job-name{font:500 13px var(--sans);color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hud-job-bar{display:grid;grid-template-columns:repeat(40,1fr);gap:2px;height:7px;margin:7px 0 5px}
+.hud-job-bar i{background:var(--track);border-radius:1px}.hud-job-bar i.on{background:var(--teal);box-shadow:0 0 6px #2ee6cf88}
+.hud-jobstrip[data-state=printing] .hud-job-bar i.on{background:var(--ok);box-shadow:0 0 6px #5ef29a88}.hud-jobstrip[data-state=paused] .hud-job-bar i.on{background:var(--blue)}.hud-jobstrip[data-state=error] .hud-job-bar i.on{background:var(--fault)}
+.hud-job-meta{font:12px var(--mono);letter-spacing:.1em;color:var(--muted)}
+.hud-viewbox{top:14px;right:18px;display:grid;justify-items:end;gap:6px}
+.hud-view-cube{width:92px;height:86px;touch-action:none;cursor:grab;pointer-events:auto;filter:drop-shadow(0 0 10px #2ee6cf22)}
+.hud-view-cube polygon{fill:rgba(12,32,38,.75);stroke:#2c6a68;stroke-width:1;stroke-linejoin:round}.hud-view-cube g:hover polygon{fill:#0b5c55;stroke:#8dfff0}
+.hud-view-cube text{fill:#cdf7f0;font:600 12px var(--mono);text-anchor:middle;dominant-baseline:middle;pointer-events:none}
+.hud-zoom{display:flex;gap:4px}.hud-zoom button{font-size:15px;min-width:30px;padding:2px 6px}
+.hud-tools{display:flex;gap:4px}
+.hud-selection{display:flex;align-items:center;gap:5px;flex:0 1 auto;min-width:0;margin-right:10px;padding-right:10px;border-right:1px solid var(--line);opacity:.45;transition:opacity .2s}
+.hud-selection>span{flex:0 1 auto;min-width:0}
+.hud-selection[data-on="1"]{opacity:1}
+.hud-selection>span{flex:0 1 auto;min-width:0}.hud-selection>span{font:12px var(--mono);color:var(--accent-ink);max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* rails */
+.hud-rail{top:130px;bottom:auto;display:grid;align-content:start;gap:18px;width:180px}
+.hud-rail.left{left:20px}.hud-rail.right{right:20px;justify-items:end}
+.hud-rail-title{font:12px var(--mono);letter-spacing:.12em;color:var(--accent-ink);opacity:.75;margin-bottom:-6px}
+.hud-rail.left .hud-rail-title{color:var(--orange)}
+.hud-gauge{display:grid;gap:5px;pointer-events:auto}
+.hud-gauge-head{display:flex;align-items:center;gap:8px;justify-content:space-between}
+.hud-gauge-label{font:12px var(--mono);letter-spacing:.12em;color:var(--ink)}
+.hud .hud-gauge-value{font:500 34px/1 var(--mono);color:var(--ink);background:none;border:0;padding:0;backdrop-filter:none;letter-spacing:-.02em;text-shadow:0 0 14px rgba(46,230,207,.25)}
+.hud-gauge-value.pending{color:var(--heat-ink)}.hud-gauge-value:disabled{opacity:1;cursor:default}
+.hud-gauge input[type=number]{width:70px;font:16px var(--mono);background:var(--surface);border:1px solid var(--teal);color:var(--ink);padding:2px 4px}
+.hud-gauge-track{display:flex;gap:3px;height:16px;cursor:pointer;touch-action:none;padding:0;background:rgba(10,22,28,.45);border:1px solid var(--line)}
+.hud-gauge.vertical .hud-gauge-track{flex-direction:column-reverse;height:clamp(84px,14vh,132px);width:26px;padding:0 3px;gap:3px;background:rgba(10,22,28,.45);border:1px solid var(--line)}
+@media(max-height:820px){.hud-rail .hud-presets{display:none}.hud-rail{gap:8px}}
+.hud-gauge-track i{flex:1;background:var(--track);border-radius:1px;transition:background .15s}
+.hud-gauge-track i.on{background:var(--c,var(--teal));box-shadow:0 0 5px var(--c,var(--teal))}
+.hud-gauge-track i.target{outline:1px solid #fff;outline-offset:-1px}
+.hud-gauge-track.readonly{cursor:default}
+.hud-gauge[data-kind=heat]{--c:var(--orange)}
+.hud-gauge[data-kind=fan]{--c:var(--teal)}.hud-gauge[data-kind=speed]{--c:var(--green)}
+.hud-gauge-note{font:12px var(--mono);letter-spacing:.04em;color:var(--muted);opacity:.85}
+.hud-presets{display:flex;gap:3px;flex-wrap:wrap}.hud-presets button{padding:3px 6px;font-size:12px}.hud-presets button.on{border-color:var(--accent-ink);color:var(--ink)}
+.hud-rail.right .hud-gauge{justify-items:stretch;text-align:right}.hud-rail.right .hud-gauge-head{flex-direction:row-reverse}
+.hud-fan{width:30px;height:30px;--fan:0}.hud-fan path{fill:#2b4a52}.hud-fan circle{fill:#0b1418;stroke:#2b4a52}
+.hud-fan[data-on="1"] path{fill:var(--blue);filter:drop-shadow(0 0 4px #6db8ff)}
+.hud-fan[data-on="1"] g{animation:hud-spin var(--period,1s) linear infinite}
+@keyframes hud-spin{to{transform:rotate(360deg)}}
+.hud .hud-fan-row{display:flex;align-items:center;gap:9px;font:12px var(--mono);letter-spacing:.14em;color:var(--muted);flex-direction:row-reverse;background:none!important;border:0!important;padding:2px 0;backdrop-filter:none}
+.hud-fan-row strong{font:500 15px var(--mono);color:var(--ink);min-width:34px;text-align:right}
+/* bottom band: the big instruments. Large type, thick tracks, no boxes. */
+.hud-bottom{left:0;right:0;bottom:44px;padding:12px 20px;display:grid;grid-template-columns:260px minmax(0,1fr) minmax(0,1fr);gap:10px 24px;align-items:end;pointer-events:auto;background:var(--glass);border-top:1px solid var(--line)}
+.hud-motion{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0 12px;align-items:end;min-width:0}
+.hud .hud-axis{display:grid;gap:0;background:none!important;border:0!important;padding:0;text-align:left;backdrop-filter:none;box-shadow:none}
+.hud-axis span{font:12px var(--mono);letter-spacing:.12em;color:var(--ok-ink)}
+.hud-axis strong{font:500 30px/1 var(--mono);color:var(--ink);letter-spacing:-.03em;text-shadow:0 0 26px rgba(46,230,207,.28)}
+.hud-axis:hover strong{color:var(--accent-ink)}
+.hud-homed{grid-column:1;font:600 12px var(--mono);letter-spacing:.2em;color:var(--heat-ink);margin-top:4px}
+.hud-homed[data-ok="1"]{color:var(--ok-ink)}
+.hud-velocity{grid-column:2/4;margin-top:4px;font:12px var(--mono);letter-spacing:.14em;color:var(--muted);justify-self:start}
+.hud-bottom .hud-gauge{gap:3px}
+.hud-bottom .hud-gauge-head{display:flex;align-items:baseline;justify-content:flex-start;gap:12px}
+.hud-bottom .hud-gauge-label{font-size:11px;letter-spacing:.12em;color:var(--ink)}
+.hud-bottom .hud-gauge-value{font:500 36px/1 var(--mono);letter-spacing:-.03em;text-shadow:0 0 30px rgba(94,242,154,.3)}
+.hud-bottom .hud-gauge input[type=number]{width:120px;font:300 34px var(--mono)}
+.hud-bottom .hud-gauge-track{height:16px;gap:3px;padding:0;border-bottom:1px solid rgba(46,230,207,.16)}
+.hud-bottom .hud-gauge-track i{border-radius:0;background:var(--track);transform-origin:bottom}
+.hud-bottom .hud-gauge-track i.on{background:var(--c,var(--teal));box-shadow:0 0 10px var(--c,var(--teal))}
+.hud-bottom .hud-gauge-track i.target{outline:2px solid #fff;box-shadow:0 0 14px #fff}
+.hud-bottom .hud-gauge-note{font-size:12px;letter-spacing:.2em;opacity:.7}
+.hud-bottom .hud-presets{margin-top:2px}
+.hud-bottom .hud-presets button{padding:5px 11px;font-size:11px;letter-spacing:.08em}
+.hud-actions{display:flex;gap:8px;align-items:end}
+.hud-actions button{flex:0 0 auto;padding:9px 10px;font-size:12px;letter-spacing:.02em;min-width:68px}
+.hud-status{display:none;left:0;right:0;bottom:38px;padding:0 22px 6px;gap:22px;font:12px var(--mono);letter-spacing:.16em;color:var(--muted);pointer-events:auto;cursor:pointer;white-space:nowrap;overflow:hidden;z-index:4}
+.hud-status b{color:var(--ok-ink);font-weight:600}.hud-status[data-alert="1"] b{color:var(--fault-ink)}
+.hud-toast{left:50%;bottom:210px;transform:translate(-50%,10px);padding:10px 18px;border:1px solid var(--teal-dim);background:var(--surface);color:var(--ink);font:12px var(--mono);border-radius:3px;opacity:0;transition:.25s;max-width:60vw;box-shadow:0 0 40px #2ee6cf22}
+.hud-toast[data-on="1"]{opacity:1;transform:translate(-50%,0)}
+/* recording transport, thin strip at the very bottom */
+.hud-app .transport{position:absolute;left:0;right:0;bottom:0;height:44px;padding:0 14px;display:flex;align-items:center;gap:8px;background:var(--glass);backdrop-filter:blur(10px);border-top:1px solid var(--line);box-shadow:none;z-index:4}
+.hud-app .transport .transport-row{display:flex;align-items:center;gap:6px;flex:none}
+.hud-app .transport button,.hud-app .transport select{font:12px var(--mono);padding:3px 7px;background:var(--surface);border:1px solid var(--line);color:var(--ink)}
+.hud-app .transport button.primary{border-color:var(--teal-dim);color:var(--accent-ink)}
+.hud-app .transport label.inline{font:12px var(--mono);color:var(--muted);display:flex;gap:4px;align-items:center}
+.hud-app .transport #cursor{flex:1;margin:0;accent-color:var(--accent-ink)}
+.hud-app .transport #cursor-time{font:12px var(--mono);color:var(--muted);white-space:nowrap}
+.hud-app .transport .hint,.hud-app .transport .transport-labels,.hud-app .transport .timeline-labels{display:none}
+/* drawer for specialist pages */
+.hud-drawer{position:fixed;left:0;right:0;bottom:34px;top:auto;width:100%;max-width:none;height:70vh;margin:0;padding:0;border:0;border-top:1px solid var(--teal-dim);background:var(--panel);color:var(--ink);z-index:20;display:none;flex-direction:column;box-shadow:0 -30px 80px #000c}
+.hud-drawer[open]{display:flex}
+.hud-drawer-head{display:flex;align-items:center;gap:8px;padding:8px 16px;border-bottom:1px solid var(--line);flex:none}
+.hud-drawer-nav{display:flex;gap:4px;flex-wrap:wrap}
+.hud-drawer-nav button,.hud-drawer-close{font:12px var(--mono);letter-spacing:.08em;padding:6px 10px;background:none;border:1px solid transparent;color:var(--muted);border-radius:3px}
+.hud-drawer-nav button.on{border-color:var(--teal-dim);color:var(--ink);background:var(--surface)}.hud-drawer-close{margin-left:auto;border-color:var(--line)}
+.hud-drawer-body{flex:1;min-height:0;overflow:auto;padding:14px 18px}
+/* dialogs */
+.hud-dialog,.hud-app #detail-dialog{color:var(--ink);background:var(--surface);border:1px solid var(--line);border-top:2px solid var(--teal);border-radius:6px;max-height:90vh;padding:20px 22px;box-shadow:0 30px 90px #000c}
+.hud-dialog{width:min(720px,94vw)}
+.hud-dialog::backdrop,.hud-app #detail-dialog::backdrop{background:#02060abb;backdrop-filter:blur(5px)}
+.hud-dialog-head{display:flex;align-items:center;justify-content:space-between;gap:8px;font:12px var(--mono);letter-spacing:.2em;color:var(--accent-ink)}
+.hud-dialog-head button,.hud-dialog button,.hud-app #detail-dialog button{font:12px var(--mono);padding:7px 11px;background:var(--surface);border:1px solid var(--line);color:var(--ink);border-radius:3px;cursor:pointer}
+.hud-dialog button:hover{border-color:var(--accent-ink)}.hud-dialog button:disabled{opacity:.4}
+.hud-dialog h2{font:600 22px var(--sans);letter-spacing:-.02em;margin:12px 0 4px}.hud-dialog h3{font:12px var(--mono);letter-spacing:.2em;color:var(--muted);margin:18px 0 8px}
+.hud-muted{font:12px/1.6 var(--sans);color:var(--muted);margin:0}
+.hud-checklist{list-style:none;padding:0;margin:12px 0;counter-reset:c}
+.hud-checklist li{counter-increment:c;display:flex;align-items:center;gap:12px;padding:9px 0;border-top:1px solid var(--line)}
+.hud-checklist li:before{content:counter(c,decimal-leading-zero);font:16px var(--mono);color:var(--teal-dim)}.hud-checklist li>div{flex:1}
+.hud-checklist strong{display:block;font:500 12px var(--sans)}.hud-checklist span{font:12px var(--mono);color:var(--muted)}
+.hud-check-state{font:12px var(--mono)!important;letter-spacing:.14em;text-transform:uppercase}
+.hud-checklist li[data-state=observed] .hud-check-state{color:var(--ok-ink)}.hud-checklist li[data-state=review] .hud-check-state{color:var(--heat-ink)}
+.hud-calibrations{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.hud-command-status{font:12px/1.6 var(--mono);color:var(--ink);border-top:1px solid var(--line);padding-top:10px;margin:12px 0 0}
+.hud-jog-pos{font:12px var(--mono);color:var(--muted);margin:6px 0 10px}
+.hud-jog-pad{display:grid;grid-template-columns:repeat(4,58px);grid-auto-rows:58px;gap:6px;margin:12px 0}
+.hud-jog-pad button{font:600 13px var(--mono);border-radius:6px}.hud-jog-pad button:empty{visibility:hidden}
+.hud-jog-pad button.z{background:var(--surface);border-color:#25455a}.hud-jog-pad button.home{border-color:var(--teal-dim);color:var(--accent-ink);font-size:18px}
+.hud-confirm{display:flex;align-items:center;gap:10px;padding:10px;border:1px solid var(--heat);border-radius:4px;margin-top:10px;font:12px var(--sans)}.hud-confirm strong{flex:1}
+.hud-color-groups{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:12px 0}
+.hud-color-row{display:flex;align-items:center;gap:8px;font:12px var(--sans);padding:6px 8px;border:1px solid var(--line);border-radius:3px}.hud-color-row small{color:var(--muted);margin-left:auto}
+.hud-color-row input{width:34px;height:24px;border:0;background:none;padding:0}
+.hud-color-status{font:12px var(--mono);color:var(--muted)}
+/* component popup */
+.hud-app #detail-dialog{width:min(1080px,95vw);max-width:none}
+.hud-app #detail-dialog>.section-head{align-items:center;border-bottom:1px solid var(--line);padding-bottom:10px;margin-bottom:12px}
+.hud-app #detail-dialog #detail-title{font:600 20px var(--sans);margin:4px 0}.hud-app #detail-dialog #detail-eyebrow{font:12px var(--mono);letter-spacing:.2em;color:var(--accent-ink)}
+.hud-app #detail-dialog #detail-basis{font:12px var(--mono);color:var(--muted);margin:0 0 10px}
+.hud-app #detail-parts{display:none}.hud-app #detail-focus{border-color:var(--teal-dim)!important;color:var(--accent-ink)!important}
+.hud-app #detail-dialog .detail-grid{grid-template-columns:minmax(0,.9fr) minmax(0,1.2fr);gap:18px}
+.hud-app #detail-dialog .detail-grid>.card{min-width:0;padding:0;border:0;background:none;box-shadow:none}
+.hud-part-model{height:300px;position:relative;border:1px solid var(--line);background:var(--surface);border-radius:4px;overflow:hidden}
+.hud-part-model:after{content:attr(data-size);position:absolute;bottom:8px;left:10px;font:12px var(--mono);color:var(--muted)}
+.hud-part-model canvas{display:block;width:100%;height:100%;touch-action:none}
+.hud-part-camera{display:flex;gap:5px;flex-wrap:wrap;padding:8px 0}.hud-part-camera button:nth-child(-n+2){font-size:14px;min-width:30px}
+.hud-binding-note{font:12px var(--mono);color:var(--muted);margin:8px 0}
+.hud-raw-signal{display:flex;justify-content:space-between;gap:10px;font:12px var(--mono);padding:3px 0;color:var(--muted)}.hud-raw-signal b{color:var(--ink);font-weight:500}
+.hud-part-specs{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;font:12px var(--mono);margin:8px 0}.hud-part-specs dt{color:var(--muted)}.hud-part-specs dd{margin:0;color:var(--ink);overflow-wrap:anywhere}
+.hud-source-link{font:12px var(--mono);color:var(--accent-ink)}
+/* fullscreen: header goes away, everything else is already the HUD */
+.hud-app .cockpit:fullscreen{background:var(--bg)}
+/* video-game frame: corner brackets and a nozzle reticle that tracks the toolhead */
+.hud-app .canvas-wrap:before{content:'';position:absolute;inset:14px;pointer-events:none;z-index:2;
+ background:
+  linear-gradient(var(--rim,#2ee6cf),var(--rim,#2ee6cf)) left top/26px 1px no-repeat,
+  linear-gradient(var(--rim,#2ee6cf),var(--rim,#2ee6cf)) left top/1px 26px no-repeat,
+  linear-gradient(var(--rim,#2ee6cf),var(--rim,#2ee6cf)) right top/26px 1px no-repeat,
+  linear-gradient(var(--rim,#2ee6cf),var(--rim,#2ee6cf)) right top/1px 26px no-repeat,
+  linear-gradient(var(--rim,#2ee6cf),var(--rim,#2ee6cf)) left bottom/26px 1px no-repeat,
+  linear-gradient(var(--rim,#2ee6cf),var(--rim,#2ee6cf)) left bottom/1px 26px no-repeat,
+  linear-gradient(var(--rim,#2ee6cf),var(--rim,#2ee6cf)) right bottom/26px 1px no-repeat,
+  linear-gradient(var(--rim,#2ee6cf),var(--rim,#2ee6cf)) right bottom/1px 26px no-repeat;
+ opacity:.55}
+.hud-reticle{left:0;top:0;width:0;height:0;z-index:2;opacity:0;transition:opacity .3s}
+.hud-reticle[data-on="1"]{opacity:.9}
+/* The ring and crosshair that used to sit over the head are gone: the user 2026-09-21, "don't
+   get why they're there." The Z readout stays on the same anchor, now with nothing around it. */
+.hud-reticle-text{position:absolute;left:14px;top:-8px;font:12px var(--mono);letter-spacing:.14em;color:var(--rim,var(--teal));white-space:nowrap;text-shadow:0 0 10px #000}
+@media(max-width:760px){.hud-app .canvas-wrap:before{inset:8px}.hud-reticle-text{display:none}}
+
+/* --- pass 3 additions, in the same visual language as the rest of this sheet --- */
+.hud-jogrow{grid-column:1/-1;display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-top:0;padding-top:8px;border-top:1px solid var(--line)}
+.hud-row-label{font:12px var(--mono);letter-spacing:.12em;color:var(--accent-ink)}
+.hud-step-chips{display:flex;gap:3px;margin-right:8px}
+.hud-step-chips button{flex:0 0 auto;font:12px var(--mono);padding:6px 9px;opacity:.5}
+.hud-step-chips button.on{opacity:1;border-color:var(--accent-ink);color:var(--ink);background:var(--surface)}
+.hud .hud-jog{flex:0 0 auto;font:600 12px var(--mono);padding:9px 8px;min-width:40px}
+.hud .hud-jog.wide{min-width:54px;border-color:var(--teal-dim);color:var(--accent-ink)}
+.hud-danger{background:#3a0d1f!important;border-color:var(--fault-ink)!important;color:#ffd2e6!important}
+.hud-offline{top:64px;left:50%;transform:translateX(-50%);display:none;align-items:center;gap:10px;max-width:min(650px,52vw);
+ padding:7px 12px;border:1px solid var(--heat);border-left-width:3px;border-radius:3px;background:var(--surface);pointer-events:auto}
+.hud-offline[data-on="1"]{display:flex}
+.hud-offline strong{font:600 12px var(--mono);letter-spacing:.14em;color:var(--heat-ink);white-space:nowrap}
+.hud-offline span{font:12px/1.5 var(--sans);color:var(--ink)}
+/* modals: same panel treatment as the existing dialogs */
+.hud-modal{border:0;padding:0;background:none;max-width:none;max-height:none;width:100%;height:100%;overflow:visible}
+.hud-modal::backdrop{background:#010812ba;backdrop-filter:blur(4px)}
+.hud-modal-inner{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(760px,92vw);max-height:88vh;display:flex;flex-direction:column;
+ background:var(--panel);border:1px solid var(--line);border-top:2px solid var(--teal);border-radius:6px;box-shadow:0 24px 90px #000a}
+.hud-modal.wide .hud-modal-inner{width:min(1040px,94vw)}
+.hud-modal-head{display:flex;align-items:center;gap:10px;padding:16px 20px 12px;border-bottom:1px solid var(--line);flex:none}
+.hud-modal-head h2{font:550 22px var(--sans);letter-spacing:-.02em;margin:0;flex:none}
+.hud-modal-chips{display:flex;gap:4px;flex:1;flex-wrap:wrap;justify-content:center}
+.hud-chip{font:12px var(--mono)!important;padding:5px 9px!important;opacity:.5}
+.hud-chip.on{opacity:1;border-color:var(--accent-ink)!important;color:var(--ink)!important}
+.hud-modal-close{margin-left:auto}
+.hud-modal-body{padding:16px 20px 20px;overflow:auto;display:grid;gap:10px;align-content:start}
+.hud-modal-body h3{font:12px var(--mono);letter-spacing:.2em;color:var(--muted);margin:8px 0 0}
+.hud-modal-note{font:12px/1.6 var(--sans);color:var(--muted);margin:0;max-width:74ch}
+.hud-modal button{font:12px var(--mono);padding:9px 13px;background:var(--surface);border:1px solid var(--line);color:var(--ink);border-radius:3px;cursor:pointer}
+.hud-modal button:hover{border-color:var(--accent-ink);color:var(--ink)}
+.hud-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.hud-num{width:110px;font:500 18px var(--mono);background:var(--surface);border:1px solid var(--line);color:var(--ink);padding:8px 10px;border-radius:3px}
+.hud-gcode{display:block;font:12px var(--mono);color:var(--muted);background:var(--surface);border-left:2px solid var(--teal-dim);padding:8px 10px;overflow-wrap:anywhere}
+.hud-material-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:6px}
+.hud-material{display:grid!important;gap:3px;padding:11px 12px!important;text-align:left}
+.hud-material strong{font:550 16px var(--sans);color:var(--ink)}
+.hud-material small{font:12px var(--mono);color:var(--muted)}
+.hud-zoffset{display:grid;gap:6px}.hud-zoffset>strong{font:400 28px var(--mono);color:var(--ink)}
+.hud-console-log{height:min(52vh,460px);overflow:auto;background:var(--surface);border:1px solid var(--line);border-radius:3px;padding:12px;font:12px/1.6 var(--mono);display:grid;align-content:start;gap:2px}
+.hud-console-line{white-space:pre-wrap;overflow-wrap:anywhere;color:var(--ink)}
+.hud-console-line.past{color:var(--muted)}.hud-console-line.sent{color:var(--accent-ink)}.hud-console-line.ok{color:var(--ink)}.hud-console-line.bad{color:var(--fault-ink)}
+.hud-console-input{flex:1;min-width:220px;font:13px var(--mono);background:var(--surface);border:1px solid var(--line);color:var(--ink);padding:10px 12px;border-radius:3px}
+.hud-macro-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:5px;max-height:48vh;overflow:auto}
+.hud-macro-list button{text-align:left;font-size:12px}
+.hud-file-list{display:grid;gap:4px;max-height:46vh;overflow:auto}
+.hud-file{display:grid!important;gap:2px;text-align:left;padding:9px 12px!important}
+.hud-file strong{font:500 12px var(--sans);color:var(--ink);overflow-wrap:anywhere}
+.hud-file small{font:12px var(--mono);color:var(--muted)}
+.hud-mesh-canvas,.hud-chart{width:100%;height:min(44vh,360px);border:1px solid var(--line);border-radius:3px;background:var(--surface);overflow:hidden}
+.hud-mesh-canvas canvas,.hud-chart canvas{display:block;width:100%;height:100%;touch-action:none}
+.hud-facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;background:var(--line);border:1px solid var(--line)}
+.hud-fact{background:var(--surface);padding:10px 12px;display:grid;gap:3px}
+.hud-fact>span{font:12px var(--mono);letter-spacing:.16em;color:var(--muted)}
+.hud-fact>strong{font:500 18px var(--mono);color:var(--ink)}
+.hud-fact>small{font:12px/1.45 var(--mono);color:var(--muted)}
+.hud-more-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:6px}
+.hud-more{display:grid!important;gap:3px;text-align:left;padding:14px 16px!important}
+.hud-more strong{font:550 15px var(--sans);color:var(--ink)}
+.hud-more small{font:12px var(--mono);color:var(--muted)}
+.hud-header-tools{display:flex;gap:5px}
+.hud-header-tools button{font:12px var(--mono);padding:7px 11px;background:var(--surface);border:1px solid var(--line);color:var(--ink);border-radius:3px;cursor:pointer}
+.hud-header-tools button:hover{border-color:var(--accent-ink);color:var(--ink)}
+.hud-back{position:absolute;left:18px;top:108px;z-index:4;font:12px var(--mono)!important;padding:9px 13px!important;border-color:var(--teal-dim)!important;color:var(--accent-ink)!important}
+
+/* The canvas container has no glass surface to blur. */
+.hud-app .viewer{backdrop-filter:none;-webkit-backdrop-filter:none}
+/* Chromium retained pre-toggle button pixels with the inherited color transition.
+   Theme changes are immediate; computed-color checks alone missed this defect. */
+.hud-app button,.hud-gauge-track i{transition:none}
+.hud-app :is(button,input,select,textarea){color:var(--ink)}
+.hud-app :is(input,select,textarea){background:var(--surface);border-color:var(--line)}
+.hud-app [hidden]{display:none!important}
+.hud-app .brand-word{color:var(--ink)}
+.hud-app .brand-word small{color:var(--muted)}
+.hud-app .header-actions{gap:8px}
+.hud-header-tools button{min-height:34px;white-space:nowrap}
+.hud-app .badge{font-size:11px;letter-spacing:.04em;white-space:nowrap}
+.hud-machine-spec,.hud-state-pill,.hud-fresh,.hud-job-meta,.hud-readiness{font-size:11px}
+.hud-jobstrip{top:12px;width:min(520px,42vw)}
+.hud-state-row{flex-wrap:wrap;max-width:260px}
+.hud-gauge-label,.hud-rail-title,.hud-gauge-note,.hud-row-label{font-size:12px}
+.hud-rail-title{opacity:1;color:var(--accent-ink)}
+.hud-rail.left .hud-rail-title{color:var(--heat-ink)}
+.hud .hud-gauge-value{color:var(--ink);background:none;box-shadow:none;text-shadow:none;transition:none}
+.hud-gauge-head{min-width:0}
+.hud-rail.right .hud-gauge{width:100%}
+.hud-rail.right .hud-gauge-head{flex-direction:row}
+.hud-rail.right .hud-gauge-label{font-size:11px;letter-spacing:.04em}
+.hud .hud-fan-row{font-size:11px;letter-spacing:.02em;width:100%;justify-content:space-between;gap:6px}
+.hud-fan-row strong{font-weight:600}
+.hud-gauge-track{background:var(--track)}
+.hud-gauge-track i.target{outline-color:var(--ink)}
+.hud-bottom .hud-gauge-track i.target{outline-color:var(--ink);box-shadow:none}
+.hud-gauge-note{letter-spacing:0;opacity:1;overflow-wrap:anywhere}
+.hud-bottom .hud-gauge-note{font-size:11px;letter-spacing:.04em;opacity:1}
+.hud-motion .hud-axis strong{font-variant-numeric:tabular-nums;text-shadow:none}
+.hud-axis span,.hud-homed,.hud-velocity{font-size:11px;letter-spacing:.04em}
+.hud-selection{max-width:230px;margin-right:0;padding-right:8px;opacity:1}
+.hud-selection>span{font-size:11px}
+.hud-selection button{padding:7px;font-size:11px}
+.hud-step-chips{margin-right:2px}
+.hud-step-chips button{padding:7px 6px;font-size:11px;opacity:1;color:var(--muted)}
+.hud-step-chips button.on{color:var(--ink);background:var(--panel);border-color:var(--teal)}
+.hud-actions{margin-left:auto;gap:5px}
+.hud-jogrow{gap:5px}
+.hud-jogrow>.hud-jog{flex:1}
+.hud-bottom>.hud-gauge :is(.hud-presets,.hud-gauge-note){display:none}
+.hud-view-cube polygon{fill:var(--surface);stroke:var(--accent-ink)}
+.hud-view-cube text{fill:var(--ink)}
+.hud-view-cube g:hover polygon{fill:var(--panel);stroke:var(--teal)}
+.hud-offline{gap:8px}
+.hud-offline strong{font-size:11px;letter-spacing:.04em;color:var(--heat-ink)}
+.hud-offline span{font-size:12px}
+.hud-toast{position:fixed;z-index:30;bottom:210px;max-width:min(620px,90vw);overflow-wrap:anywhere}
+.hud-app .transport button,.hud-app .transport select{font-size:11px;background:var(--surface);color:var(--ink);border-color:var(--line)}
+.hud-app .transport label.inline,.hud-app .transport #cursor-time{font-size:11px;color:var(--muted);letter-spacing:0}
+.hud-app .transport #cursor{min-width:70px}
+.hud-app .transport .transport-row{min-width:0}
+.hud-modal{color:var(--ink);box-shadow:none;backdrop-filter:none;-webkit-backdrop-filter:none;inset:0;margin:0}
+.hud-modal::backdrop,.hud-dialog::backdrop,.hud-app #detail-dialog::backdrop,.hud-drawer::backdrop{background:#080c0db3;backdrop-filter:blur(3px)}
+.hud-modal-inner{max-height:calc(100dvh - 40px);color:var(--ink)}
+.hud-modal-head{flex-wrap:wrap;padding:14px 18px;gap:8px}
+.hud-modal-head h2{font-size:22px;flex:1;min-width:0;overflow-wrap:anywhere}
+.hud-modal-close{min-width:40px;min-height:40px}
+.hud-modal-chips:empty{display:none}
+.hud-modal-chips{order:3;flex-basis:100%;justify-content:flex-start;max-height:90px;overflow:auto}
+.hud-chip{font-size:11px!important;opacity:1;color:var(--muted)!important}
+.hud-chip.on{color:var(--ink)!important}
+.hud-modal-body{min-height:0;overscroll-behavior:contain}
+.hud-modal button,.hud-dialog button,.hud-app #detail-dialog button{font-size:12px;min-height:36px}
+.hud-modal-note,.hud-muted,.hud-command-status{font-size:13px;line-height:1.55;overflow-wrap:anywhere}
+.hud-modal-body h3,.hud-dialog h3{font-size:12px;color:var(--accent-ink)}
+.hud-gcode{font-size:13px;white-space:pre-wrap;color:var(--ink);margin:0}
+.hud-command-feedback{font:13px/1.55 var(--sans);margin:0;padding:10px 12px;background:var(--surface);border-left:2px solid var(--accent-ink);overflow-wrap:anywhere}
+.hud-command-feedback[data-state=refused]{border-color:var(--orange);color:var(--heat-ink)}
+.hud-command-feedback[data-state=reported]{border-color:var(--green);color:var(--ink)}
+.hud-dialog,.hud-app #detail-dialog{background:var(--panel);max-height:calc(100dvh - 32px);overflow:auto;color:var(--ink)}
+.hud-dialog-head,.hud-binding-note,.hud-part-specs,.hud-color-row,.hud-check-state{font-size:12px!important;letter-spacing:.04em}
+.hud-dialog .hud-checklist strong{font-size:14px}
+.hud-dialog .hud-checklist span{font-size:12px}
+.hud-app #detail-dialog :is(#detail-eyebrow,#detail-basis){font-size:12px;overflow-wrap:anywhere}
+.hud-part-model{background:var(--surface)}
+.hud-color-row{min-width:0;flex-wrap:wrap}
+.hud-drawer{background:var(--panel);height:min(80dvh,900px);bottom:0;border-color:var(--line);color:var(--ink)}
+.hud-drawer-nav button,.hud-drawer-close{font-size:12px;min-height:36px;color:var(--ink)}
+.hud-drawer-head{align-items:flex-start}
+.hud-drawer-nav{min-width:0}
+.hud-drawer-body{overscroll-behavior:contain}
+.hud-drawer :is(.card,.ipanel){background:var(--panel);border-color:var(--line)}
+.hud-app #hud-drawer :is(label,small,summary,pre,th,td,.eyebrow,.hint,.sig-hint,.sig-fact span,.sig-name,.sig-chip,.sig-val,.sig-prov,.elec-hint,.inv-hint,.elec-note){font-size:12px;letter-spacing:.02em}
+.hud-app #hud-drawer :is(.ipanel .row span,.kv span,.stat-grid span,.facts span,.sources,.lev-sub,.lev-status,.td-coverage,.td-kind,.wl-tag,time,.empty,article,.diagnosis .evidence,#book-status,#catalogue-note){font-size:12px;letter-spacing:.02em}
+.hud-app #hud-drawer :is(button,input,select,textarea){font-size:12px;background:var(--surface)}
+.hud-app #hud-drawer :is(h2,h4){font-size:14px;letter-spacing:.04em}
+.hud-app #hud-drawer :is(a,.sig-row.active .sig-name,.sig-row.active .sig-val,.sig-chip.k-sensor){color:var(--accent-ink);text-shadow:none}
+.hud-app #hud-drawer .sig-chip.k-command{color:var(--heat-ink)}
+.hud-app #hud-drawer .sig-chip.k-motion{color:var(--ok-ink)}
+.hud-app #hud-drawer .sig-chip.k-stats{color:var(--fault-ink)}
+.hud-app[data-theme=light] .hud-drawer :is(h1,h2,h3,h4,strong,b,td,th,summary,button){color:var(--ink)}
+.hud-app[data-theme=light] .hud-drawer :is(p,small,label,dt,.hint){color:var(--muted)}
+.hud-app[data-theme=light] .hud-drawer :is(table,pre,.sig-readout,.sig-history){background:var(--surface);color:var(--ink)}
+.hud-app[data-theme=light] .hud-emergency:disabled{opacity:.6}
+.hud-app[data-theme=light] .hud-reticle-text{text-shadow:none;color:var(--accent-ink)}
+@media(max-width:1400px) and (min-width:761px){
+ .hud-app header .machine-label{max-width:270px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+ .hud-bottom{grid-template-columns:245px minmax(0,1fr) minmax(0,1fr);gap:8px 18px;padding:10px 16px}
+ .hud-selection{max-width:190px}.hud-selection>span{max-width:90px}
+ .hud-actions button{min-width:64px;padding:9px 8px}
+ .hud-jogrow{gap:4px}.hud .hud-jog{min-width:38px;padding:9px 7px}
+ .hud .hud-jog.wide{min-width:46px}
+ .hud-offline{top:70px;max-width:55vw}
+ .hud-app .transport button{padding:4px 6px}
+}
+@media(max-width:760px){
+ .hud-app{height:100dvh;overflow:hidden}
+ .hud-app header{height:auto;min-height:88px;display:grid;grid-template-columns:1fr auto;gap:7px 10px;padding:8px 10px;position:relative}
+ .hud-app .brand{grid-column:1;grid-row:1}.hud-app .brand-word{font-size:17px}
+ .hud-app .brand-word small,.hud-app header .machine-label,.hud-app .badge,.hud-app #led-transport{display:none}
+ .hud-app .header-actions{display:contents}
+ .hud-emergency{grid-column:2;grid-row:1;min-height:32px;padding:6px 14px}
+ .hud-header-tools{grid-column:1/-1;grid-row:2;display:grid;grid-template-columns:1fr 1fr 1fr 1.35fr 1fr;gap:4px}
+ .hud-header-tools button{padding:7px 3px;font-size:11px;min-height:34px}
+ .hud-app main{overflow:auto;overscroll-behavior:contain;padding-bottom:8px}
+ .hud-app #page-machine,.hud-app .cockpit,.hud-app .viewer{position:relative;inset:auto}
+ .hud-app .viewer{display:grid;grid-template-columns:minmax(0,1fr);padding:0 12px;gap:14px}
+ .hud-app .canvas-wrap{position:relative;inset:auto;order:0;margin:130px -12px 0;height:36dvh;min-height:280px}
+ .hud-app .canvas-wrap:before{inset:6px}
+ .hud-heading{top:12px;left:14px;gap:3px}.hud-machine-name{font-size:21px;letter-spacing:.16em}
+ .hud-machine-spec,.hud-readiness{display:none}.hud-state-row{margin-top:3px;gap:6px}
+ .hud-state-pill,.hud-fresh{font-size:11px}
+ .hud-jobstrip{top:74px;left:14px;right:14px;width:auto;transform:none;text-align:left}
+ .hud-job-name{font-size:13px;max-width:100%}.hud-job-meta{font-size:11px}
+ .hud-viewbox{top:12px;right:12px;display:flex}.hud-view-cube{display:none}
+ .hud-zoom button{min-width:30px;min-height:30px}
+ .hud-offline{position:relative;inset:auto;transform:none;order:1;max-width:none;flex-wrap:wrap;margin:0;gap:4px;padding:8px 10px}
+ .hud-offline span{font-size:12px;line-height:1.4}
+ .hud-rail,.hud-rail.left,.hud-rail.right{position:relative;inset:auto;width:auto;order:2;gap:9px 14px;grid-template-columns:repeat(2,minmax(0,1fr));justify-items:stretch}
+ .hud-rail-title{grid-column:1/-1;margin:0;font-size:11px}
+ .hud-rail .hud-gauge-note{display:block;font-size:11px;line-height:1.4}
+ .hud .hud-gauge-value{font-size:28px}.hud-gauge-label{font-size:11px;letter-spacing:.08em}
+ .hud-rail.right{order:3}.hud-rail.right .hud-gauge{text-align:left;grid-row:2/4}
+ .hud .hud-fan-row{display:flex;font-size:11px;gap:5px;min-height:34px;grid-column:2}
+ .hud-fan{width:23px;height:23px}.hud-fan-row strong{font-size:14px;min-width:26px}
+ .hud-bottom{position:relative;inset:auto;order:4;padding:12px 0 0;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 14px;background:none}
+ .hud-motion{grid-column:1/-1;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px 14px}
+ .hud-axis strong{font-size:28px}.hud-velocity{grid-column:2/4;justify-self:start}
+ .hud-bottom .hud-gauge-head{justify-content:space-between;gap:4px}
+ .hud-bottom .hud-gauge-value{font-size:28px}.hud-bottom .hud-gauge-label{font-size:11px}
+ .hud-bottom .hud-presets{display:none}
+ .hud-jogrow{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px;padding-top:12px}
+ .hud-selection{grid-column:1/-1;max-width:none;border:0;margin:0;padding:0}.hud-selection>span{max-width:none;flex:1}
+ .hud-row-label{grid-column:1/3}.hud-step-chips{grid-column:3/-1;justify-content:flex-end;margin:0}
+ .hud-step-chips button{flex:1;min-height:36px}
+ .hud .hud-jog{grid-column:span 2;min-width:0;min-height:42px;padding:8px}
+ .hud .hud-jogrow>.hud-jog:nth-of-type(-n+6){grid-column:span 1;padding:8px 3px}
+ .hud-actions{grid-column:1/-1;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));width:100%;gap:6px;margin:2px 0 0}
+ .hud-actions button{min-width:0;min-height:42px;padding:8px 3px;font-size:11px}
+ .hud-app .transport{position:relative;flex:none;height:76px;flex-direction:column;align-items:stretch;gap:5px;padding:7px 10px}
+ .hud-app .transport .transport-row{flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;min-height:30px;flex:1;white-space:nowrap;scrollbar-width:thin}
+ .hud-app .transport .transport-row>*{flex-shrink:0}.hud-app .transport button{min-height:28px}
+ .hud-app .transport #cursor{flex:none;width:100%;height:18px}
+ .hud-toast{bottom:90px;top:auto;max-width:calc(100vw - 24px);width:max-content}
+ .hud-back{top:134px;left:12px;font-size:11px!important;padding:7px!important}
+ .hud-modal-inner,.hud-modal.wide .hud-modal-inner{width:calc(100vw - 20px);max-height:calc(100dvh - 20px)}
+ .hud-modal-head{padding:10px 12px}.hud-modal-head h2{font-size:20px}
+ .hud-modal-body{padding:12px;gap:12px}.hud-modal button{padding:8px 10px;min-height:40px}
+ .hud-row{gap:7px}.hud-num{width:95px;min-height:40px}.hud-console-input{min-width:0;width:100%;flex:1 1 180px}
+ .hud-material-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+ .hud-material{padding:9px!important}.hud-material small{font-size:11px}
+ .hud-dialog,.hud-app #detail-dialog{width:calc(100vw - 20px);max-width:none;max-height:calc(100dvh - 20px);padding:14px}
+ .hud-app #detail-dialog .detail-grid{grid-template-columns:1fr}.hud-part-model{height:220px}
+ .hud-app #detail-dialog>.section-head{flex-wrap:wrap}.hud-app #detail-dialog .button-row{flex-wrap:wrap}
+ .hud-color-groups{grid-template-columns:1fr}.hud-checklist li{flex-wrap:wrap;gap:8px}
+ .hud-jog-pad{grid-template-columns:repeat(4,minmax(0,1fr));grid-auto-rows:48px;width:100%;gap:6px}
+ .hud-confirm{flex-wrap:wrap}
+ .hud-drawer{height:92dvh;max-height:92dvh}.hud-drawer-head{padding:10px;gap:5px}
+ .hud-drawer-nav{max-height:none;gap:3px}.hud-drawer-nav button{padding:6px;font-size:11px}
+ .hud-drawer-close{padding:6px;min-width:48px}.hud-drawer-body{padding:12px}
+}
+@media(prefers-reduced-motion:reduce){.hud-app *{animation:none!important;transition:none!important}}
+
+/* --- 2026-09-20 one-block heading, compact colour-coded jog, rails clear the zoom buttons --- */
+.hud-heading{top:14px;left:20px;display:grid;gap:6px;max-width:none}
+.hud-ident{display:flex;align-items:baseline;gap:12px;white-space:nowrap}
+.hud-machine-name{font:700 24px/1 var(--sans);letter-spacing:.24em}
+.hud-machine-spec{display:inline;font:11px var(--mono);letter-spacing:.18em;color:var(--muted)}
+.hud-state-row{display:flex;flex-wrap:nowrap;max-width:none;gap:10px;align-items:center;margin:0}
+.hud-readiness{display:inline;font:11px var(--mono);color:var(--muted);letter-spacing:.08em}
+.hud-readiness:not(:empty):before{content:'·';margin-right:10px;color:var(--line)}
+.hud-rail{top:156px}
+.hud .hud-jog{min-width:36px;min-height:30px;padding:5px 7px;font:600 12px var(--mono);letter-spacing:.04em;border-width:1px;background:var(--surface)}
+.hud .hud-jog.axis-x{--ax:#ff6b6b}.hud .hud-jog.axis-y{--ax:#5ef29a}.hud .hud-jog.axis-z{--ax:#6db8ff}
+.hud .hud-jog[class*=axis-]{color:var(--ax);border-color:color-mix(in srgb,var(--ax) 55%,transparent);box-shadow:inset 0 -2px 0 var(--ax)}
+.hud .hud-jog[class*=axis-]:hover{background:color-mix(in srgb,var(--ax) 18%,var(--surface));color:var(--ink)}
+.hud .hud-jog.wide{min-width:52px}
+@media(min-width:761px){
+ .hud-jogrow{display:flex;gap:4px;padding-top:8px}
+ .hud .hud-jogrow>.hud-jog{flex:0 0 auto;grid-column:auto}
+ .hud-actions{display:flex;width:auto;margin-left:auto;gap:4px}.hud-actions button{min-height:30px;padding:5px 9px;font-size:11px}
+}
+@media(max-width:760px){.hud-ident{flex-direction:column;gap:2px}.hud-machine-spec{display:none}}
+.hud-flow-math{font:12px/1.6 var(--mono);color:var(--muted);padding:8px 10px;border:1px solid var(--line);border-left-width:3px;margin:6px 0}
+.hud-flow-math strong{color:var(--ink);font-size:14px}
+.hud-flow-math[data-state=reported]{border-left-color:var(--ok)}.hud-flow-math[data-state=refused]{border-left-color:var(--fault)}
+/* --- pass 4: resonance, histories, presets, config edit, files --- */
+.hud-chart{display:block;width:100%;height:260px;background:rgba(10,22,28,.35);border:1px solid var(--line);margin:6px 0}
+.hud-run-list{display:grid;gap:4px;max-height:160px;overflow:auto;margin-bottom:8px}
+.hud-shaper-table{width:100%;border-collapse:collapse;font:12px var(--mono);margin:8px 0}
+.hud-shaper-table caption{text-align:left;color:var(--muted);padding:4px 0;caption-side:top}
+.hud-shaper-table th,.hud-shaper-table td{padding:5px 8px;border-bottom:1px solid var(--line);text-align:right}
+.hud-shaper-table th:first-child,.hud-shaper-table td:first-child{text-align:left}
+.hud-shaper-table tr.best td{color:var(--ink);background:rgba(46,230,207,.08)}
+.hud-shaper-table tr.best td:first-child:after{content:' · recommended';color:var(--accent-ink)}
+.hud-diff{font:12px/1.5 var(--mono);white-space:pre-wrap;padding:8px 10px;border:1px solid var(--line);background:rgba(10,22,28,.45);max-height:220px;overflow:auto;margin:6px 0}
+.hud-preset-table .hud-row{grid-template-columns:1fr 90px 90px 34px;display:grid;gap:6px;align-items:center}
+.hud-preset-head span{font:11px var(--mono);letter-spacing:.1em;color:var(--muted)}
+.hud-preset-head{display:grid;grid-template-columns:1fr 90px 90px 34px;gap:6px}
+.hud-file-row{display:flex;gap:4px;align-items:stretch}.hud-file-row>.hud-file{flex:1;min-width:0}
+.hud-evidence{display:flex;flex-wrap:wrap;gap:3px;grid-column:1/-1;margin-top:3px}.hud-evidence button{font-size:11px;padding:2px 6px}
+.hud-history .hud-fact{position:relative}
+.hud-queue .hud-fact{align-items:center}
+.hud-select{font:13px var(--mono);background:var(--surface);border:1px solid var(--line);color:var(--ink);padding:5px 8px;border-radius:3px}
+.hud-loaded:not(:empty){font:600 11px var(--mono);letter-spacing:.1em;color:var(--accent-ink);padding:3px 8px;border:1px solid var(--teal-dim);border-radius:2px}
+/* --- upright bars side by side, one colour per fan, arrows on the jog buttons --- */
+.hud-rail{top:150px;width:auto;gap:8px}
+.hud-rail-row{display:flex;gap:14px;align-items:flex-end}
+.hud-rail.right .hud-rail-row{flex-direction:row-reverse}
+.hud .hud-gauge.vertical{display:grid;justify-items:center;gap:4px;width:66px;text-align:center}
+.hud .hud-gauge.vertical .hud-gauge-head{flex-direction:column;align-items:center;gap:0}
+.hud .hud-gauge.vertical .hud-gauge-value{font-size:24px}
+.hud .hud-gauge.vertical .hud-gauge-label{font-size:10px;letter-spacing:.14em;color:var(--muted)}
+.hud .hud-gauge.vertical .hud-gauge-track{flex-direction:column-reverse;height:clamp(140px,26vh,230px);width:24px;padding:3px;gap:2px;border-radius:3px}
+.hud .hud-gauge.vertical .hud-gauge-track i{flex:1;width:100%}
+.hud .hud-gauge.vertical .hud-gauge-note{font-size:10px;line-height:1.3;max-width:66px;white-space:normal}
+.hud .hud-gauge.vertical .hud-presets{display:none}
+.hud .hud-gauge.vertical .hud-fan{width:22px;height:22px}
+/* --- controller fan on a short row underneath, one colour per gauge --- */
+.hud-rail-row.under{margin-top:2px}
+.hud .hud-rail-row.under .hud-gauge.vertical .hud-gauge-track{height:clamp(56px,9vh,84px)}
+.hud .hud-rail-row.under .hud-gauge.vertical .hud-gauge-value{font-size:17px}
+.hud-gauge[data-fan=part]{--c:var(--teal)}.hud-gauge[data-fan=hotend]{--c:#6db8ff}.hud-gauge[data-fan=controller]{--c:#c48bff}
+.hud-gauge[data-heat=nozzle]{--c:var(--orange)}.hud-gauge[data-heat=bed]{--c:#f5b32d}
+.hud .hud-gauge.vertical .hud-gauge-value:not(.pending){color:var(--c,var(--ink))}
+.hud-gauge[data-fan=part] .hud-fan[data-on="1"] path{fill:var(--teal);filter:drop-shadow(0 0 4px var(--teal))}
+.hud-gauge[data-fan=hotend] .hud-fan[data-on="1"] path{fill:#6db8ff;filter:drop-shadow(0 0 4px #6db8ff)}
+.hud-gauge[data-fan=controller] .hud-fan[data-on="1"] path{fill:#c48bff;filter:drop-shadow(0 0 4px #c48bff)}
+.hud-gauge[data-kind=heat] .hud-gauge-value.pending{color:var(--heat-ink)}
+.hud .hud-jog[class*=axis-]{display:inline-flex;align-items:center;gap:4px;padding:4px 7px}
+.hud-jog-axis{font:700 11px var(--mono);letter-spacing:.04em}
+.hud-arrow{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.led[data-state="push"] i{animation:none}
+@media(max-width:760px){.hud-rail-row{gap:8px}.hud .hud-gauge.vertical{width:52px}.hud .hud-gauge.vertical .hud-gauge-track{height:110px;width:20px}}
+/* --- --- */
+/* NOZZLE over BED, in that append order. Both rails are absolutely positioned, so nothing stops them
+   running into the bottom band; stacking the left pair made it overlap, so the tracks are sized off
+   the free space instead of a flat clamp. Measured on the built HUD: the rail starts 202 px down the
+   window, the band occupies the last 245 px, so the rails have 100vh - 447px. Around each track sit a
+   37 px head, a 26 px note and the gauge's own gaps: 71 px on the left pair, 67 px on the right pair,
+   60 px on the controller row, plus an 18 px rail title and a 10 px row gap. left: 18 + 2*(71 + T) +
+   10 <= 100vh - 447 -> T <= 50vh - 308.5 right: 18 + (67 + T) + 10 + (60 + U) <= 100vh - 447, U =
+   clamp(56px,9vh,84px) -> T <= 91vh - 602 The constants below are those limits with ~10 px of slack,
+   so the header growing a line does not put a bar through the band. Both stop growing at the 230 px
+   the user accepted on 2026-09-20; under ~750 px the floors take over and the bars get short rather
+   than clipped, which is the trade he asked for. Measured clearance to the band: 19 px left, 84 px
+   right at 1000 px of viewport. */
+.hud-rail.left .hud-rail-row{flex-direction:column;align-items:flex-start;gap:10px}
+/* — he means stacked, one over the other, exactly like NOZZLE over BED on the left. PART is first
+   in the DOM, so the column puts it on top. The right pair is sized by the same arithmetic as the
+   left, with 18 px less overhead per gauge because neither of these two carries a note line: 18 +
+   2*(49 + T) + 10 <= 100vh - 447 -> T <= 50vh - 281.5, taken with slack as 50vh - 300px and the
+   same 230 px cap the user accepted on 2026-09-20. */
+.hud-rail.right .hud-rail-row{flex-direction:column;align-items:flex-end;gap:10px}
+@media(min-width:761px){ /* the phone layout stacks the rails into the page flow and sets its own sizes */
+ .hud-rail.left .hud-gauge.vertical .hud-gauge-track{height:clamp(56px,calc(50vh - 318px),230px)}
+ .hud-rail.right .hud-rail-row:not(.under) .hud-gauge.vertical .hud-gauge-track{height:clamp(56px,calc(50vh - 300px),230px)}
+}
+/* --- --- */
+/* The MOVE row was laid out in a 63 px band holding 30 px of buttons; the rest was black. Both rows
+   are now sized to what is in them and the actions strip sits in the band instead of leaving it. */
+.hud-bottom{row-gap:6px}
+.hud-jogrow{height:fit-content;align-content:flex-start}
+.hud-actions{grid-column:1/-1;height:fit-content;width:100%;margin-left:0;flex-wrap:wrap;padding-top:6px;border-top:1px solid var(--line);align-items:stretch}
+.hud-actions .hud-machine{border-color:var(--teal-dim);color:var(--accent-ink)}
+/* --- the user 2026-09-21, live, watching their calibration prints --- */
+/* "Hotend and part cooling stay together; the controller fan can go somewhere else." It is an
+   automatic output with nothing to set, so it is a dot and a number beside the recorder's link dot
+   in the header instead of a third gauge. The right rail's track height is deliberately unchanged:
+   he asked for the same rail, one gauge lighter. */
+.hud-ctrlfan{display:inline-flex;align-items:center;gap:6px;font:11px var(--mono);letter-spacing:.12em;color:var(--muted);white-space:nowrap}
+.hud-ctrlfan i{width:8px;height:8px;border-radius:50%;background:#3a3050}
+.hud-ctrlfan[data-on="1"] i{background:#c48bff;box-shadow:0 0 8px #c48bff}
+.hud-ctrlfan b{font-weight:600;color:var(--ink)}
+/* "The Z readout is too faint and too small… I like having it, it just cannot be seen." Bigger, red,
+   on a backer dark enough to read over the plate and over the white cowl. */
+.hud-reticle-text{font:600 17px/1.1 var(--mono);letter-spacing:.1em;color:#ff4a3d;text-shadow:none;top:-14px;
+ background:rgba(8,12,14,.72);border:1px solid rgba(255,74,61,.45);border-radius:3px;padding:2px 7px}
+.hud-app[data-theme=light] .hud-reticle-text{color:#e01100;background:rgba(255,255,255,.86);border-color:rgba(224,17,0,.5)}
+
+/* --- / additions ---------------------------------------------- */
+/* The "plain and boring" pass. His accepted layout does not move: these are weight, and the
+   styles for the new Files-modal history, thumbnails and exclude-object rows. The big visual
+   work of is in the scene (studio environment + material families), not here; this block only
+   sharpens the job strip headline. */
+.hud-job-name{font:600 14px var(--sans);color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* Slicer thumbnail beside each file: cropped square. the 44px column exists only while the row
+   holds its image. hud.js removes an image that fails to load (a file sliced without one), and
+   the row then lays out as text only, the filename across the width; the unconditional column
+   caught the filename and squeezed it to a letter per line. */
+.hud-file:has(>.hud-file-thumb){grid-template-columns:44px 1fr;align-items:center}
+.hud-file-thumb{width:44px;height:44px;object-fit:cover;border:1px solid var(--line);border-radius:3px;background:#0c0f10;grid-row:span 2;justify-self:center}
+/* Print history rows: result sets the accent; clicking rewinds the recording to the moment
+   that print ended. */
+.hud-history-list{display:grid;gap:4px}
+.hud-print{cursor:pointer;border-left:2px solid var(--line);padding-left:8px}
+.hud-print[data-result="complete"]{border-left-color:var(--green)}
+.hud-print[data-result="error"]{border-left-color:var(--magenta)}
+.hud-print[data-result="cancelled"],.hud-print[data-result="interrupted"]{border-left-color:var(--orange)}
+/* Exclude-objects rows: the name action and the plate highlight share a row. */
+.hud-object-row{display:flex;gap:4px;align-items:stretch}
+.hud-object-row>button:first-child{flex:1;min-width:0}
+
+/* --- part cards and the part chip ----------------------------------- */
+/* The card is glass over the printer, its instruments sit in recessed wells, numbers ease between
+   readings, only live values glow and only live elements move. Every number here is one of the
+   style decisions written first in -STOP-REPORT.md. */
+.hud-app{--card-glass:rgba(19,25,26,.78);--card-edge:rgba(4,217,196,.22);--well:rgba(0,0,0,.30);--well-shadow:inset 0 2px 7px rgba(0,0,0,.5);--well-line:rgba(255,255,255,.05);--lift:0 3px 8px rgba(0,0,0,.45);--lift-hover:0 8px 18px rgba(0,0,0,.45);--dial-track:rgba(255,255,255,.07);--dial-tick:rgba(255,255,255,.14);--dial-major:rgba(255,255,255,.30)}
+.hud-app[data-theme=light]{--card-glass:rgba(246,249,248,.84);--card-edge:rgba(0,110,98,.30);--well:rgba(20,35,34,.06);--well-shadow:inset 0 2px 6px rgba(20,35,34,.16);--well-line:rgba(255,255,255,.75);--lift:0 3px 8px rgba(20,35,34,.16);--lift-hover:0 8px 18px rgba(20,35,34,.2);--dial-track:rgba(20,35,34,.10);--dial-tick:rgba(20,35,34,.22);--dial-major:rgba(20,35,34,.45)}
+.hud-app #detail-dialog{width:min(1120px,95vw);background:var(--card-glass);-webkit-backdrop-filter:blur(16px) saturate(135%);backdrop-filter:blur(16px) saturate(135%);border:1px solid var(--card-edge);border-radius:14px;box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 28px 70px rgba(0,0,0,.6),0 2px 10px rgba(0,0,0,.45);padding:18px 22px 20px}
+.hud-app #detail-dialog::before{content:"";position:absolute;left:18px;right:18px;top:0;height:1px;background:linear-gradient(90deg,transparent,var(--teal) 28%,var(--teal) 58%,transparent);opacity:.85;pointer-events:none}
+.hud-app #detail-dialog::backdrop{background:rgba(3,7,8,.52);-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px)}
+.hud-app #detail-dialog>.section-head{border-bottom:1px solid var(--card-edge)}
+.hud-app #detail-dialog .detail-grid{gap:20px}
+/* Controls lift on hover and sink on press. */
+.hud-app #detail-dialog button,.hud-partchip button{transition:transform .12s,box-shadow .12s,border-color .12s;box-shadow:var(--lift);border-radius:7px}
+.hud-app #detail-dialog button:hover:not(:disabled),.hud-partchip button:hover:not(:disabled){transform:translateY(-1px);box-shadow:var(--lift-hover);border-color:rgba(4,217,196,.55)}
+.hud-app #detail-dialog button:active:not(:disabled),.hud-partchip button:active:not(:disabled){transform:translateY(1px);box-shadow:inset 0 2px 5px rgba(0,0,0,.45)}
+/* Wells: everything that holds a value is recessed into the glass. */
+.hud-part-model,.hud-dial,.hud-read,.hud-lamp,.hud-mesh-well,.hud-paint,.hud-tabbar,.hud-raw{background:var(--well);box-shadow:var(--well-shadow);border:0;border-bottom:1px solid var(--well-line);border-radius:10px}
+.hud-part-model{height:300px}
+.hud-live{display:grid;gap:12px}
+.hud-live-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}.hud-live-head small{font:11px var(--mono);color:var(--muted)}
+.hud-live-tag{display:inline-flex;align-items:center;gap:7px;font:11px var(--mono);letter-spacing:.16em;color:var(--muted)}
+.hud-live-tag:before{content:"";width:8px;height:8px;border-radius:50%;background:var(--muted)}
+#detail-dialog[data-live="1"] .hud-live-tag{color:var(--accent-ink)}
+#detail-dialog[data-live="1"] .hud-live-tag:before{background:var(--teal);box-shadow:0 0 8px var(--teal);animation:hud-pulse 2.4s ease-in-out infinite}
+@keyframes hud-pulse{0%,100%{opacity:.45}50%{opacity:1}}
+.hud-cluster{display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px;align-items:start}.hud-dials{display:flex;flex-direction:column;gap:10px}
+/* The dial: bezel, 250 degree track, ticks every 5 %, major every 25 %, value arc, needle, target. */
+.hud-dial{position:relative;width:168px;padding:8px 10px 10px;display:grid;justify-items:center;gap:2px}
+.hud-dial svg{width:148px;height:148px;display:block;overflow:visible}
+.hud-dial-bezel{fill:none;stroke:var(--dial-track);stroke-width:2}
+.hud-dial-face-in{stop-color:rgba(255,255,255,.015)}.hud-dial-face-out{stop-color:rgba(255,255,255,.07)}
+.hud-app[data-theme=light] .hud-dial-face-in{stop-color:rgba(255,255,255,.55)}.hud-app[data-theme=light] .hud-dial-face-out{stop-color:rgba(20,35,34,.06)}
+.hud-dial-end{font:9px var(--mono);fill:var(--muted)}
+.hud-dial-track{fill:none;stroke:var(--dial-track);stroke-width:8;stroke-linecap:round}
+.hud-dial-tick{stroke:var(--dial-tick);stroke-width:1}.hud-dial-tick.major{stroke:var(--dial-major);stroke-width:2}
+.hud-dial-value{fill:none;stroke:var(--teal);stroke-width:8;stroke-linecap:round}
+.hud-dial-target{fill:var(--accent-ink)}
+.hud-dial-needle line{stroke:var(--ink);stroke-width:2.2;stroke-linecap:round}.hud-dial-needle circle{fill:var(--panel);stroke:var(--teal);stroke-width:2}
+.hud-dial[data-unknown="1"] .hud-dial-needle{opacity:0}
+.hud-dial[data-state=hot] .hud-dial-value{stroke:var(--orange)}.hud-dial[data-state=hot] .hud-dial-needle circle{stroke:var(--orange)}
+.hud-dial-read{position:absolute;left:0;right:0;top:116px;text-align:center;font:600 24px/1 var(--mono);font-variant-numeric:tabular-nums;color:var(--ink)}
+.hud-dial-read span{font:11px var(--mono);color:var(--muted);margin-left:3px}
+.hud-dial-label{font:11px var(--mono);letter-spacing:.14em;color:var(--muted);margin-top:-4px}
+.hud-dial>small{font:11px var(--mono);color:var(--muted);min-height:14px;text-align:center}
+/* Glow and ambient motion only on live values; a replayed or rewound card is still. */
+#detail-dialog[data-live="1"] .hud-dial-read b,#detail-dialog[data-live="1"] .hud-read b{text-shadow:0 0 12px rgba(4,217,196,.35)}
+#detail-dialog[data-live="1"] .hud-dial[data-state=hot] .hud-dial-read b{text-shadow:0 0 12px rgba(255,106,0,.35)}
+#detail-dialog[data-live="1"] .hud-dial[data-state=hot] .hud-dial-value{animation:hud-breathe 1.8s ease-in-out infinite}
+@keyframes hud-breathe{0%,100%{filter:drop-shadow(0 0 0 rgba(255,106,0,0))}50%{filter:drop-shadow(0 0 6px rgba(255,106,0,.55))}}
+@media (prefers-reduced-motion:reduce){#detail-dialog .hud-live-tag:before,#detail-dialog .hud-dial-value{animation:none!important}}
+/* Readouts fill their row; there is no grid background left to show through an empty cell. */
+.hud-reads{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.hud-read{padding:9px 11px;display:grid;gap:3px;min-width:0}
+.hud-read span{font:11px var(--mono);letter-spacing:.14em;color:var(--muted)}
+.hud-read b{font:500 19px/1.15 var(--mono);font-variant-numeric:tabular-nums;color:var(--ink);overflow-wrap:anywhere}
+.hud-read small{font:11px var(--mono);color:var(--muted)}
+.hud-lamp{min-width:168px;display:grid;place-items:center;padding:18px 14px;font:600 18px var(--mono);letter-spacing:.2em;color:var(--muted)}
+.hud-lamp[data-state=open]{color:var(--accent-ink)}
+.hud-lamp[data-state=on]{color:var(--heat-ink);box-shadow:var(--well-shadow),0 0 0 1px rgba(255,106,0,.5),0 0 18px rgba(255,106,0,.22)}
+.hud-mesh-well{padding:10px 12px;display:grid;gap:8px}
+.hud-mesh-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}.hud-mesh-head span{font:11px var(--mono);letter-spacing:.14em;color:var(--muted)}
+.hud-mesh-when{margin:0;font:12px var(--mono);color:var(--accent-ink)}
+.hud-mesh-map{width:100%;display:block;border-radius:6px}
+/* Tabs: a segmented control in a well; the active tab is a raised pill with a glowing underline. */
+.hud-tabs{display:grid;gap:10px;margin-top:4px}
+.hud-tabbar{display:inline-flex;gap:4px;padding:4px;justify-self:start}
+.hud-app #detail-dialog .hud-tabbar button{position:relative;border:0;background:transparent;box-shadow:none;border-radius:7px;padding:7px 14px;min-height:32px;color:var(--muted);letter-spacing:.06em}
+.hud-app #detail-dialog .hud-tabbar button.on{background:rgba(255,255,255,.07);color:var(--ink);box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 2px 6px rgba(0,0,0,.35)}
+.hud-app #detail-dialog .hud-tabbar button.on:after{content:"";position:absolute;left:12px;right:12px;bottom:3px;height:2px;border-radius:2px;background:var(--teal);box-shadow:0 0 8px rgba(4,217,196,.5)}
+.hud-tabbody{min-height:60px}
+.hud-raw{padding:6px 12px;max-height:260px;overflow:auto}
+.hud-raw .hud-raw-signal{border-bottom:1px solid var(--well-line);padding:5px 0}.hud-raw .hud-raw-signal:last-child{border-bottom:0}
+.hud-tabbody .hud-part-specs{margin:0 0 10px}
+.hud-tabbody .hud-source-link{display:inline-block;margin:0 14px 0 0}
+/* Paint: the part, or the whole CAD assembly it sits in. */
+.hud-paint{display:flex;align-items:center;flex-wrap:wrap;gap:8px 12px;padding:9px 11px;font:11px var(--mono);letter-spacing:.14em;color:var(--muted);margin-top:10px}
+.hud-paint input[type=color]{width:34px;height:26px;border:1px solid var(--line);border-radius:6px;background:none;padding:0;cursor:pointer}
+.hud-app .hud-paint-scope{display:inline-flex;flex-direction:row;align-items:center;gap:6px;letter-spacing:.04em;text-transform:none;color:var(--ink);cursor:pointer;margin:0}.hud-app .hud-paint-scope input{width:auto;height:auto;margin:0}
+.hud-paint small{letter-spacing:.04em}
+/* The part chip: a part with nothing wired gets its name and actions beside the click, no card. */
+.hud-partchip{position:absolute;z-index:30;width:min(380px,calc(100% - 16px));padding:12px 14px;border-radius:12px;background:var(--card-glass);-webkit-backdrop-filter:blur(14px) saturate(135%);backdrop-filter:blur(14px) saturate(135%);border:1px solid var(--card-edge);box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 18px 44px rgba(0,0,0,.55);display:grid;gap:8px}
+.hud-partchip[hidden]{display:none}
+.hud-partchip-head{display:flex;align-items:center;gap:8px}.hud-partchip-head b{flex:1;min-width:0;font:600 14px var(--sans);color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hud-partchip-sub{font:11px var(--mono);letter-spacing:.14em;color:var(--muted)}
+.hud-partchip-actions{display:flex;flex-wrap:wrap;gap:6px}
+.hud-partchip button{font:12px var(--mono);padding:6px 11px;min-height:32px;background:var(--surface);border:1px solid var(--line);color:var(--ink);cursor:pointer}
+.hud-partchip .hud-partchip-close{padding:2px 9px;min-height:26px}
+.hud-partchip .hud-paint{margin-top:0}
+@media(max-width:900px){.hud-dial{width:150px}.hud-dial svg{width:132px;height:132px}.hud-dial-read{top:104px;font-size:21px}.hud-part-model{height:220px}}
+@media(max-width:560px){.hud-cluster{grid-template-columns:1fr}.hud-dials{flex-direction:row;flex-wrap:wrap}}
+.hud-app #detail-dialog .detail-grid>.card>.hud-mesh-well{margin-top:10px}
+@media(max-height:800px){.hud-part-model{height:220px}}
+
+/* --- the HUD comes alive ------------------------------------------------ */
+/* Every number below is one of the style decisions written first in -STOP-REPORT.md, on the card
+   tokens. Geometry does not move: this is surface, motion, and the new content set into space that
+   was empty. */
+.hud-app{--pod:rgba(18,24,25,.58);--pod-edge:rgba(4,217,196,.18);--hi:inset 0 1px 0 rgba(255,255,255,.07)}
+.hud-app[data-theme=light]{--pod:rgba(246,249,248,.74);--pod-edge:rgba(0,110,98,.24);--hi:inset 0 1px 0 rgba(255,255,255,.85)}
+/* One tooltip for the whole HUD: what it is, what a click does, and why not, when it cannot. */
+.hud-tip{position:fixed;z-index:60;left:0;top:0;max-width:280px;padding:9px 11px;display:grid;gap:3px;pointer-events:none;opacity:0;transform:translateY(3px);transition:opacity .12s,transform .12s;background:rgba(14,19,20,.92);-webkit-backdrop-filter:blur(12px) saturate(130%);backdrop-filter:blur(12px) saturate(130%);border:1px solid var(--card-edge);border-radius:8px;box-shadow:var(--hi),0 12px 28px rgba(0,0,0,.5);font:12px/1.45 var(--sans);color:var(--ink);white-space:normal}
+.hud-tip[data-on="1"]{opacity:1;transform:none}
+.hud-tip strong{font-weight:650;color:var(--ink)}.hud-tip span{color:var(--muted)}.hud-tip em{font-style:normal;color:var(--heat-ink)}
+.hud-app[data-theme=light] .hud-tip{background:rgba(250,252,251,.95)}
+/* Hover lifts, press sinks. Only transform and shadow move: colour transitions stay banned above. */
+.hud-app :is(.hud button:not(.hud-gauge-value):not(.hud-axis),.hud-header-tools button,.hud-emergency,.transport button,.hud-modal button,.hud-dialog button,.hud-drawer button,.hud-pages button,.hud-pages a){transition:transform .12s,box-shadow .12s;box-shadow:0 2px 6px rgba(0,0,0,.28),var(--hi)}
+.hud-app :is(.hud button:not(.hud-gauge-value):not(.hud-axis),.hud-header-tools button,.hud-emergency,.transport button,.hud-modal button,.hud-dialog button,.hud-drawer button,.hud-pages button,.hud-pages a):hover:not(:disabled){transform:translateY(-1px);box-shadow:var(--lift-hover),inset 0 1px 0 rgba(255,255,255,.11);border-color:rgba(4,217,196,.55)}
+.hud-app :is(.hud button:not(.hud-gauge-value):not(.hud-axis),.hud-header-tools button,.hud-emergency,.transport button,.hud-modal button,.hud-dialog button,.hud-drawer button,.hud-pages button,.hud-pages a):active:not(:disabled){transform:translateY(1px);box-shadow:inset 0 2px 5px rgba(0,0,0,.45)}
+.hud .hud-gauge-value:hover:not(:disabled),.hud .hud-gauge-label:hover{filter:brightness(1.35)}
+.hud-app :is(input,select,textarea):hover:not(:disabled){border-color:rgba(4,217,196,.55)}
+.hud-app .transport #cursor:hover{filter:drop-shadow(0 0 4px rgba(4,217,196,.55))}
+.hud-app header .brand:hover .brand-word b{color:var(--accent-ink)}
+.hud-app #machine-view:hover{cursor:grab}
+.hud-jobstrip:hover .hud-job-name{color:var(--accent-ink)}.hud-jobstrip:focus-visible{outline:1px solid var(--teal);outline-offset:4px}
+/* Gauges: LED bars in a bezel, under a glass sheen, with tick marks beside them. */
+.hud-gauge-track{position:relative;border-radius:4px;box-shadow:var(--well-shadow),0 0 0 1px rgba(255,255,255,.08),0 0 0 3px rgba(0,0,0,.35)}
+.hud-gauge-track:hover{box-shadow:var(--well-shadow),0 0 0 1px rgba(4,217,196,.55),0 0 0 3px rgba(0,0,0,.35)}
+.hud-gauge-track::before{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;border-radius:inherit;background:linear-gradient(180deg,rgba(255,255,255,.12),rgba(255,255,255,0) 38%)}
+.hud .hud-gauge.vertical .hud-gauge-track::before{background:linear-gradient(90deg,rgba(255,255,255,.14),rgba(255,255,255,0) 45%)}
+.hud-gauge-track::after{content:"";position:absolute;pointer-events:none}
+.hud .hud-gauge.vertical .hud-gauge-track::after{top:0;bottom:0;left:-9px;width:5px;background:repeating-linear-gradient(0deg,rgba(255,255,255,.34) 0 1px,transparent 1px 25%) left/5px 100% no-repeat,repeating-linear-gradient(0deg,rgba(255,255,255,.14) 0 1px,transparent 1px 5%) left/3px 100% no-repeat}
+.hud-rail.right .hud-gauge.vertical .hud-gauge-track::after{left:auto;right:-9px;background-position:right,right}
+.hud-bottom .hud-gauge-track::after{left:0;right:0;bottom:-8px;height:5px;background:repeating-linear-gradient(90deg,rgba(255,255,255,.34) 0 1px,transparent 1px 33.333%) top/100% 5px no-repeat,repeating-linear-gradient(90deg,rgba(255,255,255,.14) 0 1px,transparent 1px 6.667%) top/100% 3px no-repeat}
+.hud-gauge-track i.target{box-shadow:0 0 0 1px var(--teal),0 0 8px var(--teal)}
+/* At 1568x751 the nozzle track is 57 px for 29 LEDs; 3 px gaps left the LEDs no height at all. */
+@media(min-width:761px) and (max-height:880px){.hud .hud-gauge.vertical .hud-gauge-track{gap:1px}}
+/* The rail gauges float on glass pods, drawn behind them so the rail geometry does not move. */
+.hud .hud-gauge.vertical{position:relative}
+.hud .hud-gauge.vertical::before{content:"";position:absolute;inset:-4px -9px;z-index:-1;border-radius:12px;background:var(--pod);-webkit-backdrop-filter:blur(10px) saturate(130%);backdrop-filter:blur(10px) saturate(130%);border:1px solid var(--pod-edge);box-shadow:var(--hi),0 14px 34px rgba(0,0,0,.42)}
+/* Glow only on live values; a heater drawing power breathes. Rewound or replayed: still. */
+@keyframes hud-breathe{50%{filter:drop-shadow(0 0 6px var(--c,var(--orange)))}}
+.hud-gauge[data-drawing="1"] .hud-gauge-track{animation:hud-breathe 1.8s ease-in-out infinite}
+body.hud-app[data-fresh="1"] .hud .hud-gauge-value:not(.pending),body.hud-app[data-fresh="1"] .hud-readout b,body.hud-app[data-fresh="1"] .hud-motion .hud-axis strong{text-shadow:0 0 10px color-mix(in srgb,var(--c,var(--teal)) 35%,transparent)}
+/* The bottom band is a docked panel: nothing sits behind it, so it carries no blur. */
+.hud-bottom{background:linear-gradient(180deg,rgba(18,24,25,.35),rgba(18,24,25,.62));box-shadow:inset 0 1px 0 var(--pod-edge)}
+.hud-app[data-theme=light] .hud-bottom{background:linear-gradient(180deg,rgba(246,249,248,.4),rgba(246,249,248,.8))}
+/* Readout windows beside X, Y, Z and in the bottom strip: label, rolling value, unit, note. */
+.hud-readout{position:relative;display:grid;grid-template-columns:auto auto auto;grid-template-areas:"l l l" "v u n";justify-content:start;align-items:baseline;column-gap:5px;row-gap:1px;padding:3px 10px 4px;border-radius:8px;background:var(--well);box-shadow:var(--well-shadow);border-bottom:1px solid var(--well-line);pointer-events:auto;transition:transform .12s,box-shadow .12s;white-space:nowrap}
+.hud-readout:hover{transform:translateY(-1px);box-shadow:var(--well-shadow),0 6px 14px rgba(0,0,0,.35)}
+.hud-readout>span{grid-area:l;font:10px/1 var(--mono);letter-spacing:.14em;color:var(--muted)}
+.hud-readout>b{grid-area:v;font:500 17px/1 var(--mono);font-variant-numeric:tabular-nums;color:var(--ink)}
+.hud-readout>i{grid-area:u;font:11px var(--mono);font-style:normal;color:var(--muted)}
+.hud-readout>small{grid-area:n;font:10px var(--mono);color:var(--muted)}
+.hud-readout[data-unknown="1"]>b{color:var(--muted)}
+.hud-readout[data-state=near]>b{color:var(--heat-ink)}.hud-readout[data-state=over]>b{color:var(--fault-ink)}
+.hud-bottom .hud-gauge-head{align-items:center}.hud-bottom .hud-gauge-head>.hud-readout:nth-child(3){margin-left:auto}
+.hud-flowbar{grid-area:auto;position:absolute;left:10px;right:10px;bottom:-4px;display:block;height:2px;border-radius:2px;background:var(--track);overflow:hidden}
+.hud-flowbar u{display:block;height:100%;width:calc(var(--f,0) * 100%);background:var(--teal);box-shadow:0 0 6px var(--teal);transition:width .65s cubic-bezier(.22,.61,.36,1)}
+.hud-readout[data-state=near] .hud-flowbar u{background:var(--orange);box-shadow:0 0 6px var(--orange)}.hud-readout[data-state=over] .hud-flowbar u{background:var(--magenta);box-shadow:0 0 6px var(--magenta)}
+/* The bottom strip: seven windows in one glass well at the right end of the MOVE row. */
+.hud-strip{margin-left:auto;display:flex;align-items:stretch;padding:0 1px;border-radius:9px;background:var(--pod);border:1px solid var(--pod-edge);box-shadow:var(--hi),0 8px 20px rgba(0,0,0,.35);pointer-events:auto}
+.hud-strip .hud-readout{background:none;box-shadow:none;border:0;border-left:1px solid rgba(255,255,255,.08);border-radius:0;padding:1px 10px;row-gap:1px}
+.hud-strip .hud-readout:first-child{border-left:0}
+.hud-strip .hud-readout>b{font-size:14px}.hud-strip .hud-readout>span{font-size:9px}.hud-strip .hud-readout>small{font-size:9px}
+/* Toolbar: grouped, with an emergency stop that is always on the row. */
+.hud-sep{flex:0 0 1px;align-self:stretch;margin:3px 4px;background:linear-gradient(transparent,rgba(255,255,255,.16),transparent)}
+.hud .hud-menu::after{content:" ▾";opacity:.7}
+.hud .hud-caution{border-color:rgba(255,106,0,.55)!important;color:var(--heat-ink)!important}
+.hud .hud-estop{margin-left:auto;min-width:96px;font:800 12px var(--mono);letter-spacing:.18em;color:#fff;background:radial-gradient(circle at 50% 30%,#8a1830,#4a0c1a 72%);border:2px solid transparent;border-image:repeating-linear-gradient(45deg,#f5b32d 0 5px,#141414 5px 10px) 2;box-shadow:0 0 16px rgba(255,45,146,.35)}
+.hud .hud-estop:hover:not(:disabled){background:radial-gradient(circle at 50% 30%,#a41d3a,#5a0f20 72%);box-shadow:0 0 22px rgba(255,45,146,.5)}
+.hud .hud-estop:disabled{opacity:.5;box-shadow:none;filter:saturate(.5)}
+/* Pages: every page in one glass panel from the left edge. Signals leads. */
+.hud-pages{position:fixed;inset:0 auto 0 0;height:100dvh;max-height:none;width:min(420px,92vw);max-width:none;margin:0;padding:14px 16px 18px;border:0;border-right:1px solid var(--card-edge);border-radius:0 14px 14px 0;background:var(--card-glass);-webkit-backdrop-filter:blur(16px) saturate(135%);backdrop-filter:blur(16px) saturate(135%);box-shadow:var(--hi),24px 0 60px rgba(0,0,0,.5);color:var(--ink);overflow:auto;display:none;flex-direction:column;gap:6px}
+.hud-pages[open]{display:flex}
+.hud-pages::backdrop{background:rgba(3,7,8,.45)}
+.hud-pages-head{display:flex;align-items:center;justify-content:space-between;font:11px var(--mono);letter-spacing:.2em;color:var(--accent-ink)}
+.hud-pages-head button{font:12px var(--mono);padding:6px 10px;background:var(--surface);border:1px solid var(--line);color:var(--ink);border-radius:7px}
+.hud-pages h3{font:11px var(--mono);letter-spacing:.18em;color:var(--muted);margin:10px 0 2px}
+.hud-pages-list{display:grid;gap:6px}
+.hud-page{display:grid;gap:3px;text-align:left;padding:10px 12px;border-radius:9px;border:1px solid var(--line);background:var(--surface);color:var(--ink);text-decoration:none;cursor:pointer;font:inherit}
+.hud-page strong{font:600 14px var(--sans);color:var(--ink)}.hud-page small{font:12px/1.45 var(--sans);color:var(--muted)}
+.hud-page-lead{padding:14px 14px 13px;border-color:var(--teal-dim)}.hud-page-lead strong{font-size:17px;color:var(--accent-ink)}
+.hud-page-here{border-style:dashed;cursor:default}
+.hud-pages-button{border-color:var(--teal-dim)!important;color:var(--accent-ink)!important}
+/* Cards take the HUD's depth too (reviewer on the shots: "still flat"). */
+.hud-app #detail-dialog{box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 0 0 1px rgba(0,0,0,.4),0 34px 80px rgba(0,0,0,.62),0 2px 10px rgba(0,0,0,.45)}
+.hud-part-model{background:radial-gradient(ellipse at 50% 42%,#3d494c 0%,#263033 48%,#141a1b 100%)}
+.hud-app[data-theme=light] .hud-part-model{background:radial-gradient(ellipse at 50% 42%,#ffffff 0%,#e3ebe8 55%,#c9d6d2 100%)}
+.hud-dial svg{filter:drop-shadow(0 3px 6px rgba(0,0,0,.45))}
+.hud-dial-bezel{stroke-width:3}
+.hud-read,.hud-dial,.hud-lamp{transition:transform .12s,box-shadow .12s}.hud-read:hover,.hud-dial:hover,.hud-lamp:hover{transform:translateY(-1px);box-shadow:var(--well-shadow),0 6px 14px rgba(0,0,0,.35)}
+.hud-raw-signal:hover{background:rgba(255,255,255,.03)}.hud-raw-signal b{font-variant-numeric:tabular-nums}
+@media(max-width:760px){.hud-strip{grid-column:1/-1;margin:0;flex-wrap:wrap}.hud-sep{display:none}.hud .hud-estop{grid-column:1/-1}.hud-bottom .hud-gauge-head{flex-wrap:wrap}.hud-bottom .hud-gauge-head>.hud-readout:nth-child(3){margin-left:0}.hud-pages{width:100vw;border-radius:0}}
+/* X, Y and Z ran into each other ("110.7174.50.4"): five 30 px digits do not fit an 86 px column.
+   26 px does, so the three numbers read apart without moving the column. */
+@media(min-width:761px){.hud-motion .hud-axis strong{font-size:26px;line-height:30px;letter-spacing:-.02em}}
+/* --- printer off, locked controls, saved presets -------------------------- The header pill says
+   which state the printer is in; a locked control is dimmed and its tooltip gives the reason. Colour
+   law: the neon is on the text and the rim, not the fill. */
+.hud-app #led-transport{padding:5px 11px;border:1px solid var(--line);border-radius:999px;font-size:10.5px;letter-spacing:.14em;color:var(--ink);background:rgba(0,0,0,.28);cursor:default}
+.hud-app #led-transport[data-state="off"]{color:#ff8cc4;border-color:rgba(255,45,146,.7);background:rgba(58,13,31,.55);font-weight:700}
+.hud-app #led-transport[data-state="not_ready"]{color:#ffb070;border-color:rgba(255,106,0,.7);background:rgba(58,26,6,.55);font-weight:700}
+.hud-app #led-transport[data-state="not_ready"] i{background:var(--orange);box-shadow:0 0 10px rgba(255,106,0,.75)}
+.hud-app #led-transport[data-state="replay"] i{background:#b98cff;box-shadow:0 0 10px rgba(185,140,255,.6)}
+.hud-app #led-transport[data-state="unknown"] i{background:#3a4245}
+.hud .hud-gauge-track[aria-disabled="true"]{opacity:.45;cursor:not-allowed}
+.hud button[data-locked="1"],.hud-modal button[data-locked="1"],.hud-dialog button[data-locked="1"]{cursor:not-allowed}
+.hud-offline[data-link="off"] strong{color:#ff8cc4}.hud-offline[data-link="not_ready"] strong{color:#ffb070}
+/* The preset editor: every unsaved row is marked, and the count sits beside Save. */
+.hud-preset-table .hud-preset-row{border-left:3px solid transparent;padding-left:6px;border-radius:4px}
+.hud-preset-row[data-change="edited"]{border-left-color:var(--orange);background:rgba(255,106,0,.07)}
+.hud-preset-row[data-change="new"]{border-left-color:var(--accent-ink);background:rgba(4,217,196,.07)}
+.hud-preset-fixed{display:grid;grid-template-columns:1fr 90px 90px 34px;gap:6px;align-items:center;padding:8px 6px;margin:4px 0 10px;border-left:3px solid transparent;font:12px var(--mono);color:var(--muted)}
+.hud-preset-fixed span:last-child{font-size:10px;letter-spacing:.08em}
+.hud-preset-pending{font:11px var(--mono);letter-spacing:.08em;color:var(--muted);margin-left:auto}
+.hud-modal-body[data-dirty="1"] .hud-preset-pending{color:#ffb070;font-weight:700}
+/* The page's own service not answering is a state of its own, in steel blue, so "Stella Scope is
+   not running" never reads as the printer's magenta PRINTER OFF. */
+.hud-app #led-transport[data-state="service"]{color:#c3cdfa;border-color:rgba(122,140,255,.7);background:rgba(20,24,58,.6);font-weight:700}
+.hud-app #led-transport[data-state="service"] i{background:#7a8cff;box-shadow:0 0 10px rgba(122,140,255,.6)}
+.hud-offline[data-link="service"] strong{color:#c3cdfa}

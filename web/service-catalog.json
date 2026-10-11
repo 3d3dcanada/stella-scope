@@ -1,0 +1,1093 @@
+{
+  "repository": "VoronDesign/Voron-2",
+  "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+  "tree_complete": true,
+  "scope": "Official source file catalogue, not an as-built bill of materials. Variants and alternatives are not all installed.",
+  "files": [
+    {
+      "path": "STLs/Electronics_Bay/Controller_Mounts/BIGDIPPER_bracket_set.stl",
+      "blob_sha": "394669bf35e6f993f62c6140a02a2c3265dd0e07",
+      "bytes": 1573684,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Electronics_Bay/Controller_Mounts/BIGDIPPER_bracket_set.stl"
+    },
+    {
+      "path": "STLs/Electronics_Bay/Controller_Mounts/BTT_MOT_EXP_bracket.stl",
+      "blob_sha": "052f62ac1db2c78304749f263acc6f8516bd0e7a",
+      "bytes": 1167084,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Electronics_Bay/Controller_Mounts/BTT_MOT_EXP_bracket.stl"
+    },
+    {
+      "path": "STLs/Electronics_Bay/Controller_Mounts/Duet2_Duet3Mini5_bracket_set.stl",
+      "blob_sha": "fac6e8c3203909bd133c71c7d679701310ba42ef",
+      "bytes": 1472484,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Electronics_Bay/Controller_Mounts/Duet2_Duet3Mini5_bracket_set.stl"
+    },
+    {
+      "path": "STLs/Electronics_Bay/Controller_Mounts/GTR_bracket_set.stl",
+      "blob_sha": "5049efffb8ea0b9d85fb869d30d838edad6ab16e",
+      "bytes": 1421084,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Electronics_Bay/Controller_Mounts/GTR_bracket_set.stl"
+    },
+    {
+      "path": "STLs/Electronics_Bay/Controller_Mounts/Octopus_bracket_set.stl",
+      "blob_sha": "1b0e47f85232d952140d4a5e40e33a6fce2de937",
+      "bytes": 1626284,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Electronics_Bay/Controller_Mounts/Octopus_bracket_set.stl"
+    },
+    {
+      "path": "STLs/Electronics_Bay/Controller_Mounts/S6_bracket_set.stl",
+      "blob_sha": "6611d406a5bb89c6e984b71d8a606c2e70e90879",
+      "bytes": 1529684,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Electronics_Bay/Controller_Mounts/S6_bracket_set.stl"
+    },
+    {
+      "path": "STLs/Electronics_Bay/Controller_Mounts/SKR_Pro_bracket_set.stl",
+      "blob_sha": "63faa80d498d58337b944848581dd9fa0a9b3bf1",
+      "bytes": 1586884,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Electronics_Bay/Controller_Mounts/SKR_Pro_bracket_set.stl"
+    },
+    {
+      "path": "STLs/Electronics_Bay/Controller_Mounts/SKR_bracket_inline_set.stl",
+      "blob_sha": "f2ef9538d89a592f8604436b28a5a8cc179b0cb1",
+      "bytes": 1479084,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Electronics_Bay/Controller_Mounts/SKR_bracket_inline_set.stl"
+    },
+    {
+      "path": "STLs/Electronics_Bay/Controller_Mounts/Spider_bracket_set.stl",
+      "blob_sha": "ded14951f4855bf3082241cc79e31c9696081071",
+      "bytes": 1800884,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Electronics_Bay/Controller_Mounts/Spider_bracket_set.stl"
+    },
+    {
+      "path": "STLs/Electronics_Bay/Other_PS_Mounts/UHP_200_Mount_x2.stl",
+      "blob_sha": "edcacc49a4e8fd9860cd6c5321c8a8f21bb3071e",
+      "bytes": 139684,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Electronics_Bay/Other_PS_Mounts/UHP_200_Mount_x2.stl"
+    },
+    {
+      "path": "STLs/Electronics_Bay/Other_PS_Mounts/UHP_350_Mount_x2.stl",
+      "blob_sha": "e2f1e0f534de78c41d09ce20a04cd419b0811d48",
+      "bytes": 137884,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Electronics_Bay/Other_PS_Mounts/UHP_350_Mount_x2.stl"
+    },
+    {
+      "path": "STLs/Electronics_Bay/PSU_stabilizer_50mm.stl",
+      "blob_sha": "a81279cc7aee290684e1eb66e3ca282496d41836",
+      "bytes": 419284,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Electronics_Bay/PSU_stabilizer_50mm.stl"
+    },
+    {
+      "path": "STLs/Electronics_Bay/lrs_200_psu_bracket_x2.stl",
+      "blob_sha": "94c9b8d117e652aecf4951466ec2c67bcc0204c9",
+      "bytes": 262284,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Electronics_Bay/lrs_200_psu_bracket_x2.stl"
+    },
+    {
+      "path": "STLs/Electronics_Bay/pcb_din_clip_x3.stl",
+      "blob_sha": "c4488ba16d9364735d85e23ba0a2e403d4ec1f2c",
+      "bytes": 65484,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Electronics_Bay/pcb_din_clip_x3.stl"
+    },
+    {
+      "path": "STLs/Electronics_Bay/raspberrypi_bracket.stl",
+      "blob_sha": "ad94f4a0138b9f58c3f433b314c69dbfb31b0240",
+      "bytes": 1122984,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Electronics_Bay/raspberrypi_bracket.stl"
+    },
+    {
+      "path": "STLs/Electronics_Bay/rs25_psu_bracket.stl",
+      "blob_sha": "5399ffca1c4b011cc5092ffcf5f717a9a02c831e",
+      "bytes": 206584,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Electronics_Bay/rs25_psu_bracket.stl"
+    },
+    {
+      "path": "STLs/Electronics_Bay/wago_221-415_mount_3by5.stl",
+      "blob_sha": "74960784b09e74d9dcfbca566b94648465fa7913",
+      "bytes": 72684,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Electronics_Bay/wago_221-415_mount_3by5.stl"
+    },
+    {
+      "path": "STLs/Exhaust_Filter/[a]_exhaust_fan_grill.stl",
+      "blob_sha": "ff18eb1cdab73c6e642064943e09b80b1f548563",
+      "bytes": 282184,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Exhaust_Filter/%5Ba%5D_exhaust_fan_grill.stl"
+    },
+    {
+      "path": "STLs/Exhaust_Filter/[a]_exhaust_filter_mount_x2.stl",
+      "blob_sha": "80680d049fd33891ef8c0d1c98243c57d00cc908",
+      "bytes": 81884,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Exhaust_Filter/%5Ba%5D_exhaust_filter_mount_x2.stl"
+    },
+    {
+      "path": "STLs/Exhaust_Filter/[a]_filter_access_cover.stl",
+      "blob_sha": "80e1382da7085db896e5de60200aac0ab7b09ffc",
+      "bytes": 340484,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Exhaust_Filter/%5Ba%5D_filter_access_cover.stl"
+    },
+    {
+      "path": "STLs/Exhaust_Filter/exhaust_filter_grill.stl",
+      "blob_sha": "e21735d9700a0ecbf602667d1d58fdc5039af1df",
+      "bytes": 242084,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Exhaust_Filter/exhaust_filter_grill.stl"
+    },
+    {
+      "path": "STLs/Exhaust_Filter/exhaust_filter_housing.stl",
+      "blob_sha": "3328adc9278c99d450f9013c7e23132153b503ce",
+      "bytes": 2196484,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Exhaust_Filter/exhaust_filter_housing.stl"
+    },
+    {
+      "path": "STLs/Gantry/AB_Drive_Units/[a]_cable_cover.stl",
+      "blob_sha": "82c0f1a88a14bf948fa320073e39bae9608c74b0",
+      "bytes": 469584,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Gantry/AB_Drive_Units/%5Ba%5D_cable_cover.stl"
+    },
+    {
+      "path": "STLs/Gantry/AB_Drive_Units/[a]_z_chain_retainer_bracket_x2.stl",
+      "blob_sha": "16881cd50edce3b2484e6b060f718e8e2fc45354",
+      "bytes": 178384,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Gantry/AB_Drive_Units/%5Ba%5D_z_chain_retainer_bracket_x2.stl"
+    },
+    {
+      "path": "STLs/Gantry/AB_Drive_Units/a_drive_frame_lower.stl",
+      "blob_sha": "d2290c30e6496226b5ffd6293e2383f5204dc874",
+      "bytes": 1776084,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Gantry/AB_Drive_Units/a_drive_frame_lower.stl"
+    },
+    {
+      "path": "STLs/Gantry/AB_Drive_Units/a_drive_frame_upper.stl",
+      "blob_sha": "704eb4aa3e5dc83dc142eef215f8f6b59fc4a4e3",
+      "bytes": 1089384,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Gantry/AB_Drive_Units/a_drive_frame_upper.stl"
+    },
+    {
+      "path": "STLs/Gantry/AB_Drive_Units/b_drive_frame_lower.stl",
+      "blob_sha": "5385e2e4d8778ff78da04dc8580a476b748e931f",
+      "bytes": 1706384,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Gantry/AB_Drive_Units/b_drive_frame_lower.stl"
+    },
+    {
+      "path": "STLs/Gantry/AB_Drive_Units/b_drive_frame_upper.stl",
+      "blob_sha": "3329b0870ff409e85fa5cb04f44b87d17d1db072",
+      "bytes": 891884,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Gantry/AB_Drive_Units/b_drive_frame_upper.stl"
+    },
+    {
+      "path": "STLs/Gantry/Front_Idlers/[a]_tensioner_left.stl",
+      "blob_sha": "68c23d38ffb7875031f9e6044af1e1f98d4dd90d",
+      "bytes": 327884,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Gantry/Front_Idlers/%5Ba%5D_tensioner_left.stl"
+    },
+    {
+      "path": "STLs/Gantry/Front_Idlers/[a]_tensioner_right.stl",
+      "blob_sha": "ed66cbfbb2920ae612caefb4ca77a6b772790131",
+      "bytes": 328484,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Gantry/Front_Idlers/%5Ba%5D_tensioner_right.stl"
+    },
+    {
+      "path": "STLs/Gantry/Front_Idlers/front_idler_left_lower.stl",
+      "blob_sha": "4672749b0bf12fd41ae4935991414b22509123b2",
+      "bytes": 558784,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Gantry/Front_Idlers/front_idler_left_lower.stl"
+    },
+    {
+      "path": "STLs/Gantry/Front_Idlers/front_idler_left_upper.stl",
+      "blob_sha": "de5d02a25fac530fa60528f74eb4e4cc011c0e73",
+      "bytes": 529284,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Gantry/Front_Idlers/front_idler_left_upper.stl"
+    },
+    {
+      "path": "STLs/Gantry/Front_Idlers/front_idler_right_lower.stl",
+      "blob_sha": "de3ded637bedf69da77e251efb4d0b15e717bf62",
+      "bytes": 529184,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Gantry/Front_Idlers/front_idler_right_lower.stl"
+    },
+    {
+      "path": "STLs/Gantry/Front_Idlers/front_idler_right_upper.stl",
+      "blob_sha": "f475df319bf974386d4d1c63861ee79eed7614d4",
+      "bytes": 562384,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Gantry/Front_Idlers/front_idler_right_upper.stl"
+    },
+    {
+      "path": "STLs/Gantry/X_Axis/XY_Joints/[a]_endstop_pod_D2F_switch.stl",
+      "blob_sha": "9aa285895e94a9cd99146efce9a3d6f80d2e6856",
+      "bytes": 658784,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Gantry/X_Axis/XY_Joints/%5Ba%5D_endstop_pod_D2F_switch.stl"
+    },
+    {
+      "path": "STLs/Gantry/X_Axis/XY_Joints/[a]_endstop_pod_hall_effect.stl",
+      "blob_sha": "70e4869c924576a6796f9e17759878ace84c2519",
+      "bytes": 1062084,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Gantry/X_Axis/XY_Joints/%5Ba%5D_endstop_pod_hall_effect.stl"
+    },
+    {
+      "path": "STLs/Gantry/X_Axis/XY_Joints/[a]_xy_joint_cable_bridge_2hole.stl",
+      "blob_sha": "6f6429134e6e3096e71c8df13893afba391a719d",
+      "bytes": 607884,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Gantry/X_Axis/XY_Joints/%5Ba%5D_xy_joint_cable_bridge_2hole.stl"
+    },
+    {
+      "path": "STLs/Gantry/X_Axis/XY_Joints/[a]_xy_joint_cable_bridge_3hole.stl",
+      "blob_sha": "07b7fefb2747e106db6d17498ab06f7743c7a865",
+      "bytes": 617884,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Gantry/X_Axis/XY_Joints/%5Ba%5D_xy_joint_cable_bridge_3hole.stl"
+    },
+    {
+      "path": "STLs/Gantry/X_Axis/XY_Joints/xy_joint_left_lower_MGN12.stl",
+      "blob_sha": "da527dff7f2c8dee9b76159031f2de2d3399a173",
+      "bytes": 1227284,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Gantry/X_Axis/XY_Joints/xy_joint_left_lower_MGN12.stl"
+    },
+    {
+      "path": "STLs/Gantry/X_Axis/XY_Joints/xy_joint_left_upper_MGN12.stl",
+      "blob_sha": "33e8582f916a5402d7943cd2407ce43c9a21bd13",
+      "bytes": 950784,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Gantry/X_Axis/XY_Joints/xy_joint_left_upper_MGN12.stl"
+    },
+    {
+      "path": "STLs/Gantry/X_Axis/XY_Joints/xy_joint_right_lower_MGN12.stl",
+      "blob_sha": "a9053c834b36edf31593326dde8d69c9d0089a44",
+      "bytes": 1474484,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Gantry/X_Axis/XY_Joints/xy_joint_right_lower_MGN12.stl"
+    },
+    {
+      "path": "STLs/Gantry/X_Axis/XY_Joints/xy_joint_right_upper_MGN12.stl",
+      "blob_sha": "627bfa50fa80ad5ec685e85360c81cbb3e0cb384",
+      "bytes": 754584,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Gantry/X_Axis/XY_Joints/xy_joint_right_upper_MGN12.stl"
+    },
+    {
+      "path": "STLs/Gantry/X_Axis/X_Carriage/pinda_adapter.stl",
+      "blob_sha": "d3b0d403ca8c32563f1e3c561dfa2839e725cd3e",
+      "bytes": 1213784,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Gantry/X_Axis/X_Carriage/pinda_adapter.stl"
+    },
+    {
+      "path": "STLs/Gantry/X_Axis/X_Carriage/probe_retainer_bracket.stl",
+      "blob_sha": "f85455da070d6fbe1cfff870c0e9f7d0761264c1",
+      "bytes": 303284,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Gantry/X_Axis/X_Carriage/probe_retainer_bracket.stl"
+    },
+    {
+      "path": "STLs/Gantry/X_Axis/X_Carriage/probe_retainer_bracket_9mm.stl",
+      "blob_sha": "d4a2677ea4f559e05bb749736a5dcab2ed104a06",
+      "bytes": 309884,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Gantry/X_Axis/X_Carriage/probe_retainer_bracket_9mm.stl"
+    },
+    {
+      "path": "STLs/Gantry/X_Axis/X_Carriage/x_frame_V2TR_MGN12_left.stl",
+      "blob_sha": "c00ccc937a2ca87f35c3a6c1000ae77cbdc31cf3",
+      "bytes": 653584,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Gantry/X_Axis/X_Carriage/x_frame_V2TR_MGN12_left.stl"
+    },
+    {
+      "path": "STLs/Gantry/X_Axis/X_Carriage/x_frame_V2TR_MGN12_right.stl",
+      "blob_sha": "4f31ef4d524fc782b7394a98508a7147f8ca31df",
+      "bytes": 970884,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Gantry/X_Axis/X_Carriage/x_frame_V2TR_MGN12_right.stl"
+    },
+    {
+      "path": "STLs/Gantry/Z_Joints/z_joint_lower_x4.stl",
+      "blob_sha": "d86ea8242d779796a97f51cfbe0d084377a81cb0",
+      "bytes": 1586284,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Gantry/Z_Joints/z_joint_lower_x4.stl"
+    },
+    {
+      "path": "STLs/Gantry/Z_Joints/z_joint_upper_hall_effect.stl",
+      "blob_sha": "189ee4935ef1a18b3007ba3421cb5fcdbb48f14e",
+      "bytes": 1335484,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Gantry/Z_Joints/z_joint_upper_hall_effect.stl"
+    },
+    {
+      "path": "STLs/Gantry/Z_Joints/z_joint_upper_x4.stl",
+      "blob_sha": "b60113dafab81f177b28bfc7c886c071ddb9f71d",
+      "bytes": 1322184,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Gantry/Z_Joints/z_joint_upper_x4.stl"
+    },
+    {
+      "path": "STLs/Gantry/[a]_z_belt_clip_lower_x4.stl",
+      "blob_sha": "edab6b3f12769ffb128d77f15991a24775475481",
+      "bytes": 135384,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Gantry/%5Ba%5D_z_belt_clip_lower_x4.stl"
+    },
+    {
+      "path": "STLs/Gantry/[a]_z_belt_clip_upper_x4.stl",
+      "blob_sha": "0343b2aff044c470d76275a20d1ee67bf4757b0e",
+      "bytes": 111884,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Gantry/%5Ba%5D_z_belt_clip_upper_x4.stl"
+    },
+    {
+      "path": "STLs/Gantry/z_chain_bottom_anchor.stl",
+      "blob_sha": "377eec9eb89d457a3e8a1f5511f487ee84abd01e",
+      "bytes": 480884,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Gantry/z_chain_bottom_anchor.stl"
+    },
+    {
+      "path": "STLs/Gantry/z_chain_guide.stl",
+      "blob_sha": "5905cd1c274b946a2da672b9650a0047843f75a5",
+      "bytes": 878284,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Gantry/z_chain_guide.stl"
+    },
+    {
+      "path": "STLs/Panel_Mounting/Front_Doors/door_hinge_x6.stl",
+      "blob_sha": "b5e3dafeedf07909ebc0a09330e4b3f50317c664",
+      "bytes": 995084,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Panel_Mounting/Front_Doors/door_hinge_x6.stl"
+    },
+    {
+      "path": "STLs/Panel_Mounting/Front_Doors/handle_a_x2.stl",
+      "blob_sha": "92d5ea481231fa243eb836ee8666ab3fa9832034",
+      "bytes": 220084,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Panel_Mounting/Front_Doors/handle_a_x2.stl"
+    },
+    {
+      "path": "STLs/Panel_Mounting/Front_Doors/handle_b_x2.stl",
+      "blob_sha": "565a4cc98c2abb9749dc9f6e465ba2db269f5870",
+      "bytes": 220084,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Panel_Mounting/Front_Doors/handle_b_x2.stl"
+    },
+    {
+      "path": "STLs/Panel_Mounting/Front_Doors/latch_x2.stl",
+      "blob_sha": "b2040eacc16f475700d3ba48e7a92ee798aa300b",
+      "bytes": 127384,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Panel_Mounting/Front_Doors/latch_x2.stl"
+    },
+    {
+      "path": "STLs/Panel_Mounting/bottom_panel_clip_x4.stl",
+      "blob_sha": "91f76aae96f7be81fa183a10e4e4ac0698c494c2",
+      "bytes": 69284,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Panel_Mounting/bottom_panel_clip_x4.stl"
+    },
+    {
+      "path": "STLs/Panel_Mounting/bottom_panel_hinge_x2.stl",
+      "blob_sha": "73fb70c2a0ee52363e6d5330f0576405ee50c54f",
+      "bytes": 551684,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Panel_Mounting/bottom_panel_hinge_x2.stl"
+    },
+    {
+      "path": "STLs/Panel_Mounting/corner_panel_clip_4mm_x8.stl",
+      "blob_sha": "e39b57aa9e9d4999f9a037dda6063ba05d3a291d",
+      "bytes": 349784,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Panel_Mounting/corner_panel_clip_4mm_x8.stl"
+    },
+    {
+      "path": "STLs/Panel_Mounting/corner_panel_clip_6mm_x8.stl",
+      "blob_sha": "01965f5866227628eb3bd43b5137b0fac7281a92",
+      "bytes": 394284,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Panel_Mounting/corner_panel_clip_6mm_x8.stl"
+    },
+    {
+      "path": "STLs/Panel_Mounting/deck_support_3mm_x8.stl",
+      "blob_sha": "a0a3322ff42adaf6d7f1d452e85e0adf7e0185b3",
+      "bytes": 124984,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Panel_Mounting/deck_support_3mm_x8.stl"
+    },
+    {
+      "path": "STLs/Panel_Mounting/deck_support_4mm_x8.stl",
+      "blob_sha": "ac511446fbcfceda0728e91ad6b67725e21aedf7",
+      "bytes": 127284,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Panel_Mounting/deck_support_4mm_x8.stl"
+    },
+    {
+      "path": "STLs/Panel_Mounting/midspan_panel_clip_4mm_x7.stl",
+      "blob_sha": "d401eac20a00ee3c6733a38185615743f07564f9",
+      "bytes": 298984,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Panel_Mounting/midspan_panel_clip_4mm_x7.stl"
+    },
+    {
+      "path": "STLs/Panel_Mounting/midspan_panel_clip_6mm_x8.stl",
+      "blob_sha": "1b491630af14bed093ad4afc6e9bb463d4478689",
+      "bytes": 326884,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Panel_Mounting/midspan_panel_clip_6mm_x8.stl"
+    },
+    {
+      "path": "STLs/Panel_Mounting/z_belt_cover_a_x2.stl",
+      "blob_sha": "6f5013386fb34cde7481b1942760ccd2d95eef92",
+      "bytes": 678384,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Panel_Mounting/z_belt_cover_a_x2.stl"
+    },
+    {
+      "path": "STLs/Panel_Mounting/z_belt_cover_b_x2.stl",
+      "blob_sha": "93ec3c5e88756c76ea696fef84d1660dc604f9ea",
+      "bytes": 678384,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Panel_Mounting/z_belt_cover_b_x2.stl"
+    },
+    {
+      "path": "STLs/Skirts/250/front_skirt_a_250.stl",
+      "blob_sha": "e7076b47ab9e924d43d177007a1c0f97fc6cdc49",
+      "bytes": 744484,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Skirts/250/front_skirt_a_250.stl"
+    },
+    {
+      "path": "STLs/Skirts/250/front_skirt_b_250.stl",
+      "blob_sha": "e1aeb8a241dd8bfbf74fe431275c77d496d1fb2d",
+      "bytes": 744484,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Skirts/250/front_skirt_b_250.stl"
+    },
+    {
+      "path": "STLs/Skirts/250/rear_center_skirt_250.stl",
+      "blob_sha": "b73979777f0f355eb49fed7357f0ad8752424e82",
+      "bytes": 353484,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Skirts/250/rear_center_skirt_250.stl"
+    },
+    {
+      "path": "STLs/Skirts/250/side_skirt_a_250_x2.stl",
+      "blob_sha": "e223ee2927ebe5ae56c233aca2f3024fc3a6b209",
+      "bytes": 500284,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Skirts/250/side_skirt_a_250_x2.stl"
+    },
+    {
+      "path": "STLs/Skirts/250/side_skirt_b_250_x2.stl",
+      "blob_sha": "9aede2e3e46c95a5a652464643fffade0cf6ea51",
+      "bytes": 500284,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Skirts/250/side_skirt_b_250_x2.stl"
+    },
+    {
+      "path": "STLs/Skirts/300/front_skirt_a_300.stl",
+      "blob_sha": "3252f00fb0a7e6c89d0c0ff4da8787e110410d3a",
+      "bytes": 773284,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Skirts/300/front_skirt_a_300.stl"
+    },
+    {
+      "path": "STLs/Skirts/300/front_skirt_b_300.stl",
+      "blob_sha": "ebc2e6ebc520ba8338038ff4b06586824496c1d3",
+      "bytes": 773284,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Skirts/300/front_skirt_b_300.stl"
+    },
+    {
+      "path": "STLs/Skirts/300/rear_center_skirt_300.stl",
+      "blob_sha": "3d7636c48673565e52cd7622b8a68ff71006deda",
+      "bytes": 421584,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Skirts/300/rear_center_skirt_300.stl"
+    },
+    {
+      "path": "STLs/Skirts/300/side_skirt_a_300_x2.stl",
+      "blob_sha": "ac3030f051ae041c4d9280b450dfe3356d043b92",
+      "bytes": 538184,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Skirts/300/side_skirt_a_300_x2.stl"
+    },
+    {
+      "path": "STLs/Skirts/300/side_skirt_b_300_x2.stl",
+      "blob_sha": "0a31a7de7c41f005298e664a2464532321751390",
+      "bytes": 538184,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Skirts/300/side_skirt_b_300_x2.stl"
+    },
+    {
+      "path": "STLs/Skirts/350/front_skirt_a_350.stl",
+      "blob_sha": "d88c98472ec789472e08ce21292fcf4290dd65e8",
+      "bytes": 800984,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Skirts/350/front_skirt_a_350.stl"
+    },
+    {
+      "path": "STLs/Skirts/350/front_skirt_b_350.stl",
+      "blob_sha": "9452bf81dce4c380af28103dc96a453ae0eaf01b",
+      "bytes": 800484,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Skirts/350/front_skirt_b_350.stl"
+    },
+    {
+      "path": "STLs/Skirts/350/rear_center_skirt_350.stl",
+      "blob_sha": "54570f271ea6e63584d785bc270886d483314a26",
+      "bytes": 473484,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Skirts/350/rear_center_skirt_350.stl"
+    },
+    {
+      "path": "STLs/Skirts/350/side_skirt_a_350_x2.stl",
+      "blob_sha": "9da523bf4aa24915b5af87b3a31c0dff3d103a3e",
+      "bytes": 563884,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Skirts/350/side_skirt_a_350_x2.stl"
+    },
+    {
+      "path": "STLs/Skirts/350/side_skirt_b_350_x2.stl",
+      "blob_sha": "4c0849dfa1c6f7e9a2c59208b988c9ef8d1d7123",
+      "bytes": 563884,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Skirts/350/side_skirt_b_350_x2.stl"
+    },
+    {
+      "path": "STLs/Skirts/[a]_belt_guard_a_x2.stl",
+      "blob_sha": "c1a72d62925e85c2b0b33955758d7cdac54dd759",
+      "bytes": 605184,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Skirts/%5Ba%5D_belt_guard_a_x2.stl"
+    },
+    {
+      "path": "STLs/Skirts/[a]_belt_guard_b_x2.stl",
+      "blob_sha": "94812b0580dd468b7d9b42f7aa70cf7a3ba04ee7",
+      "bytes": 605184,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Skirts/%5Ba%5D_belt_guard_b_x2.stl"
+    },
+    {
+      "path": "STLs/Skirts/[a]_btt_knob_light_shield.stl",
+      "blob_sha": "776ac4013415096cc01153c5cbb180141ecdf3e9",
+      "bytes": 734484,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Skirts/%5Ba%5D_btt_knob_light_shield.stl"
+    },
+    {
+      "path": "STLs/Skirts/[a]_fan_grill_a_x2.stl",
+      "blob_sha": "4a725329121da18b983b2f84f0764c6814f1accb",
+      "bytes": 304284,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Skirts/%5Ba%5D_fan_grill_a_x2.stl"
+    },
+    {
+      "path": "STLs/Skirts/[a]_fan_grill_b_x2.stl",
+      "blob_sha": "0c3dae163585ba99665a234845a698ee46c77402",
+      "bytes": 304284,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Skirts/%5Ba%5D_fan_grill_b_x2.stl"
+    },
+    {
+      "path": "STLs/Skirts/[a]_fan_grill_open_optional_x2.stl",
+      "blob_sha": "7fcc121585c6c949392cbadc18d534f199092c71",
+      "bytes": 125484,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Skirts/%5Ba%5D_fan_grill_open_optional_x2.stl"
+    },
+    {
+      "path": "STLs/Skirts/[a]_fan_grill_retainer_x2.stl",
+      "blob_sha": "d4236ec9a7fef65806f52b3a0c56870cad83124b",
+      "bytes": 307184,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Skirts/%5Ba%5D_fan_grill_retainer_x2.stl"
+    },
+    {
+      "path": "STLs/Skirts/[a]_keystone_blank_insert.stl",
+      "blob_sha": "d53c3b97a44e40f6594676269c3a628433b276fe",
+      "bytes": 138484,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Skirts/%5Ba%5D_keystone_blank_insert.stl"
+    },
+    {
+      "path": "STLs/Skirts/[a]_mini12864_case_front_insert.stl",
+      "blob_sha": "4e7dcca4089ed27b74c2c3c25b91d479e4783736",
+      "bytes": 1245784,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Skirts/%5Ba%5D_mini12864_case_front_insert.stl"
+    },
+    {
+      "path": "STLs/Skirts/[a]_mini12864_case_hinge.stl",
+      "blob_sha": "1a006a346325388e5c810c9cd9a4a0f9d87d7476",
+      "bytes": 572884,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Skirts/%5Ba%5D_mini12864_case_hinge.stl"
+    },
+    {
+      "path": "STLs/Skirts/keystone_panel.stl",
+      "blob_sha": "1fd89284397af87175aa3d3d2d63a7bb3a8539b7",
+      "bytes": 699884,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Skirts/keystone_panel.stl"
+    },
+    {
+      "path": "STLs/Skirts/mini12864_case_front.stl",
+      "blob_sha": "fd64eb2c8dd62a53df0928ef4c3d684d3164cadd",
+      "bytes": 748684,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Skirts/mini12864_case_front.stl"
+    },
+    {
+      "path": "STLs/Skirts/mini12864_case_rear.stl",
+      "blob_sha": "1bd5f4553c2e9d7fc90ea3d834fd76034ac21bce",
+      "bytes": 923584,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Skirts/mini12864_case_rear.stl"
+    },
+    {
+      "path": "STLs/Skirts/power_inlet_IECGS_1.2mm.stl",
+      "blob_sha": "56707aff45bf281ffa7457966be13b5af468cadb",
+      "bytes": 796284,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Skirts/power_inlet_IECGS_1.2mm.stl"
+    },
+    {
+      "path": "STLs/Skirts/power_inlet_IECGS_1mm.stl",
+      "blob_sha": "c0cc54d76737c64b6f1f858ecbd1af4b7e6e13f1",
+      "bytes": 775184,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Skirts/power_inlet_IECGS_1mm.stl"
+    },
+    {
+      "path": "STLs/Skirts/power_inlet_filtered.stl",
+      "blob_sha": "aa96c19b4a0b4ca910f12f347b43a1620c894f0f",
+      "bytes": 873984,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Skirts/power_inlet_filtered.stl"
+    },
+    {
+      "path": "STLs/Skirts/side_fan_support_x2.STL",
+      "blob_sha": "2c229ca95dfecd62964c8d10df6d5c322bc5a370",
+      "bytes": 966784,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Skirts/side_fan_support_x2.STL"
+    },
+    {
+      "path": "STLs/Spool_Management/bowden_retainer.stl",
+      "blob_sha": "9e24929b59039d42dd7a1146d88eaa4b5e383009",
+      "bytes": 311484,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Spool_Management/bowden_retainer.stl"
+    },
+    {
+      "path": "STLs/Spool_Management/spool_holder.stl",
+      "blob_sha": "3460d557917c5dcb1c79d80fcdf18a922ea9b319",
+      "bytes": 438684,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Spool_Management/spool_holder.stl"
+    },
+    {
+      "path": "STLs/Superceded_Parts/Frame_Brackets/dual_ramps_bracket_frame.stl",
+      "blob_sha": "b5839745e2a6b3016ba5686abd492dae0da9b060",
+      "bytes": 202884,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Superceded_Parts/Frame_Brackets/dual_ramps_bracket_frame.stl"
+    },
+    {
+      "path": "STLs/Superceded_Parts/Frame_Brackets/duet_duex_bracket_frame_x2.stl",
+      "blob_sha": "df1541391108834c03f3869ddf0e1ed459d5ec5e",
+      "bytes": 2236684,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Superceded_Parts/Frame_Brackets/duet_duex_bracket_frame_x2.stl"
+    },
+    {
+      "path": "STLs/Superceded_Parts/Frame_Brackets/lrs_bracket_frame.stl",
+      "blob_sha": "c9b01f899a7287a32f63154782d98c17a4c79cc5",
+      "bytes": 233184,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Superceded_Parts/Frame_Brackets/lrs_bracket_frame.stl"
+    },
+    {
+      "path": "STLs/Superceded_Parts/Frame_Brackets/mks_gen_1.4_bracket_frame_x2.stl",
+      "blob_sha": "38a8c4e9aba16fca5ede057247f699ae5bbde045",
+      "bytes": 3011284,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Superceded_Parts/Frame_Brackets/mks_gen_1.4_bracket_frame_x2.stl"
+    },
+    {
+      "path": "STLs/Superceded_Parts/Frame_Brackets/mks_gen_L_bracket_frame_x2.stl",
+      "blob_sha": "7738c0cf3a3ab3eaecabe31d862e0090376b8cde",
+      "bytes": 3034084,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Superceded_Parts/Frame_Brackets/mks_gen_L_bracket_frame_x2.stl"
+    },
+    {
+      "path": "STLs/Superceded_Parts/Frame_Brackets/raspberry_pi_bracket.stl",
+      "blob_sha": "fc41913d277df63579d053f305df760e0ff98903",
+      "bytes": 174784,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Superceded_Parts/Frame_Brackets/raspberry_pi_bracket.stl"
+    },
+    {
+      "path": "STLs/Superceded_Parts/Frame_Brackets/rs_25_psu_bracket_frame.stl",
+      "blob_sha": "6cfb058dfe8af74c0d133a56c61363f88462f9cf",
+      "bytes": 157384,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Superceded_Parts/Frame_Brackets/rs_25_psu_bracket_frame.stl"
+    },
+    {
+      "path": "STLs/Superceded_Parts/Frame_Brackets/rs_35_bracket_frame.stl",
+      "blob_sha": "b4304eda1ed34800ceccd3b41511070ffe683090",
+      "bytes": 157384,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Superceded_Parts/Frame_Brackets/rs_35_bracket_frame.stl"
+    },
+    {
+      "path": "STLs/Superceded_Parts/Frame_Brackets/skr_1.3_bracket_frame.stl",
+      "blob_sha": "38151ebccfe0d156d227527d290ba6673b082a6f",
+      "bytes": 2224384,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Superceded_Parts/Frame_Brackets/skr_1.3_bracket_frame.stl"
+    },
+    {
+      "path": "STLs/Superceded_Parts/Frame_Brackets/skr_mini_e3_bracket_frame.stl",
+      "blob_sha": "ed5e3f35a4d93236a5086a4153c2c3efd9f4006a",
+      "bytes": 1899484,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Superceded_Parts/Frame_Brackets/skr_mini_e3_bracket_frame.stl"
+    },
+    {
+      "path": "STLs/Superceded_Parts/MGN9_X/[a]_belt_clamp_MGN9_x2.stl",
+      "blob_sha": "7506972b249efa7b3f9316e39fd9ab6dcdc62dda",
+      "bytes": 746684,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Superceded_Parts/MGN9_X/%5Ba%5D_belt_clamp_MGN9_x2.stl"
+    },
+    {
+      "path": "STLs/Superceded_Parts/MGN9_X/x_carriage_frame_left_MGN9.stl",
+      "blob_sha": "7537d5c320c203ceb40dd4f57c0528cf16869625",
+      "bytes": 1277584,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Superceded_Parts/MGN9_X/x_carriage_frame_left_MGN9.stl"
+    },
+    {
+      "path": "STLs/Superceded_Parts/MGN9_X/x_carriage_frame_right_MGN9.stl",
+      "blob_sha": "15fa027dc49a00d29526eb796580227626677037",
+      "bytes": 1246884,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Superceded_Parts/MGN9_X/x_carriage_frame_right_MGN9.stl"
+    },
+    {
+      "path": "STLs/Superceded_Parts/MGN9_X/x_carriage_pivot_block_MGN9.stl",
+      "blob_sha": "1217a3da887f64a11633ec17ca17c542f1b7ea07",
+      "bytes": 674484,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Superceded_Parts/MGN9_X/x_carriage_pivot_block_MGN9.stl"
+    },
+    {
+      "path": "STLs/Superceded_Parts/MGN9_X/xy_joint_left_lower_MGN9.stl",
+      "blob_sha": "d7e01237046c620b784c056ecdd63a5e6783ddab",
+      "bytes": 493984,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Superceded_Parts/MGN9_X/xy_joint_left_lower_MGN9.stl"
+    },
+    {
+      "path": "STLs/Superceded_Parts/MGN9_X/xy_joint_left_upper_MGN9.stl",
+      "blob_sha": "d8c3ddc7640a7c6beaafbc64338db9b2dc4a789b",
+      "bytes": 1007284,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Superceded_Parts/MGN9_X/xy_joint_left_upper_MGN9.stl"
+    },
+    {
+      "path": "STLs/Superceded_Parts/MGN9_X/xy_joint_right_lower_MGN9.stl",
+      "blob_sha": "1aec4662dad55ed4ec1e12b569faa11b30e2d5a1",
+      "bytes": 1538884,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Superceded_Parts/MGN9_X/xy_joint_right_lower_MGN9.stl"
+    },
+    {
+      "path": "STLs/Superceded_Parts/MGN9_X/xy_joint_right_upper_MGN9.stl",
+      "blob_sha": "afff21cde70cdb7e185465e5e0f7ff8ae808816f",
+      "bytes": 352684,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Superceded_Parts/MGN9_X/xy_joint_right_upper_MGN9.stl"
+    },
+    {
+      "path": "STLs/Superceded_Parts/ZipChain/XY/zipchain2_xy_end.stl",
+      "blob_sha": "6249e191a7ed26f6bd85445ac872c5f4c4391e23",
+      "bytes": 567484,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Superceded_Parts/ZipChain/XY/zipchain2_xy_end.stl"
+    },
+    {
+      "path": "STLs/Superceded_Parts/ZipChain/XY/zipchain2_xy_link_a.stl",
+      "blob_sha": "654f4c06b074ba27347731dbdc4a99e321190989",
+      "bytes": 454084,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Superceded_Parts/ZipChain/XY/zipchain2_xy_link_a.stl"
+    },
+    {
+      "path": "STLs/Superceded_Parts/ZipChain/XY/zipchain2_xy_link_b.stl",
+      "blob_sha": "0d29076c3b045c40c3bfa75d3ad68f2d4d83dc42",
+      "bytes": 653884,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Superceded_Parts/ZipChain/XY/zipchain2_xy_link_b.stl"
+    },
+    {
+      "path": "STLs/Superceded_Parts/ZipChain/Z/zipchain2_z_end.stl",
+      "blob_sha": "922a045e99058383544a70735db4a5502fa74f1a",
+      "bytes": 555284,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Superceded_Parts/ZipChain/Z/zipchain2_z_end.stl"
+    },
+    {
+      "path": "STLs/Superceded_Parts/ZipChain/Z/zipchain2_z_link_a.stl",
+      "blob_sha": "8ce4f7648f6273efdee2d61647ef84879f682c19",
+      "bytes": 505684,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Superceded_Parts/ZipChain/Z/zipchain2_z_link_a.stl"
+    },
+    {
+      "path": "STLs/Superceded_Parts/ZipChain/Z/zipchain2_z_link_b.stl",
+      "blob_sha": "f9ab103726d6bce9db9a2870ea8698b0ed7e649f",
+      "bytes": 811484,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Superceded_Parts/ZipChain/Z/zipchain2_z_link_b.stl"
+    },
+    {
+      "path": "STLs/Superceded_Parts/ZipChain/Z/zipchain2_z_link_b_locking.stl",
+      "blob_sha": "4d27343df8536020048ec88ebac5fdd8272dbde1",
+      "bytes": 1235684,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Superceded_Parts/ZipChain/Z/zipchain2_z_link_b_locking.stl"
+    },
+    {
+      "path": "STLs/Superceded_Parts/[a]_stopgap_80T_hubbed_gear.stl",
+      "blob_sha": "fd387784bf895cd0c65f0c137f27ce647214396e",
+      "bytes": 2358984,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Superceded_Parts/%5Ba%5D_stopgap_80T_hubbed_gear.stl"
+    },
+    {
+      "path": "STLs/Superceded_Parts/[a]_z_tensioner_x4_6mm.stl",
+      "blob_sha": "167bf19dbb229ecbb4a18b9bec116cf2a0b810cc",
+      "bytes": 1339184,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Superceded_Parts/%5Ba%5D_z_tensioner_x4_6mm.stl"
+    },
+    {
+      "path": "STLs/Test_Prints/Filament_Card.stl",
+      "blob_sha": "254f82e218b9b46d91980102a085578ad34685f3",
+      "bytes": 40184,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Test_Prints/Filament_Card.stl"
+    },
+    {
+      "path": "STLs/Test_Prints/Filament_Card_Caddy_25.stl",
+      "blob_sha": "9dc3decf9e8a0435e187e968f4bdff43f0f41926",
+      "bytes": 63084,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Test_Prints/Filament_Card_Caddy_25.stl"
+    },
+    {
+      "path": "STLs/Test_Prints/Heatset_Practice.stl",
+      "blob_sha": "a5db2d57c0f7aee34cc02e2b27c4ebf6cad4fa85",
+      "bytes": 373684,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Test_Prints/Heatset_Practice.stl"
+    },
+    {
+      "path": "STLs/Test_Prints/Thread_Test_1_x1_Rev1.STL",
+      "blob_sha": "2f9c4b4350d38bd7ba57c1bc7b00ebaeba2596ae",
+      "bytes": 3991184,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Test_Prints/Thread_Test_1_x1_Rev1.STL"
+    },
+    {
+      "path": "STLs/Test_Prints/Thread_Test_2_x1_Rev1.STL",
+      "blob_sha": "5f29ce8be5534fb5b804e9a1561f1a8fff18980e",
+      "bytes": 1182884,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Test_Prints/Thread_Test_2_x1_Rev1.STL"
+    },
+    {
+      "path": "STLs/Test_Prints/Thread_Test_3_x1_Rev1.STL",
+      "blob_sha": "b748ec8f5930c6fb52b4f12a5327cdb347fe92b1",
+      "bytes": 965984,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Test_Prints/Thread_Test_3_x1_Rev1.STL"
+    },
+    {
+      "path": "STLs/Test_Prints/Voron_Design_Cube_v7.stl",
+      "blob_sha": "edb229b6df58e5dc8c0e597dcab27135b971c7fd",
+      "bytes": 170784,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Test_Prints/Voron_Design_Cube_v7.stl"
+    },
+    {
+      "path": "STLs/Tools/MGN12_rail_guide_x2.stl",
+      "blob_sha": "610e2a7f45801ea6f205fc77bce09c365398df63",
+      "bytes": 60884,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Tools/MGN12_rail_guide_x2.stl"
+    },
+    {
+      "path": "STLs/Tools/MGN9_rail_guide_x2.stl",
+      "blob_sha": "669494f6700e5b80880574f03cda124275bc0b47",
+      "bytes": 31084,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Tools/MGN9_rail_guide_x2.stl"
+    },
+    {
+      "path": "STLs/Tools/bed_hole_marking_template_x1_Rev2.STL",
+      "blob_sha": "1b166b171833da0699a63b311c34238ca8b43878",
+      "bytes": 43884,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Tools/bed_hole_marking_template_x1_Rev2.STL"
+    },
+    {
+      "path": "STLs/Tools/bottom_panel_template.stl",
+      "blob_sha": "d895328a70b1ab91a213e6962072a78bbe301209",
+      "bytes": 136684,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Tools/bottom_panel_template.stl"
+    },
+    {
+      "path": "STLs/Tools/pulley_jig.stl",
+      "blob_sha": "c4c76c1edec915cfafae4a3e9b89ea7c6d0599c3",
+      "bytes": 131084,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Tools/pulley_jig.stl"
+    },
+    {
+      "path": "STLs/Z_Drive/[a]_belt_tensioner_a_x2.stl",
+      "blob_sha": "7c5c45a21b0583b76f2c821f7e03dcd28b3cfa8a",
+      "bytes": 462684,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Z_Drive/%5Ba%5D_belt_tensioner_a_x2.stl"
+    },
+    {
+      "path": "STLs/Z_Drive/[a]_belt_tensioner_b_x2.stl",
+      "blob_sha": "1fb52737e5359dde9967fc2b84810d4a9830940b",
+      "bytes": 462684,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Z_Drive/%5Ba%5D_belt_tensioner_b_x2.stl"
+    },
+    {
+      "path": "STLs/Z_Drive/[a]_z_drive_baseplate_a_x2.stl",
+      "blob_sha": "e75bd44055ec9d8baa601c76e5e9dc538e25f58e",
+      "bytes": 504284,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Z_Drive/%5Ba%5D_z_drive_baseplate_a_x2.stl"
+    },
+    {
+      "path": "STLs/Z_Drive/[a]_z_drive_baseplate_b_x2.stl",
+      "blob_sha": "7fdd704566d685706295fa81a9a0db1416c5de9f",
+      "bytes": 504284,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Z_Drive/%5Ba%5D_z_drive_baseplate_b_x2.stl"
+    },
+    {
+      "path": "STLs/Z_Drive/z_drive_main_a_x2.stl",
+      "blob_sha": "e98c1dde3303a4bffcafaac69b252a65109c1616",
+      "bytes": 1165484,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Z_Drive/z_drive_main_a_x2.stl"
+    },
+    {
+      "path": "STLs/Z_Drive/z_drive_main_b_x2.stl",
+      "blob_sha": "3688a3d8bde0bb522904054c5d4eea59dcb1ea20",
+      "bytes": 1165484,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Z_Drive/z_drive_main_b_x2.stl"
+    },
+    {
+      "path": "STLs/Z_Drive/z_drive_retainer_a_x2.stl",
+      "blob_sha": "b6e1d4c32d912cf62448809c43b383565cf665cb",
+      "bytes": 839684,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Z_Drive/z_drive_retainer_a_x2.stl"
+    },
+    {
+      "path": "STLs/Z_Drive/z_drive_retainer_b_x2.stl",
+      "blob_sha": "1b4bdd80fb74a0eda43dfb16b81e3693398c7634",
+      "bytes": 839684,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Z_Drive/z_drive_retainer_b_x2.stl"
+    },
+    {
+      "path": "STLs/Z_Drive/z_motor_mount_a_x2.stl",
+      "blob_sha": "0c4cb8a77a0ca5380da73635fd2ab5661ab740fd",
+      "bytes": 1071284,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Z_Drive/z_motor_mount_a_x2.stl"
+    },
+    {
+      "path": "STLs/Z_Drive/z_motor_mount_b_x2.stl",
+      "blob_sha": "fc28a50ae06ea82f54f7092def31a0aaf007fb76",
+      "bytes": 1071284,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Z_Drive/z_motor_mount_b_x2.stl"
+    },
+    {
+      "path": "STLs/Z_Endstop/nozzle_probe.stl",
+      "blob_sha": "8602fa9655d63f6dc7713cee0511ae637ef7c8a0",
+      "bytes": 878584,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Z_Endstop/nozzle_probe.stl"
+    },
+    {
+      "path": "STLs/Z_Idlers/[a]_z_tensioner_9mm_x4.stl",
+      "blob_sha": "cc3cf3951f5dbf54cd91670f644edea19530d555",
+      "bytes": 1359884,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Z_Idlers/%5Ba%5D_z_tensioner_9mm_x4.stl"
+    },
+    {
+      "path": "STLs/Z_Idlers/z_tensioner_bracket_a_x2.stl",
+      "blob_sha": "5a01d0c5a0ee910df73690f5ced413320d51e813",
+      "bytes": 672784,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Z_Idlers/z_tensioner_bracket_a_x2.stl"
+    },
+    {
+      "path": "STLs/Z_Idlers/z_tensioner_bracket_b_x2.stl",
+      "blob_sha": "d8782cf441889306beec7a172c58eed854e4fb7c",
+      "bytes": 688184,
+      "commit": "a192410e27ea345644ae5c4b29b4c9c40cbe1a73",
+      "url": "https://github.com/VoronDesign/Voron-2/blob/a192410e27ea345644ae5c4b29b4c9c40cbe1a73/STLs/Z_Idlers/z_tensioner_bracket_b_x2.stl"
+    }
+  ]
+}

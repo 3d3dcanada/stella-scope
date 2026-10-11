@@ -1,0 +1,24 @@
+[package]
+name = "stella-link"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "Stella Scope anywhere: a paired phone reaches the desktop's Stella Scope over iroh (QUIC, dialled by key, NAT traversal, relay fallback, end-to-end encrypted)."
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "stella-link"
+path = "src/main.rs"
+
+[dependencies]
+iroh = "1.2"
+tokio = { version = "1", features = ["rt-multi-thread", "net", "io-util", "macros", "sync", "time"] }
+anyhow = "1"
+
+[profile.release]
+codegen-units = 1
+lto = "thin"
+opt-level = 3
+strip = true

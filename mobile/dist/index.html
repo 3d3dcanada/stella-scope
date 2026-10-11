@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<title>Stella</title>
+<style>
+ :root{--bg:#07090C;--glass:rgba(22,27,34,.7);--line:rgba(255,255,255,.09);--ink:#EEF2F6;--ink2:#A7B0BA;--ink3:#6E7883;--accent:#04D9C4;--alarm:#FF2D92}
+ *{box-sizing:border-box}
+ [hidden]{display:none!important}
+ html,body{margin:0;height:100%;background:radial-gradient(120% 70% at 50% 0%,#0f2a2a 0%,var(--bg) 60%);color:var(--ink);font:15px/1.45 system-ui,sans-serif}
+ main{max-width:520px;margin:0 auto;padding:calc(28px + env(safe-area-inset-top)) 18px calc(28px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:18px}
+ header{display:flex;align-items:center;gap:12px}
+ header b{font:700 20px/1 system-ui;letter-spacing:.32em}
+ header small{display:block;color:var(--ink3);font:500 11px/1.3 ui-monospace,monospace;letter-spacing:.12em;margin-top:4px}
+ .card{background:var(--glass);border:1px solid var(--line);border-radius:22px;padding:16px;box-shadow:inset 0 1px 0 rgba(255,255,255,.14),0 14px 40px rgba(0,0,0,.45)}
+ h2{margin:0 0 10px;font:650 12px/1 system-ui;letter-spacing:.14em;text-transform:uppercase;color:var(--ink3)}
+ .printer{display:flex;align-items:center;gap:12px;padding:14px;border-radius:16px;border:1px solid var(--line);background:rgba(255,255,255,.03);margin-top:10px}
+ .printer .n{flex:1;min-width:0}
+ .printer .n b{display:block;font-size:16px}
+ .printer .n span{display:block;color:var(--ink3);font:500 11px/1.3 ui-monospace,monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+ button{min-height:48px;border-radius:14px;border:1px solid var(--line);background:rgba(255,255,255,.05);color:var(--ink);font:650 14px/1 system-ui;letter-spacing:.06em;padding:0 16px}
+ button.primary{background:linear-gradient(180deg,#3FF3E0,var(--accent));color:#031A17;border-color:rgba(63,243,224,.55);box-shadow:0 0 24px rgba(4,217,196,.3)}
+ button.ghost{background:none;min-height:40px;color:var(--ink3)}
+ .row{display:flex;gap:10px}.row>*{flex:1}
+ input{width:100%;min-height:48px;border-radius:14px;border:1px solid var(--line);background:rgba(0,0,0,.3);color:var(--ink);padding:0 14px;font:500 13px ui-monospace,monospace}
+ .note{color:var(--ink2);font-size:13.5px;margin:8px 0 0}
+ .err{color:var(--alarm)}
+ .busy{opacity:.6;pointer-events:none}
+</style>
+</head>
+<body>
+<main>
+ <header><img src="logo.svg" width="36" height="36" alt="">
+  <div><b>STELLA</b><small>YOUR PRINTER, ANYWHERE</small></div></header>
+ <section class="card"><h2>Printers</h2><div id="list"></div><p class="note" id="empty">No printer yet. Add one below.</p></section>
+ <section class="card"><h2>Add a printer</h2>
+  <p class="note">On the computer, open Stella Scope, then Phone, and press Pair a phone. Scan that code: it finds your computer and pairs this phone in one go.</p>
+  <div class="row" style="margin-top:12px"><button class="primary" id="scan">Scan the code</button></div>
+  <p class="note">Or paste the link id:</p>
+  <div class="row"><input id="paste" placeholder="stella://link/…" autocomplete="off" spellcheck="false"></div>
+  <div class="row" style="margin-top:10px"><input id="name" placeholder="Name, for example Voron" autocomplete="off"><button id="add">Add</button></div>
+  <p class="note err" id="msg"></p>
+ </section>
+ <p class="note">Scanning the pairing code connects and pairs this phone. If you add only a link id, Stella Scope asks for the six-digit code when you open it. Everything travels encrypted, straight to your computer when it can and through a relay when it cannot; the relay cannot read it.</p>
+</main>
+<script>
+const T=window.__TAURI__,invoke=T&&T.core&&T.core.invoke,$=id=>document.getElementById(id);
+const load=()=>{try{return JSON.parse(localStorage.getItem('printers')||'[]');}catch{return [];}};
+const save=l=>localStorage.setItem('printers',JSON.stringify(l));
+const clean=t=>String(t||'').trim().replace(/^stella:\/\/link\//,'');
+function paint(){const l=load(),host=$('list');host.replaceChildren();$('empty').hidden=l.length>0;
+ l.forEach((p,i)=>{const r=document.createElement('div');r.className='printer';const n=document.createElement('div');n.className='n';const b=document.createElement('b');b.textContent=p.name;const s=document.createElement('span');s.textContent=p.id;n.append(b,s);
+  const go=document.createElement('button');go.className='primary';go.textContent='Open';go.onclick=()=>open(p,go);
+  const x=document.createElement('button');x.className='ghost';x.textContent='✕';x.title='Remove';x.onclick=()=>{const m=load();m.splice(i,1);save(m);paint();};
+  r.append(n,go,x);host.append(r);});}
+async function open(p,btn){$('msg').textContent='';btn.classList.add('busy');btn.textContent='Connecting…';
+ try{const port=await invoke('open_link',{id:p.id});location.href='http://127.0.0.1:'+port+'/';}
+ catch(e){$('msg').textContent='Could not reach '+p.name+': '+e+'. Is the computer on, with Stella Scope open?';btn.classList.remove('busy');btn.textContent='Open';}}
+function add(id,name){id=clean(id);if(!/^[0-9a-f]{64}$/i.test(id)){$('msg').textContent='That is not a Stella link code.';return null;}
+ const old=load().find(p=>p.id===id),l=load().filter(p=>p.id!==id),p={id,name:(name||'').trim()||old?.name||'Printer '+(l.length+1)};l.push(p);save(l);$('paste').value='';$('name').value='';$('msg').textContent='';paint();return p;}
+// One scan sets a phone up: the desktop's pairing code reads stella://pair/<id>?code=123456. The app adds the
+// printer, dials it and pairs with the code, with nothing to type. stella://link/<id> only adds it. The same
+// links open the app from the phone's own camera.
+async function handle(text,name){const t=String(text||'').trim(),m=/^stella:\/\/pair\/([0-9a-f]{64})\?code=(\d{6})/i.exec(t);
+ if(m){const p=add(m[1],name);if(!p)return;$('msg').textContent='Setting up '+p.name+'…';try{const port=await invoke('open_link',{id:p.id});location.href='http://127.0.0.1:'+port+'/pair#code='+m[2];}catch(e){$('msg').textContent='Could not reach the computer: '+e;}return;}
+ add(t,name);}
+$('add').onclick=()=>handle($('paste').value,$('name').value);
+$('scan').onclick=async()=>{$('msg').textContent='';try{
+ try{await invoke('plugin:barcode-scanner|request_permissions');}catch{}
+ const r=await invoke('plugin:barcode-scanner|scan',{windowed:false,formats:['QR_CODE']});handle(r&&r.content,$('name').value);}
+ catch(e){$('msg').textContent='Scan failed: '+e;}};
+paint();
+(async()=>{try{const dl=T.deepLink;const first=dl?await dl.getCurrent():await invoke('plugin:deep-link|get_current');if(first&&first.length)handle(first[0]);if(dl)await dl.onOpenUrl(u=>{if(u&&u.length)handle(u[0]);});}catch{}})();
+</script>
+</body>
+</html>

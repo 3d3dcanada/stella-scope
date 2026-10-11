@@ -1,0 +1,16 @@
+import assert from 'node:assert/strict';
+import {jobDisplay,preflight,installationAge,instanceRecordId} from '../web/hud-core.js';
+assert.equal(jobDisplay({name:'a.gcode',state:'printing',progress:.5},'b.gcode').progress,null);
+assert.equal(jobDisplay({name:'a.gcode',state:'printing',progress:.5},'a.gcode').progress,.5);
+assert.equal(jobDisplay({name:'a.gcode',state:'paused',progress:.5},'a.gcode').state,'paused');
+assert.equal(jobDisplay({name:'a.gcode',state:'complete',progress:null},'a.gcode').progress,null);
+assert.equal(preflight(null)[0].state,'unknown');
+assert.equal(preflight({point:{homed:'xy',mesh:{grid:[[null]]}}})[1].state,'review');
+assert.equal(preflight({point:{homed:'xyz',mesh:{grid:[[null]]}}})[3].state,'unknown');
+assert.equal(preflight({point:{homed:'xyz',mesh:{grid:[[0,.1],[.1,.2]]}}})[3].state,'observed');
+assert.equal(preflight({point:{},age_seconds:20})[0].state,'review');
+assert.equal(installationAge({state:'candidate',effective_at:0},86400),null);
+assert.equal(installationAge({state:'installed',effective_at:0},86400),1);
+assert.equal(installationAge({state:'installed',effective_at:86400},0),null);
+assert.equal(instanceRecordId('part:root/0/2:3'),'cad:part:root.0.2:3');
+console.log('HUD evidence rules: 13 assertions passed.');

@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Stella Scope</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<header>
+  <div class="brand"><span class="dot" id="conn-dot"></span> Stella Scope</div>
+  <div class="state" id="state-line">connecting…</div>
+  <div class="modes">
+    <button id="btn-live" class="on">Live</button>
+    <button id="btn-replay">Rewind</button>
+  </div>
+</header>
+
+<div id="timeline" hidden>
+  <input type="range" id="scrub" min="0" max="1000" value="1000">
+  <div class="tl-labels"><span id="tl-start"></span><span id="tl-now" class="strong"></span><span id="tl-end"></span></div>
+  <div class="tl-jumps">
+    <button data-back="60">-1 min</button>
+    <button data-back="300">-5 min</button>
+    <button data-back="1800">-30 min</button>
+    <button data-back="7200">-2 h</button>
+    <button id="btn-now">Now</button>
+  </div>
+</div>
+
+<main>
+  <section class="card map-card">
+    <h2>The machine <small id="map-sub"></small></h2>
+    <div class="map-wrap">
+      <svg id="map" viewBox="0 0 360 360" preserveAspectRatio="xMidYMid meet" aria-label="Bed and gantry"></svg>
+    </div>
+    <p class="hint">Click a corner or the toolhead for its detail. Front of the printer is at the bottom.</p>
+  </section>
+
+  <section class="card" id="detail-card">
+    <h2 id="detail-title">Pick something</h2>
+    <div id="detail-body" class="detail">Click a Z corner, a motor, or the toolhead on the map.</div>
+  </section>
+
+  <section class="card">
+    <h2>Temperatures</h2>
+    <canvas id="chart-temp" height="150"></canvas>
+    <div class="legend"><span class="k nozzle"></span>nozzle <span class="k bed"></span>bed
+      <span class="k target"></span>targets</div>
+  </section>
+
+  <section class="card">
+    <h2>Motion <small>height and speed</small></h2>
+    <canvas id="chart-motion" height="150"></canvas>
+    <div class="legend"><span class="k z"></span>Z height <span class="k v"></span>speed</div>
+  </section>
+
+  <section class="card motors-card">
+    <h2>Motors</h2>
+    <div id="motors" class="motors"></div>
+  </section>
+
+  <section class="card">
+    <h2>Gantry levelling history</h2>
+    <div id="qgl" class="qgl">no runs recorded yet</div>
+  </section>
+
+  <section class="card events-card">
+    <h2>What the printer said</h2>
+    <div id="events" class="events">nothing recorded yet</div>
+  </section>
+</main>
+<script src="/static/app.js"></script>
+</body>
+</html>

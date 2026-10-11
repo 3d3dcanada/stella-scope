@@ -1,0 +1,71 @@
+{
+  "moonraker_url": "http://192.168.1.50:7125",
+  "bind": "127.0.0.1",
+  "port": 7420,
+  "database": "stella-scope.sqlite3",
+  "poll_interval_ms": 500,
+  "console_interval_ms": 1000,
+  "request_timeout_ms": 1500,
+  "offline_retry_ms": 2000,
+  "discovery_interval_s": 60,
+  "keep_days": 14,
+  "max_db_mb": 4096,
+  "prune_interval_s": 3600,
+  "max_http_connections": 8,
+  "http_timeout_ms": 5000,
+  "max_request_bytes": 8192,
+  "max_response_bytes": 2097152,
+  "series_max_points": 1200,
+  "events_limit": 500,
+  "qgl_limit": 500,
+  "chart_window_s": 900,
+  "qgl_tolerance_mm": 0.02,
+  "bed_size_mm": [
+    350,
+    350
+  ],
+  "probe_offset_mm": [
+    -32.95,
+    -10.718
+  ],
+  "klippy_log_path": null,
+  "api_key_env": "STELLA_MOONRAKER_API_KEY",
+  "objects": [
+    "motion_report",
+    "toolhead",
+    "gcode_move",
+    "idle_timeout",
+    "print_stats",
+    "virtual_sdcard",
+    "stepper_enable",
+    "extruder",
+    "heater_bed",
+    "fan",
+    "heater_fan hotend_fan",
+    "controller_fan controller_fan",
+    "probe",
+    "bed_mesh",
+    "quad_gantry_level",
+    "configfile=settings",
+    "tmc2209 stepper_x",
+    "tmc2209 stepper_y",
+    "tmc2209 stepper_z",
+    "tmc2209 stepper_z1",
+    "tmc2209 stepper_z2",
+    "tmc2209 stepper_z3",
+    "tmc2209 extruder"
+  ],
+  "investigation": {
+    "max_samples": 12000,
+    "max_scan_bytes": 67108864,
+    "max_window_s": 86400,
+    "max_query_ms": 5000,
+    "gap_multiple": 3
+  },
+  "telemetry": {
+    "discover": true,
+    "max_extra_objects": 96,
+    "host_stats": false,
+    "host_interval_ms": 5000
+  }
+}
