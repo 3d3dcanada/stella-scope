@@ -5,7 +5,7 @@ body.lab{overflow:auto;height:auto;min-height:100%;background:radial-gradient(12
 .lab-head h1{margin:0 0 8px;font:650 26px/1.15 var(--sans);letter-spacing:-.01em}
 .lab-head p{margin:0;max-width:760px;color:var(--ink-2);font:500 15px/1.5 var(--sans)}
 .lab-head b{color:var(--ink-1)}
-.lab-back{flex:none;color:var(--accent);text-decoration:none;font:600 13px var(--sans);padding:12px 16px;border:1px solid rgba(4,217,196,.35);border-radius:12px}
+.lab-back{flex:none;color:var(--accent);text-decoration:none;font:600 13px var(--sans);padding:12px 16px;border:1px solid rgba(var(--accent-rgb),.35);border-radius:12px}
 #lab{max-width:1500px;margin:0 auto;padding:12px clamp(16px,4vw,56px) 80px;display:flex;flex-direction:column;gap:28px}
 .lab-var{padding:24px;border-radius:28px;background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.01));border:1px solid var(--glass-line);box-shadow:inset 0 1px 0 rgba(255,255,255,.08)}
 .lab-var-head{display:grid;grid-template-columns:auto 1fr;column-gap:14px;align-items:baseline;margin-bottom:22px}
@@ -13,6 +13,10 @@ body.lab{overflow:auto;height:auto;min-height:100%;background:radial-gradient(12
 .lab-var-head h2{margin:0;font:650 19px var(--sans)}
 .lab-var-head p{margin:4px 0 0;color:var(--ink-2);font:500 14px/1.45 var(--sans)}
 .lab-row{display:flex;flex-wrap:wrap;gap:28px;justify-content:space-around;align-items:center}
+/* ---- D. the LED control kit (next-control.js / next-control.css) ---- */
+.lab-keys{gap:12px;justify-content:flex-start}
+.lab-keys-head,.lab-note{margin:18px 0 0;color:var(--ink-2);font:500 14px/1.5 var(--sans);max-width:760px}
+.lab-note{margin-top:12px;color:var(--ink-3)}
 [role=slider]{touch-action:none;user-select:none;-webkit-user-select:none;outline:none}
 [role=slider]:focus-visible{outline:2px solid var(--accent);outline-offset:6px}
 
@@ -35,7 +39,7 @@ body.lab{overflow:auto;height:auto;min-height:100%;background:radial-gradient(12
 
 /* ---- B. control-center sliders ---- */
 .lab-row-B{gap:22px}
-.pill{--col:#04D9C4;--f:.5;--c:.2;position:relative;width:112px;height:300px;border-radius:30px;overflow:hidden;cursor:ns-resize;
+.pill{--col:var(--accent);--f:.5;--c:.2;position:relative;width:112px;height:300px;border-radius:30px;overflow:hidden;cursor:ns-resize;
  background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.03)),rgba(20,25,32,.7);border:1px solid rgba(255,255,255,.08);
  box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 20px 40px rgba(0,0,0,.5)}
 .pill-fill{position:absolute;left:0;right:0;bottom:0;height:calc(var(--f) * 100%);background:linear-gradient(0deg,color-mix(in srgb,var(--col) 70%,#000),var(--col));box-shadow:0 0 30px color-mix(in srgb,var(--col) 60%,transparent);transition:height .08s linear}
@@ -49,7 +53,7 @@ body.lab{overflow:auto;height:auto;min-height:100%;background:radial-gradient(12
 .pill-now{font:600 11px/1 var(--mono);opacity:.85;text-shadow:0 1px 6px rgba(0,0,0,.7)}
 
 /* ---- C. cluster with target marker ---- */
-.clu{--col:#04D9C4;position:relative;width:250px;height:250px;cursor:grab;filter:drop-shadow(0 18px 30px rgba(0,0,0,.55))}
+.clu{--col:var(--accent);position:relative;width:250px;height:250px;cursor:grab;filter:drop-shadow(0 18px 30px rgba(0,0,0,.55))}
 .clu[data-drag]{cursor:grabbing}
 .clu svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
 .c-bezel{fill:url(#lab-bezel);stroke:rgba(255,255,255,.12)}

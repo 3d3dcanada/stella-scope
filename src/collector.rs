@@ -1,12 +1,12 @@
 use crate::{
     api::workspace,
     config::Config,
+    driver::{self, Driver},
     log_tail::LogTail,
     model::{self, CollectorStatus, MOTORS},
-    moonraker::Moonraker,
     qgl::Parser,
     store::{Event, Store},
-    ws_source::{self, WsEvent},
+    ws_source::WsEvent,
     Result,
 };
 use serde_json::{json, Value};
@@ -20,7 +20,9 @@ use std::{
 pub type Shared = Arc<Mutex<CollectorStatus>>;
 
 fn new_print(last: &Option<(String, Option<f64>)>, filename: &str, duration: Option<f64>) -> bool {
-    last.as_ref().is_none_or(|(old, previous)| old != filename || previous.zip(duration).is_some_and(|(a,b)| b + 2.0 < a))
+    last.as_ref().is_none_or(|(old, previous)| {
+        old != filename || previous.zip(duration).is_some_and(|(a, b)| b + 2.0 < a)
+    })
 }
 
 // Resonance/shaper console output gets its own event kind so sweeps are searchable in the timeline.
@@ -32,12 +34,13 @@ pub fn is_resonance(message: &str) -> bool {
         || m.contains("fitted shaper")
 }
 
-// BLTouch alarm, from a real printer\'s recording of 2026-09-21 (11:19:52-54, live DB): the console
-// shows "// Failed to verify BLTouch probe is raised; retrying." and then "!! BLTouch failed to
-// deploy". only the hard failures are the alarm. In Klipper's bltouch.py the "; retrying." lines
-// are respond_info inside a three-try loop; the command_error after the last try is "BLTouch failed
-// to raise probe" / "BLTouch failed to verify sensor state" (no retrying). "BLTouch failed to
-// deploy" is what the Klipper printed on 2026-09-21 and stays hard.
+// WO-13: BLTouch alarm, from Stella's own recording of 2026-09-21 (11:19:52-54, live DB): the
+// console shows "// Failed to verify BLTouch probe is raised; retrying." and then
+// "!! BLTouch failed to deploy".
+// WO-14 (2026-09-22 approved): only the hard failures are the alarm. In Klipper's bltouch.py
+// the "; retrying." lines are respond_info inside a three-try loop; the command_error after the
+// last try is "BLTouch failed to raise probe" / "BLTouch failed to verify sensor state" (no
+// retrying). "BLTouch failed to deploy" is what our Klipper printed on 2026-09-21 and stays hard.
 const SENSOR_STATE: &str = "bltouch failed to verify sensor state";
 fn sensor_state(m: &str, retrying: bool) -> bool {
     m.match_indices(SENSOR_STATE).any(|(i, _)| {
@@ -53,7 +56,7 @@ pub fn is_probe_alarm(message: &str) -> bool {
         || m.contains("bltouch failed to raise probe")
         || sensor_state(&m, false)
 }
-/// A BLTouch check Klipper is retrying. Recorded and searchable, never an alarm.
+/// WO-14: a BLTouch check Klipper is retrying. Recorded and searchable, never an alarm.
 pub fn is_probe_retry(message: &str) -> bool {
     let m = message.to_lowercase();
     m.contains("failed to verify bltouch probe is raised") || sensor_state(&m, true)
@@ -61,7 +64,7 @@ pub fn is_probe_retry(message: &str) -> bool {
 /// The fix, in the words both the timeline advisory and the desktop notice use.
 const PROBE_ALARM_ADVICE: &str = "The probe failed to deploy, failed to raise, or failed its sensor check, and Klipper stopped the command. Power-cycle the probe and run BLTOUCH_DEBUG COMMAND=reset before the next print.";
 
-/// /14: this poll's console lines tagged for the timeline. A BLTouch hard failure becomes
+/// WO-13/14: this poll's console lines tagged for the timeline. A BLTouch hard failure becomes
 /// `probe_alarm` plus one plain-words advisory and its timestamp for the notice; a retry Klipper
 /// is still working through becomes `probe_retry` with no advisory and no notice.
 fn tag_console(events: Vec<Event>) -> (Vec<Event>, Vec<Event>, Option<f64>) {
@@ -89,16 +92,16 @@ fn tag_console(events: Vec<Event>) -> (Vec<Event>, Vec<Event>, Option<f64>) {
     (events, advisories, alarm)
 }
 
-/// One notice per alarm, and none for an alarm older than this service start. Moonraker's
+/// WO-14: one notice per alarm, and none for an alarm older than this service start. Moonraker's
 /// console window replays its last 100 lines on every poll and the launcher starts the service
-/// each time the user opens the app, so an old alarm still in that window would otherwise notify
-/// on every start. `ts` is Moonraker's console `time` and `started` this process's start: both
-/// are Unix epoch seconds (the Pi's clock and this machine's).
+/// each time the owner opens the app, so an old alarm still in that window would otherwise notify on
+/// every start. `ts` is Moonraker's console `time` and `started` this process's start: both are
+/// Unix epoch seconds (the Pi's clock and this machine's).
 pub fn should_notify_alarm(ts: f64, last: f64, started: f64) -> bool {
     ts > last && ts >= started
 }
 
-/// One desktop notice through notify-send. A missing binary or a failed spawn degrades to
+/// One desktop notice through notify-send (WO-13). A missing binary or a failed spawn degrades to
 /// nothing: the notice is a courtesy on top of the recording, never a failure path, so the spawn
 /// result is deliberately ignored.
 fn desktop_notify(summary: &str, body: &str, urgent: bool) {
@@ -134,7 +137,7 @@ fn add_pending(pending: &mut Vec<Event>, events: Vec<Event>) {
 }
 
 // BLTouch harvest from console lines: probe points with procedure context, Z-offset change
-// events, and a zero-reference drift alert. Formats are from a real printer\'s recording.
+// events, and a zero-reference drift alert. Formats are from Stella's own recording.
 struct ProbeHarvest {
     points: Vec<crate::probe::ProbePoint>,
     offset_events: Vec<Event>,
@@ -208,8 +211,8 @@ fn harvest_probe(
     out
 }
 
-/// The notice text for a finished print. The summary is one word of outcome; the body
-/// carries what the user can act on without opening the window.
+/// WO-13: the notice text for a finished print. The summary is one word of outcome; the body
+/// carries what the owner can act on without opening the window.
 fn print_notice(session: &crate::store::PrintSession) -> (&'static str, String, bool) {
     let file = session
         .filename
@@ -227,8 +230,13 @@ fn print_notice(session: &crate::store::PrintSession) -> (&'static str, String, 
         "cancelled" => ("Print cancelled", format!("{file} was cancelled."), false),
         _ => {
             let body = match session.duration_s {
-                Some(d) => format!("{file} finished after {} min.", (d / 60.0).round()),
-                None => format!("{file} finished; duration unknown."),
+                Some(d) => {
+                    // 2026-10-23: one plain line under the title, the time as a person says it
+                    let m = (d / 60.0).round() as u64;
+                    let took = if m >= 60 { format!("{} h {} min", m / 60, m % 60) } else { format!("{m} min") };
+                    format!("{file} took {took}.")
+                }
+                None => format!("{file} is done."),
             };
             ("Print finished", body, false)
         }
@@ -237,19 +245,26 @@ fn print_notice(session: &crate::store::PrintSession) -> (&'static str, String, 
 
 const PUSH_STALE_S: f64 = 2.0;
 
-pub fn run(cfg: Config, demo: bool, state: Shared, mut db: Store) -> Result<()> {
-    let mut source = Moonraker::new(&cfg);
+/// `stop` ends the loop at its next pass (a printer removed from the farm, farm board WO-03).
+pub fn run(
+    cfg: Config,
+    demo: bool,
+    state: Shared,
+    mut db: Store,
+    stop: std::sync::Arc<std::sync::atomic::AtomicBool>,
+) -> Result<()> {
+    // What this printer is called in a message: "Stella", "CORE One L", ...
+    let label = cfg.printer_name.clone().unwrap_or_else(|| "Stella".into());
+    // The printer's driver (farm board WO-02): Moonraker unless the configuration names another brand.
+    let mut source: Box<dyn Driver> = driver::open(&cfg)?;
     let mut parser = Parser::new(db.last_run()?);
     let mut tail = LogTail::default();
     let start = Instant::now();
     let started = model::now();
     // Push transport: Moonraker pushes every status change over the websocket; the collector
     // only falls back to HTTP polling when push goes quiet. GET-only towards the printer.
-    let ws_rx = if demo {
-        None
-    } else {
-        Some(ws_source::spawn(&cfg))
-    };
+    // A brand without a push channel returns None and is polled.
+    let ws_rx = if demo { None } else { source.push(&stop) };
     let mut pending = vec![
         Event::new(started, "scope_geometry", model::geometry(&cfg).to_string()),
         Event::new(
@@ -260,7 +275,7 @@ pub fn run(cfg: Config, demo: bool, state: Shared, mut db: Store) -> Result<()> 
         Event::new(
             started,
             "recorder",
-            "Recorder started. Incomplete levelling rounds may have unknown corrections.",
+            "Stella Scope started recording.",
         ),
     ];
     let mut next_console = 0.0;
@@ -291,8 +306,14 @@ pub fn run(cfg: Config, demo: bool, state: Shared, mut db: Store) -> Result<()> 
     let mut push_keepalive_ms: Option<f64> = None;
     let mut activity_cache: Option<(f64, Value)> = None;
     let mut last_poll_ok = 0.0_f64;
-    // What the printer-state indicator is read from (model::printer_link). The newest error is
-    // kept until a success, so the state does not flicker between two failed polls.
+    // U03 b (2026-10-20: "it said back online, the wall did not change"): the newest poll's failure is kept until a poll, a push frame or a
+    // fresh connection succeeds. A cycle that polls nothing (the push source's silence probe arrives every 5 s while it cannot reconnect, and a
+    // cycle that falls between two polls) used to carry no error at all, so for the 10 s after the last good poll such a cycle read "connected":
+    // a printer that had been switched off flickered to Ready for half a second every few seconds, and the farm's watcher, seeing it leave offline,
+    // said "back online" for a printer that was not.
+    let mut poll_failed: Option<String> = None;
+    // WO-20: what the printer-state indicator is read from (model::printer_link). The newest error
+    // is kept until a success, so the state does not flicker between two failed polls.
     let mut last_webhooks = Value::Null;
     let mut link_error: Option<String> = None;
     // BLTouch + print-context state
@@ -305,15 +326,18 @@ pub fn run(cfg: Config, demo: bool, state: Shared, mut db: Store) -> Result<()> 
     // every poll: each try asks the printer for metadata and 64 KiB of G-code.
     let mut context_retry = Instant::now();
     let mut context_error: Option<String> = None;
-    // BLTouch alarm notice state. `fresh_alarm` carries this poll's alarm timestamp to the write
-    // stage; `last_alarm_notice` stops the 100-line console window from re-notifying the same alarm
-    // on every poll until it scrolls out. it starts at this process's start, so an alarm from
-    // before the start is recorded but never notified (should_notify_alarm).
+    // WO-13: BLTouch alarm notice state. `fresh_alarm` carries this poll's alarm timestamp to the
+    // write stage; `last_alarm_notice` stops the 100-line console window from re-notifying the same
+    // alarm on every poll until it scrolls out. WO-14: it starts at this process's start, so an
+    // alarm from before the start is recorded but never notified (should_notify_alarm).
     let mut fresh_alarm: Option<f64> = None;
     let mut last_alarm_notice: f64 = started;
     let mut probe_cache: Vec<Value> = Vec::new();
     let mut pending_probe: Vec<crate::probe::ProbePoint> = Vec::new();
     loop {
+        if stop.load(std::sync::atomic::Ordering::Relaxed) {
+            return Ok(());
+        }
         let tick = Instant::now();
         let attempt = model::now();
         let elapsed = start.elapsed().as_secs_f64();
@@ -321,18 +345,30 @@ pub fn run(cfg: Config, demo: bool, state: Shared, mut db: Store) -> Result<()> 
         let mut error: Option<String> = None;
         let mut degraded: Vec<String> = Vec::new();
         // --- acquire a sample -------------------------------------------------------------
+        // A demonstration keeps its synthetic Klipper diagnostics (mesh, levelling, motor drivers);
+        // a demo printer (src/demo.rs) supplies the print itself: file, head, heaters and fan.
         let mut sample: Option<Value> = if demo {
-            Some(model::demo(elapsed, &cfg))
+            let mut d = model::demo(elapsed, &cfg);
+            if source.kind() == "demo" {
+                if let (Ok((s, _)), Some(obj)) = (source.sample(captured), d.as_object_mut()) {
+                    if let Some(s) = s.as_object() {
+                        obj.extend(s.clone());
+                    }
+                }
+            }
+            Some(d)
         } else {
             None
         };
         if !demo {
-            let rx = ws_rx
-                .as_ref()
-                .expect("live mode always spawns the websocket source");
-            match rx.recv_timeout(Duration::from_millis(50)) {
+            let received = match ws_rx.as_ref() {
+                Some(rx) => rx.recv_timeout(Duration::from_millis(50)),
+                None => Err(std::sync::mpsc::RecvTimeoutError::Timeout),
+            };
+            match received {
                 Ok(WsEvent::Sample(d)) if d.is_object() => {
                     last_ws = attempt;
+                    poll_failed = None;
                     transport = "push".into();
                     sample = Some(d);
                 }
@@ -341,6 +377,7 @@ pub fn run(cfg: Config, demo: bool, state: Shared, mut db: Store) -> Result<()> 
                     need_config = true;
                     transport = "push".into();
                     last_ws = attempt;
+                    poll_failed = None;
                 }
                 Ok(WsEvent::KlippyRestart) => {
                     need_config = true;
@@ -369,6 +406,7 @@ pub fn run(cfg: Config, demo: bool, state: Shared, mut db: Store) -> Result<()> 
                                 degraded.extend(w);
                                 sample = Some(d);
                                 last_poll_ok = attempt;
+                                poll_failed = None;
                                 query_ms_last = Some(t0.elapsed().as_secs_f64() * 1000.0);
                                 query_ms_ema = Some(match query_ms_ema {
                                     Some(m) => m * 0.9 + query_ms_last.unwrap() * 0.1,
@@ -377,6 +415,7 @@ pub fn run(cfg: Config, demo: bool, state: Shared, mut db: Store) -> Result<()> 
                             }
                             Err(e) => {
                                 error = Some(format!("Printer not answering. {e}"));
+                                poll_failed = error.clone();
                             }
                         }
                     } else {
@@ -384,6 +423,9 @@ pub fn run(cfg: Config, demo: bool, state: Shared, mut db: Store) -> Result<()> 
                     }
                 }
             }
+        }
+        if !demo && error.is_none() {
+            error = poll_failed.clone();
         }
         if !demo {
             if need_config {
@@ -499,8 +541,8 @@ pub fn run(cfg: Config, demo: bool, state: Shared, mut db: Store) -> Result<()> 
                             &mut last_zeros,
                             printing,
                         );
-                        // A BLTouch alarm is tagged and explained in one plain-words event, so the
-                        // timeline and the findings list carry the fix, not just the symptom.
+                        // WO-13: a BLTouch alarm is tagged and explained in one plain-words event,
+                        // so the timeline and the findings list carry the fix, not just the symptom.
                         let (events, advisories, alarm_notice) = tag_console(events);
                         add_pending(&mut pending, advisories);
                         add_pending(&mut pending, harvest.offset_events);
@@ -524,7 +566,8 @@ pub fn run(cfg: Config, demo: bool, state: Shared, mut db: Store) -> Result<()> 
                 }
             }
             match &cfg.klippy_log_path {
-                None=>degraded.push("Local log capture is not configured; position-skew warnings that appear only in klippy.log cannot be recorded. Set klippy_log_path on the Pi.".into()),
+                // plain words (audit 2026-10-26: the timeline's first line was "Recording via poll with limitations ... klippy_log_path on the Pi")
+                None=>degraded.push("It cannot read Klipper's own log from this computer, so a few motor warnings that only appear there are not kept.".into()),
                 Some(path) if attempt>=next_log=>{
                     next_log=attempt+1.0;
                     match tail.read_new(path,65536) {
@@ -549,12 +592,16 @@ pub fn run(cfg: Config, demo: bool, state: Shared, mut db: Store) -> Result<()> 
             degraded.push("Storage backlog exceeded 1024 console events during a disk failure; some new events were lost. Existing recorded data was not deleted.".into());
         }
         if captured < attempt {
-            degraded.push("The recorder clock moved backward during this poll; check time synchronization before interpreting timestamps.".into());
+            degraded.push("This computer's clock moved backward during this reading; check its time settings before trusting timestamps.".into());
         }
         if let Some(data) = &sample {
+            // Open-load bits at standstill are not flags (model::reportable_flags, 2026-09-28).
             let flags = json!(MOTORS
                 .iter()
-                .map(|(n, _)| json!({"motor":n,"flags":model::motor(data,n)["flags"]}))
+                .map(|(n, _)| {
+                    let m = model::motor(data, n);
+                    json!({"motor":n,"flags":model::reportable_flags(&m["flags"], m["stst"].as_bool())})
+                })
                 .collect::<Vec<_>>());
             if flags != last_flags {
                 let any = flags.as_array().is_some_and(|rows| {
@@ -564,7 +611,12 @@ pub fn run(cfg: Config, demo: bool, state: Shared, mut db: Store) -> Result<()> 
                 let text = driver_message(&flags);
                 let warning = text.is_some();
                 if let Some(text) = &text {
-                    crate::notify::send(text);
+                    crate::notify::event(
+                        "attention",
+                        &cfg.printer_id,
+                        &label,
+                        &text.replacen("Stella:", &format!("{label}:"), 1),
+                    );
                 }
                 if any || !last_flags.is_null() {
                     add_pending(
@@ -577,9 +629,9 @@ pub fn run(cfg: Config, demo: bool, state: Shared, mut db: Store) -> Result<()> 
                                 "driver_status"
                             },
                             text.clone().unwrap_or_else(|| if any {
-                                format!("Driver open-load flag only (usually harmless at standstill or slow moves): {flags}")
+                                format!("Motor driver open-load flag only (usually harmless at standstill or slow moves): {flags}")
                             } else {
-                                "Driver flags cleared".to_owned()
+                                "Motor driver flags cleared".to_owned()
                             }),
                         )],
                     );
@@ -593,7 +645,11 @@ pub fn run(cfg: Config, demo: bool, state: Shared, mut db: Store) -> Result<()> 
                 || (transport == "poll" && attempt - last_poll_ok < 10.0));
         if !connected {
             last_webhooks = Value::Null;
-        } else if let Some(w) = sample.as_ref().map(|d| &d["webhooks"]).filter(|w| w.is_object()) {
+        } else if let Some(w) = sample
+            .as_ref()
+            .map(|d| &d["webhooks"])
+            .filter(|w| w.is_object())
+        {
             last_webhooks = w.clone();
         }
         if error.is_some() {
@@ -601,15 +657,21 @@ pub fn run(cfg: Config, demo: bool, state: Shared, mut db: Store) -> Result<()> 
         } else if connected {
             link_error = None;
         }
+        let klipper = source.capabilities().klipper;
         let (printer_state, printer_message) = if demo {
             ("ready", None)
         } else {
-            model::printer_link(connected, link_error.as_deref(), &last_webhooks)
+            model::printer_link(connected, link_error.as_deref(), &last_webhooks, klipper)
         };
         crate::notify::on_state(
+            &cfg.printer_id,
+            &label,
             printer_state,
-            sample.as_ref().and_then(|d| d["print_stats"]["state"].as_str()),
+            sample
+                .as_ref()
+                .and_then(|d| d["print_stats"]["state"].as_str()),
             printer_message.as_deref(),
+            klipper,
         );
         let health=json!({"connected":connected,"transport":transport,"last_error":error,"degraded":degraded,"mode":if demo {"demo"}else{"live"}}).to_string();
         if health != last_health {
@@ -626,12 +688,9 @@ pub fn run(cfg: Config, demo: bool, state: Shared, mut db: Store) -> Result<()> 
                         },
                         error.clone().unwrap_or_else(|| {
                             if degraded.is_empty() {
-                                format!("Printer data is being recorded via {transport}")
+                                { let _ = &transport; "Stella Scope is recording this printer.".to_owned() }
                             } else {
-                                format!(
-                                    "Recording via {transport} with limitations: {}",
-                                    degraded.join(" | ")
-                                )
+                                { let _ = &transport; format!("Stella Scope is recording this printer. {}", degraded.join(" ")) }
                             }
                         }),
                     ),
@@ -678,14 +737,28 @@ pub fn run(cfg: Config, demo: bool, state: Shared, mut db: Store) -> Result<()> 
                 let pstate = data["print_stats"]["state"].as_str().unwrap_or("");
                 if pstate == "printing" && !filename.is_empty() {
                     let duration = data["print_stats"]["total_duration"].as_f64();
-                    if new_print(&last_print, filename, duration) { context_captured = false; context_retry = Instant::now(); context_error = None; }
+                    if new_print(&last_print, filename, duration) {
+                        context_captured = false;
+                        context_retry = Instant::now();
+                        context_error = None;
+                    }
                     if !context_captured && Instant::now() >= context_retry {
-                        match source.print_context(filename).and_then(|(meta, orca)| db.write_print_context(captured, filename, &meta, &orca)) {
-                            Ok(()) => { context_captured = true; context_error = None; }
-                            Err(e) => { context_retry = Instant::now() + Duration::from_secs(30); context_error = Some(e); }
+                        match source.print_context(filename).and_then(|(meta, orca)| {
+                            db.write_print_context(captured, filename, &meta, &orca)
+                        }) {
+                            Ok(()) => {
+                                context_captured = true;
+                                context_error = None;
+                            }
+                            Err(e) => {
+                                context_retry = Instant::now() + Duration::from_secs(30);
+                                context_error = Some(e);
+                            }
                         }
                     }
-                    if let Some(e) = &context_error { degraded.push(format!("Print context unavailable: {e}")); }
+                    if let Some(e) = &context_error {
+                        degraded.push(format!("Print context unavailable: {e}"));
+                    }
                     last_print = Some((filename.to_string(), duration));
                 } else if matches!(pstate, "standby" | "complete" | "cancelled" | "error") {
                     last_print = None;
@@ -696,8 +769,8 @@ pub fn run(cfg: Config, demo: bool, state: Shared, mut db: Store) -> Result<()> 
         }
         let mut published_tick: Option<Value> = None;
         let mut console_written = false;
-        // The outcome notice is prepared under the lock and sent after it, so the state lock
-        // is never held across a process spawn.
+        // WO-13: the outcome notice is prepared under the lock and sent after it, so the state
+        // lock is never held across a process spawn.
         let mut notice: Option<(&'static str, String, bool)> = None;
         {
             let mut s = state.lock().map_err(|_| {
@@ -785,16 +858,26 @@ pub fn run(cfg: Config, demo: bool, state: Shared, mut db: Store) -> Result<()> 
                 }
             }
         }
-        // Desktop notices. The launcher's watcher keeps this service alive through a print and
-        // for 15 minutes after, so these land even when the Cockpit window is closed. One notice
-        // per recorded session row (the row is written exactly once) and one per distinct alarm
-        // timestamp; a missing notify-send degrades silently by design. WhatsApp (src/notify.rs)
-        // hears the same two moments, whatever the desktop setting.
+        // WO-13: desktop notices. The launcher's watcher keeps this service alive through a print
+        // and for 15 minutes after, so these land even when the Cockpit window is closed. One
+        // notice per recorded session row (the row is written exactly once) and one per distinct
+        // alarm timestamp; a missing notify-send degrades silently by design.
+        // WhatsApp (src/notify.rs) hears the same two moments, whatever the desktop setting.
         if let Some((summary, body, _)) = &notice {
-            crate::notify::send(&format!("Stella: {summary}. {body}"));
+            crate::notify::event(
+                "done",
+                &cfg.printer_id,
+                &label,
+                &format!("{label}: {summary}. {body}"),
+            );
         }
         if fresh_alarm.is_some_and(|ts| ts > last_alarm_notice && ts >= started) {
-            crate::notify::send(&format!("Stella: BLTouch alarm. {PROBE_ALARM_ADVICE}"));
+            crate::notify::event(
+                "attention",
+                &cfg.printer_id,
+                &label,
+                &format!("{label}: BLTouch alarm. {PROBE_ALARM_ADVICE}"),
+            );
         }
         if cfg.desktop_notifications {
             if let Some((summary, body, urgent)) = notice {
@@ -808,12 +891,13 @@ pub fn run(cfg: Config, demo: bool, state: Shared, mut db: Store) -> Result<()> 
             }
         }
         if let Some(payload) = published_tick {
-            crate::server::sse_broadcast(&payload.to_string());
+            crate::server::sse_broadcast(&cfg.printer_id, &payload.to_string());
         }
         // Console lines only leave here once they are safely in the recording, so a line a reader
         // saw is a line /api/events can show again.
         if console_written && !console_lines.is_empty() {
             crate::server::sse_broadcast_event(
+                &cfg.printer_id,
                 "console",
                 &serde_json::json!({"lines":console_lines}).to_string(),
             );
@@ -821,7 +905,11 @@ pub fn run(cfg: Config, demo: bool, state: Shared, mut db: Store) -> Result<()> 
         if last_prune.elapsed() >= Duration::from_secs(cfg.prune_interval_s) {
             let active = last_print.as_ref().map(|(filename, _)| filename.as_str());
             match db
-                .prune(model::now() - cfg.keep_days as f64 * 86400.0, cfg.max_db_mb, active)
+                .prune(
+                    model::now() - cfg.keep_days as f64 * 86400.0,
+                    cfg.max_db_mb,
+                    active,
+                )
                 .and_then(|_| db.counts())
             {
                 Ok((a, b, c)) => {
@@ -882,10 +970,10 @@ mod tests {
         assert!(is_resonance("Fitted shaper 'zv' frequency=57.4"));
         assert!(!is_resonance("Print started"));
     }
-    /// The alarm detector matches the Klipper strings recorded on 2026-09-21 and nothing else.
-    /// Probe landings and BLTOUCH_DEBUG commands are normal console lines. the recorded ";
-    /// retrying." line is Klipper's recoverable retry, so the assertion that it alarms is
-    /// reversed here (the one changed assertion, by the WO's order).
+    /// WO-13: the alarm detector matches the Klipper strings recorded on 2026-09-21 and nothing
+    /// else. Probe landings and BLTOUCH_DEBUG commands are normal console lines.
+    /// WO-14: the recorded "; retrying." line is Klipper's recoverable retry, so the WO-13
+    /// assertion that it alarms is reversed here (the one changed assertion, by the WO's order).
     #[test]
     fn probe_alarm_matches_only_the_recorded_signature() {
         assert!(is_probe_alarm("!! BLTouch failed to deploy"));
@@ -899,8 +987,8 @@ mod tests {
         assert!(!is_probe_alarm("Sending BLTOUCH_DEBUG COMMAND=reset"));
         assert!(!is_probe_alarm("Print started"));
     }
-    /// Hard failures alarm, retries do not, and landings/debug lines are neither. The first two
-    /// strings are the exact lines in the live recording of 2026-09-21 11:19:52-54; the rest are
+    /// WO-14: hard failures alarm, retries do not, and landings/debug lines are neither. The first
+    /// two strings are the exact lines in the live recording of 2026-09-21 11:19:52-54; the rest are
     /// Klipper bltouch.py's respond_info (retry) and command_error (failure) texts.
     #[test]
     fn probe_retries_are_recorded_but_only_hard_failures_alarm() {
@@ -932,9 +1020,9 @@ mod tests {
             );
         }
     }
-    /// What the poll does with those lines. A retry is tagged `probe_retry` with no advisory and no
-    /// notice timestamp; a hard failure is tagged `probe_alarm` with exactly one advisory (which no
-    /// longer calls the raise check a failure) and its timestamp for the notice.
+    /// WO-14: what the poll does with those lines. A retry is tagged `probe_retry` with no
+    /// advisory and no notice timestamp; a hard failure is tagged `probe_alarm` with exactly one
+    /// advisory (which no longer calls the raise check a failure) and its timestamp for the notice.
     #[test]
     fn a_retry_line_gets_no_advisory_and_no_notice() {
         // The live recording of 2026-09-21 11:19:52-54, timestamps and text as stored.
@@ -969,7 +1057,7 @@ mod tests {
         );
         assert_eq!(alarm, Some(1790000394.647));
     }
-    /// The notice gate. An alarm older than the service start is recorded but never
+    /// WO-14: the notice gate. An alarm older than the service start is recorded but never
     /// notified; a new one notifies once, however many polls still carry it.
     #[test]
     fn alarm_notices_skip_alarms_from_before_the_start_and_fire_once() {
@@ -988,7 +1076,7 @@ mod tests {
         assert_eq!(sent, 1, "the same alarm must notify once");
         assert!(should_notify_alarm(started + 40.0, last, started));
     }
-    /// The notice text carries the outcome the user can act on. Duration is minutes when the
+    /// WO-13: the notice text carries the outcome the owner can act on. Duration is minutes when the
     /// machine reported one, honest unknown when it did not.
     #[test]
     fn print_notice_names_the_outcome_and_duration() {
@@ -1004,7 +1092,7 @@ mod tests {
         };
         let (summary, body, urgent) = print_notice(&done);
         assert_eq!(summary, "Print finished");
-        assert_eq!(body, "cube.gcode finished after 12 min.");
+        assert_eq!(body, "cube.gcode took 12 min.");
         assert!(!urgent);
         let fault = PrintSession {
             result: "error".into(),
@@ -1024,34 +1112,54 @@ mod tests {
     }
 }
 
-/// WhatsApp words for a driver warning. Only motors with a flag, by name, in plain words. Open-load
-/// alone (ola/olb) is not sent: TMC2209s report it falsely at standstill and slow moves, and Klipper
-/// does not treat it as a fault.
+/// WhatsApp words for a driver warning (2026-09-25: the first one listed every motor as raw
+/// JSON). Only motors with a flag, by name, in plain words. Open-load alone (ola/olb) is not sent:
+/// TMC2209s report it falsely at standstill and slow moves, and Klipper does not treat it as a fault.
 pub fn driver_message(flags: &serde_json::Value) -> Option<String> {
-    let word = |f: &str| -> String { match f {
-        "ola" => "open load on coil A",
-        "olb" => "open load on coil B",
-        "s2ga" | "s2gb" => "short to ground",
-        "s2vsa" | "s2vsb" => "short to supply",
-        "ot" => "over temperature, shut down",
-        "otpw" => "over temperature warning",
-        "t120" | "t143" | "t150" | "t157" => "hot",
-        "uv_cp" => "charge pump undervoltage",
-        "drv_err" => "driver error",
-        other => other,
-    }.to_owned() };
-    let names: std::collections::HashMap<&str, &str> = crate::model::MOTORS.iter().copied().collect();
+    let word = |f: &str| -> String {
+        match f {
+            "ola" => "open load on coil A",
+            "olb" => "open load on coil B",
+            "s2ga" | "s2gb" => "short to ground",
+            "s2vsa" | "s2vsb" => "short to supply",
+            "ot" => "over temperature, shut down",
+            "otpw" => "over temperature warning",
+            "t120" | "t143" | "t150" | "t157" => "hot",
+            "uv_cp" => "charge pump undervoltage",
+            "drv_err" => "driver error",
+            other => other,
+        }
+        .to_owned()
+    };
+    let names: std::collections::HashMap<&str, &str> =
+        crate::model::MOTORS.iter().copied().collect();
     let mut lines = Vec::new();
     for row in flags.as_array()? {
-        let list: Vec<String> = row["flags"].as_array().map(|a| a.iter().filter_map(|v| v.as_str().map(str::to_lowercase)).collect()).unwrap_or_default();
+        let list: Vec<String> = row["flags"]
+            .as_array()
+            .map(|a| {
+                a.iter()
+                    .filter_map(|v| v.as_str().map(str::to_lowercase))
+                    .collect()
+            })
+            .unwrap_or_default();
         if list.is_empty() || list.iter().all(|f| f == "ola" || f == "olb") {
             continue;
         }
         let motor = row["motor"].as_str().unwrap_or("");
         let what: Vec<String> = list.iter().map(|f| word(f)).collect();
-        lines.push(format!("{} ({motor}): {}", names.get(motor).copied().unwrap_or(motor), what.join(", ")));
+        lines.push(format!(
+            "{} ({motor}): {}",
+            names.get(motor).copied().unwrap_or(motor),
+            what.join(", ")
+        ));
     }
-    (!lines.is_empty()).then(|| format!("Stella: stepper driver warning. {}. Check that motor and its connector.", lines.join("; ")))
+    (!lines.is_empty()).then(|| {
+        format!(
+            "Stella: stepper driver warning. {}. Check that motor and its connector.",
+            lines.join("; ")
+        )
+    })
 }
 
 #[cfg(test)]
@@ -1062,7 +1170,10 @@ mod driver_message_tests {
         assert_eq!(super::driver_message(&quiet), None);
         let loud = serde_json::json!([{"motor":"stepper_x","flags":[]},{"motor":"stepper_z1","flags":["otpw","olb"]}]);
         let text = super::driver_message(&loud).unwrap();
-        assert!(text.contains("Back left (stepper_z1): over temperature warning, open load on coil B"), "{text}");
+        assert!(
+            text.contains("Back left (stepper_z1): over temperature warning, open load on coil B"),
+            "{text}"
+        );
         assert!(!text.contains("stepper_x"));
     }
 }

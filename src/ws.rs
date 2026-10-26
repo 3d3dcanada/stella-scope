@@ -391,7 +391,9 @@ mod tests {
                 stream.read_exact(&mut byte).unwrap();
                 head.push(byte[0]);
             }
-            stream.write_all(b"HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\n\r\n").unwrap();
+            stream
+                .write_all(b"HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\n\r\n")
+                .unwrap();
             stream.write_all(&[0x81u8, payload.len() as u8]).unwrap();
             stream.flush().unwrap();
             std::thread::sleep(Duration::from_millis(400));
@@ -399,9 +401,19 @@ mod tests {
             stream.flush().unwrap();
             std::thread::sleep(Duration::from_millis(300));
         });
-        let mut client = WsClient::connect("127.0.0.1", address.port(), "/websocket", Duration::from_secs(5)).unwrap();
-        assert!(client.read_text_until(Instant::now() + Duration::from_millis(150)).is_err());
-        let text = client.read_text_until(Instant::now() + Duration::from_secs(5)).unwrap();
+        let mut client = WsClient::connect(
+            "127.0.0.1",
+            address.port(),
+            "/websocket",
+            Duration::from_secs(5),
+        )
+        .unwrap();
+        assert!(client
+            .read_text_until(Instant::now() + Duration::from_millis(150))
+            .is_err());
+        let text = client
+            .read_text_until(Instant::now() + Duration::from_secs(5))
+            .unwrap();
         assert_eq!(text, expected);
         worker.join().unwrap();
     }

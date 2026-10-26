@@ -1,0 +1,24 @@
+PRUSA CORE ONE L MODEL FOR STELLA SCOPE: NOTICE
+
+This model of the Original Prusa CORE One L ships inside Stella Scope. This is its notice: who made it, the terms it is under and what was done to the file. It is also shown under About and under Printer models.
+
+WHO MADE IT
+Prusa Research made the CAD this model is drawn from.
+Original work: "Prusa CORE One L - Full CAD Assembly", Printables model 1520379
+Address: https://www.printables.com/model/1520379-prusa-core-one-l-full-cad-assembly
+Source file: CORE_One_L_assembly.step (63,859,975 bytes, SHA-256 2f46bccb098bd8dabc76aa13fd01b1e64c56370fa29ba8a6336f0305b8c86074)
+
+UNDER WHAT TERMS
+Prusa Research shares this CAD under its Open Community License (OCL v1). The licence text is at the end of this notice and at https://github.com/OpenCommunityLicence/OpenCommunityLicence, and it is the only authority; read it there. In short, as the people who built Stella Scope understood it when they read it on 2026-10-19: you may use the CAD in your own workshop or print farm and modify it; whatever you pass on that is made from it goes on under the same licence; selling machines made from it, or remixes of it, needs an agreement with Prusa Research; and the licence forbids systematic or automated text and data mining of it. This converted file is passed on free of charge, under the same licence and with this notice. It is not sold: it is inside Stella Scope so that your printer can be drawn, and nothing is charged for it.
+
+WHAT WAS DONE TO IT
+The STEP assembly was converted into a triangle mesh in glTF 2.0 binary form (a .glb file, then gzipped) so that Stella Scope can draw the printer on screen. The parts were named and grouped so that the axes can move with the printer, and given the colours of the real machine (the STEP carries none). Nothing was added to Prusa's geometry. The conversion is tools/printer-cad/step_to_glb.py in the Stella Scope source, with tools/printer-cad/prusa-core-one-l/groups.json; anyone can repeat it from Prusa's STEP file and gets the same bytes.
+
+THE FILE
+Inside Stella Scope: models/prusa-core-one-l.glb.gz
+Size: 10,225,282 bytes
+SHA-256 of that file: 5c0e2bd142d015e9a48421b4c3c3736d014ef8c4db9edcb4bf467b58a98aa796
+SHA-256 once unpacked: f068e1b72dfd41eaa3bc5350225044cc03482c57a5a8ba97b8cab2530beb1539
+Stella Scope knows both numbers in advance and puts the model in your library only if what it carries matches them.
+
+Prusa Research is not connected with Stella Scope and has not approved it.

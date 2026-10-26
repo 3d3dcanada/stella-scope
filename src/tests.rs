@@ -486,7 +486,7 @@ fn all_static_assets_are_embedded() {
 }
 #[test]
 fn configuration_defaults_and_validation() {
-    let cfg: Config = serde_json::from_str("{}").unwrap();
+    let cfg: Config = serde_json::from_str(r#"{"moonraker_url":"http://192.168.1.131:7125"}"#).unwrap();
     assert_eq!(cfg.poll_interval_ms, 500);
     assert_eq!(cfg.keep_days, 14);
     assert_eq!(cfg.max_db_mb, 4096);
@@ -657,8 +657,9 @@ fn demo_changes_motion_and_current_without_hardware() {
     );
 }
 
-/// A replay instance never asks the printer for a print file. The recording keeps no G-code or
-/// thumbnails, so the answer is a plain "not stored" and the configured Moonraker is never contacted.
+/// WO-21 (2026-09-24): a replay instance never asks the printer for a print file. The recording keeps
+/// no G-code or thumbnails, so the answer is a plain "not stored" and the configured Moonraker is
+/// never contacted.
 #[test]
 fn replay_never_asks_the_printer_for_print_files() {
     let listener = TcpListener::bind("127.0.0.1:0").unwrap();
@@ -673,8 +674,14 @@ fn replay_never_asks_the_printer_for_print_files() {
     };
     let db = memory();
     for (target, says) in [
-        ("/api/print/gcode?filename=cube.gcode", "G-code not stored in the recording"),
-        ("/api/print/thumbnail?filename=cube.gcode", "Thumbnail not stored in the recording"),
+        (
+            "/api/print/gcode?filename=cube.gcode",
+            "G-code not stored in the recording",
+        ),
+        (
+            "/api/print/thumbnail?filename=cube.gcode",
+            "Thumbnail not stored in the recording",
+        ),
     ] {
         let r = api::handle("GET", target, &db, &cfg, &status);
         assert_eq!(r.code, 404, "{target}");

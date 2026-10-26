@@ -3,11 +3,18 @@ Type=Application
 Version=1.0
 Name=Stella Scope
 GenericName=Printer flight recorder
-Comment=Record, rewind and inspect a Klipper printer - by 3D3D
-Exec=stella-scope-launch.sh
+Comment=Record, rewind and inspect Stella (Klipper) - created by 3D3D
+Exec=sh -c '"$HOME/.local/bin/stella-scope-launch.sh"'
 Icon=stella-scope
 Terminal=false
 StartupNotify=true
+# 2026-09-26: Stella opens in its own Brave profile with --class=StellaScope (a separate Brave process
+# keeps the flag), so the class is its own; 127.0.0.1 also matched the 3D3D Studio window.
+# Re-measured 2026-09-21 with wmctrl -lx on X11: the --app window reports "127.0.0.1.Brave-browser",
+# so WM_CLASS is instance "127.0.0.1", class "Brave-browser". The old value "StellaScope" matched
+# neither, which is why the taskbar showed no running dot. --class=StellaScope does not help: the
+# launch hands off to the already-running Brave, which creates the window with its own defaults and
+# drops the flag. Matching the instance name is what the shell can actually see.
 StartupWMClass=Stella-desktop
 Categories=Utility;Engineering;
 Keywords=stella;voron;klipper;printer;3d3d;

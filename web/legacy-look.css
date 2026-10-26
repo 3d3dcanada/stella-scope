@@ -1,0 +1,16 @@
+/* rc9 WO-05 (2026-10-23, "we're worried about the look"): the classic pages (Investigate, Workspace, the classic HUD) in
+   look A's surface: the lit room behind, real glass panes with a rim, the same corners. Loaded last on each; layout untouched. */
+:root{--glass-rim:inset 0 1px 0 rgba(255,255,255,.30),inset 0 0 0 1px rgba(255,255,255,.06),inset 0 -1px 0 rgba(0,0,0,.35),inset 0 26px 34px -26px rgba(160,235,255,.18);
+ --lk-glass:linear-gradient(140deg,rgba(255,255,255,.10),rgba(255,255,255,.02) 45%,rgba(255,255,255,.04)),rgba(16,22,30,.55);
+ --lk-blur:blur(26px) saturate(185%) brightness(1.06);--lk-line:rgba(255,255,255,.13)}
+html,body{background:
+  radial-gradient(38% 12% at 50% 96%,rgba(4,217,196,.12),transparent 72%),
+  radial-gradient(28% 36% at 6% 40%,rgba(255,106,0,.06),transparent 72%),
+  radial-gradient(28% 36% at 94% 36%,rgba(4,217,196,.07),transparent 72%),
+  radial-gradient(90% 80% at 50% 40%,#1c2632 0%,#0e141b 55%,#05070a 100%) fixed!important}
+.panel,.card,.ipanel,.lev-panel,.elec-panel,.inv-panel,.inv-strip,.td-strip,.dg-strip,dialog,
+.hud-app header,.hud-bottom,.hud-drawer,.hud-dialog,#detail-dialog,.hud-gauge,.hud-toast,.hud-app .transport,.hud-part-model,.hud-console-log{
+ background:var(--lk-glass)!important;-webkit-backdrop-filter:var(--lk-blur);backdrop-filter:var(--lk-blur);
+ border:1px solid var(--lk-line)!important;border-radius:16px;box-shadow:var(--glass-rim),0 22px 48px -12px rgba(0,0,0,.6)!important}
+.hud-app header{border-radius:0 0 16px 16px}
+.hud-app button,.panel button,.card button,.ipanel button{border-radius:12px}

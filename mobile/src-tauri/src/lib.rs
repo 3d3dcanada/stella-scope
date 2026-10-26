@@ -1,7 +1,7 @@
-//! Stella for phones. The app keeps a list of printers (each a Stella Scope link id, scanned from
-//! the desktop's QR code). Opening one starts a stella-link tunnel on a loopback port fixed for
-//! that printer and loads Stella Scope through it; pairing and every control check happen on the
-//! desktop exactly as on the home network.
+//! Stella for phones (2026-09-25). The app keeps a list of printers (each a Stella Scope link
+//! id, scanned from the desktop's QR code). Opening one starts a stella-link tunnel on a loopback
+//! port fixed for that printer and loads Stella Scope through it; pairing and every control check
+//! happen on the desktop exactly as on the home network.
 use std::{collections::HashMap, sync::Mutex};
 use tauri::{Manager, State};
 
@@ -50,7 +50,7 @@ pub fn run() {
         .manage(Open::default())
         .invoke_handler(tauri::generate_handler![open_link]);
     #[cfg(mobile)]
-    let builder = builder.plugin(tauri_plugin_barcode_scanner::init());
+    let builder = builder.plugin(tauri_plugin_barcode_scanner::init()).plugin(tauri_plugin_haptics::init());
     builder
         .run(tauri::generate_context!())
         .expect("Stella could not start");

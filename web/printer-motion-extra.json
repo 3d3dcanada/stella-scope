@@ -1,0 +1,361 @@
+{
+ "schema": "stella-scope.printer-motion-extra.v1",
+ "profiles": {
+  "prusa_core_one_l": {
+   "model_sha256": "f068e1b72dfd41eaa3bc5350225044cc03482c57a5a8ba97b8cab2530beb1539",
+   "basis": [
+    [
+     1,
+     0,
+     0
+    ],
+    [
+     0,
+     0,
+     1
+    ],
+    [
+     0,
+     -1,
+     0
+    ]
+   ],
+   "axes": {
+    "x": [
+     -240,
+     90
+    ],
+    "y": [
+     -5,
+     326
+    ],
+    "z": [
+     -21,
+     330
+    ]
+   },
+   "groups": {},
+   "motions": {
+    "head": [
+     {
+      "y": 1
+     },
+     {
+      "x": 1
+     },
+     0
+    ],
+    "gantry": [
+     {
+      "y": 1
+     },
+     0,
+     0
+    ],
+    "bed": [
+     0,
+     0,
+     {
+      "z": -1
+     }
+    ],
+    "fixed": [
+     0,
+     0,
+     0
+    ]
+   },
+   "notices": [
+    "Axis values are displacements from Prusa's CAD pose.",
+    "Motion groups were chosen from Prusa's own part names and positions (tools/printer-cad/prusa-core-one-l/groups.json).",
+    "Belts and cables keep their CAD shape."
+   ],
+   "scope": "Movement preview from the live position; firmware, belts and collisions are not simulated.",
+   "calibration": {
+    "offset_mm": [
+     -230,
+     315.5,
+     -21
+    ],
+    "sign": [
+     1,
+     -1,
+     1
+    ],
+    "source": [
+     0,
+     1,
+     2
+    ]
+   },
+   "calibration_basis": "From Prusa's CAD: front = CAD +X (door, display), machine X runs along CAD +Y, Y along CAD -X. Bed sheet CAD x -15..306, y -155..150, top z 428; Nextruder nozzle at CAD (-14.5, 80, 449). X0 is the sheet's left edge, Y0 its front edge, Z0 the sheet touching the nozzle."
+  },
+  "prusa_core_one": {
+   "model_sha256": "4d226bc6ce3f93f031d9d78fd3d0b8a80473bdc5d9706eb8d01ea7d33a1c42ae",
+   "basis": [
+    [
+     1,
+     0,
+     0
+    ],
+    [
+     0,
+     0,
+     1
+    ],
+    [
+     0,
+     -1,
+     0
+    ]
+   ],
+   "axes": {
+    "x": [
+     -132,
+     131
+    ],
+    "y": [
+     -115,
+     145
+    ],
+    "z": [
+     -251,
+     20
+    ]
+   },
+   "groups": {},
+   "motions": {
+    "head": [
+     {
+      "x": 1
+     },
+     {
+      "y": 1
+     },
+     0
+    ],
+    "gantry": [
+     0,
+     {
+      "y": 1
+     },
+     0
+    ],
+    "bed": [
+     0,
+     0,
+     {
+      "z": -1
+     }
+    ],
+    "fixed": [
+     0,
+     0,
+     0
+    ]
+   },
+   "notices": [
+    "Axis values are displacements from Prusa's CAD pose.",
+    "Motion groups were chosen from Prusa's own part names and positions (tools/printer-cad/prusa-core-one/groups.json).",
+    "Belts and cables keep their CAD shape."
+   ],
+   "scope": "Movement preview from the live position; firmware, belts and collisions are not simulated.",
+   "calibration": {
+    "offset_mm": [
+     -130.24,
+     -87.07,
+     -250.56
+    ],
+    "sign": [
+     1,
+     1,
+     1
+    ],
+    "source": [
+     0,
+     1,
+     2
+    ]
+   },
+   "calibration_basis": "Measured off Prusa's CAD (the CORE One has no printer of ours to check it on; the CORE One L, made the same way, was checked on the real machine in F02). Front = CAD -Y (door, display), machine X along CAD +X, machine Y along CAD +Y, Z up. Bed sheet CAD x -132.41..119.59, y -150.01..90.99, top z 78.44; the nozzle tip is the lowest point of the hotend part at CAD (-1.17, -57.94, 329.00). X0 is 1 mm inside the sheet's left edge, Y0 5 mm behind its front edge (the margin measured on the CORE One L; an estimate here), Z0 the sheet touching the nozzle. The CAD's X rail is 310 mm and the head is wider than its carriage, so at the very ends of X the head draws a few millimetres past the beam."
+  },
+  "prusa_mk3s": {
+   "model_sha256": "5a1a71a2d6396f1e6ef3a4ba66fb812856863d8a60f10bd1d19a359dfc9a1639",
+   "basis": [
+    [
+     1,
+     0,
+     0
+    ],
+    [
+     0,
+     0,
+     1
+    ],
+    [
+     0,
+     -1,
+     0
+    ]
+   ],
+   "axes": {
+    "x": [
+     -103,
+     148
+    ],
+    "y": [
+     -131,
+     90
+    ],
+    "z": [
+     -103,
+     108
+    ]
+   },
+   "groups": {},
+   "motions": {
+    "head": [
+     {
+      "x": 1
+     },
+     0,
+     {
+      "z": 1
+     }
+    ],
+    "gantry": [
+     0,
+     0,
+     {
+      "z": 1
+     }
+    ],
+    "bed": [
+     0,
+     {
+      "y": -1
+     },
+     0
+    ],
+    "fixed": [
+     0,
+     0,
+     0
+    ]
+   },
+   "notices": [
+    "Axis values are displacements from the CAD pose.",
+    "Motion groups follow the model's own assemblies (tools/printer-cad/prusa-mk3s/groups.json): the Y-axis moving components are the bed, the X-axis assembly the gantry that climbs, the extruder assembly the head.",
+    "Belts and cables keep their CAD shape."
+   ],
+   "scope": "Movement preview from the live position; firmware, belts and collisions are not simulated.",
+   "calibration": {
+    "offset_mm": [
+     -102.58,
+     -126.14,
+     -102.6
+    ],
+    "sign": [
+     1,
+     1,
+     1
+    ],
+    "source": [
+     0,
+     1,
+     2
+    ]
+   },
+   "calibration_basis": "Measured off the community CAD of the MK3 (no MK3 here to check it on). Front = CAD -Y (the LCD), machine X along CAD +X, Y along CAD +Y (the bed moves toward the front as Y grows), Z up (the X axis and the extruder climb). SS sheet CAD x -125.24..126.76, y -178.61..62.39, top z 77.18; the nozzle tip is the lowest point of the E3D V6 at CAD (-21.66, -47.47, 179.78). X0 is 1 mm inside the sheet's left edge, Y0 5 mm behind its front edge (the margin measured on the CORE One L; an estimate here), Z0 the sheet touching the nozzle. The X-end blocks of this CAD are closer together than the printer's travel, so at the two ends of X the head draws 7 to 14 mm into them."
+  },
+  "prusa_mini": {
+   "model_sha256": "24f7bf7c030922de8baf0fd1d13d941ba420843d84821bd71e5bc4db32899fb3",
+   "basis": [
+    [
+     -1,
+     0,
+     0
+    ],
+    [
+     0,
+     1,
+     0
+    ],
+    [
+     0,
+     0,
+     -1
+    ]
+   ],
+   "axes": {
+    "x": [
+     -102,
+     85
+    ],
+    "y": [
+     -99,
+     92
+    ],
+    "z": [
+     -16,
+     165
+    ]
+   },
+   "groups": {},
+   "motions": {
+    "head": [
+     {
+      "x": -1
+     },
+     {
+      "z": 1
+     },
+     0
+    ],
+    "gantry": [
+     0,
+     {
+      "z": 1
+     },
+     0
+    ],
+    "bed": [
+     0,
+     0,
+     {
+      "y": -1
+     }
+    ],
+    "fixed": [
+     0,
+     0,
+     0
+    ]
+   },
+   "notices": [
+    "Axis values are displacements from the CAD pose.",
+    "Motion groups follow the model's own part names (tools/printer-cad/prusa-mini/groups.json).",
+    "Belts and cables keep their CAD shape."
+   ],
+   "scope": "Movement preview from the live position; firmware, belts and collisions are not simulated.",
+   "calibration": {
+    "offset_mm": [
+     -98.9,
+     -93.63,
+     -15.41
+    ],
+    "sign": [
+     1,
+     1,
+     1
+    ],
+    "source": [
+     0,
+     1,
+     2
+    ]
+   },
+   "calibration_basis": "Measured off the community CAD of the MINI (no MINI here to check it on). The STEP is Y-up: machine X runs along CAD -X, machine Y along CAD +Z (the bed moves toward the front, CAD -Z, as Y grows) and Z along CAD +Y; the display box is at CAD -Z, the front. Heatbed CAD x -125.40..60.60, z -192.03..10.37, top y 44.29; the nozzle tip is the lowest point of the hotend at CAD (-41.30, 59.70, -93.40). X0 is 3 mm inside the plate's left edge, Y0 5 mm behind its front edge (the margin measured on the CORE One L; an estimate here), Z0 the plate touching the nozzle. The MINI's extruder is fixed on the Z carriage (it pushes filament through a short tube), so it climbs with the gantry and only the hotend and fans ride the X axis. The X axis of this CAD is 16 mm shorter than the plate is wide, so at X0 the head draws into its end block."
+  }
+ }
+}

@@ -1,6 +1,6 @@
 [package]
 name = "stella-desktop"
-version = "0.4.2"
+version = "0.6.0"
 edition = "2021"
 publish = false
 description = "Stella Scope for the computer next to the printer: finds the printer, starts the recorder, the phone link and the failure watch, and shows Stella Scope."

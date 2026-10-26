@@ -1,11 +1,13 @@
-//! L2: the one config value the user changes by hand, edited through Stella Scope instead.
-//! `[heater_fan hotend_fan] heater_temp` decides when the hotend fan spins up. On the test printer
-//! it was moved 30 -> 50 on 2026-09-15 because a 60 C bed in the enclosure kept the nozzle at 30
-//! and the fan cycled while probing. Anything outside 30..60 is a refusal, not a slider. the test
-//! printer's `printer.cfg` contains the section TWICE: the live one at line 381 and a fully
+//! L2: the one config value the owner changes by hand, edited through Stella Scope instead.
+//!
+//! `[heater_fan hotend_fan] heater_temp` decides when the hotend fan spins up. On Stella it was
+//! moved 30 -> 50 on 2026-09-15 because a 60 C bed in the enclosure kept the nozzle at 30 and the
+//! fan cycled while probing. Anything outside 30..60 is a refusal, not a slider.
+//!
+//! Stella's `printer.cfg` contains the section TWICE: the live one at line 381 and a fully
 //! commented-out reference copy at line 825 (`#heater_temp: 50.0`). The edit therefore takes the
 //! first section whose `heater_temp` is not commented out, and rewrites only the number on that
-//! one line — the trailing `# 2026-09-15: was 30.0...` comment is the own and is kept verbatim.
+//! one line — the trailing `# 2026-09-15: was 30.0 ...` comment is our own and is kept verbatim.
 
 use crate::{moonraker::Moonraker, Result};
 use serde_json::Value;
@@ -14,8 +16,8 @@ pub const MIN_C: f64 = 30.0;
 pub const MAX_C: f64 = 60.0;
 pub const FILE: &str = "printer.cfg";
 const SECTION: &str = "heater_fan hotend_fan";
-/// Printer.cfg on the test printer is 43 KB / 1383 lines. 1 MB leaves room to grow and still
-/// refuses a mistaken root, so a bad path cannot pull an arbitrary file into memory.
+/// printer.cfg on Stella is 43 KB / 1383 lines. 1 MB leaves room to grow and still refuses a
+/// mistaken root, so a bad path cannot pull an arbitrary file into memory.
 pub const MAX_CONFIG_BYTES: usize = 1_048_576;
 
 /// The `heater_temp` line inside `[heater_fan hotend_fan]`: where it is and what it says now.
@@ -62,7 +64,9 @@ pub fn locate(text: &str) -> Result<Located> {
         let lead = rest.len() - rest.trim_start().len();
         let value = &rest.trim_start()[..value_len];
         let celsius = value.parse::<f64>().map_err(|_| {
-            format!("[{SECTION}] heater_temp is {value:?}, which is not a number; edit it on the Pi")
+            format!(
+                "[{SECTION}] heater_temp is {value:?}, which is not a number; edit it on the Pi"
+            )
         })?;
         return Ok(Located {
             index,
@@ -247,8 +251,8 @@ fn leap(year: i64) -> bool {
 mod tests {
     use super::*;
 
-    /// The test printer's real shape: the live section, then an unrelated section, then the
-    /// commented-out reference copy that also says `heater_temp`.
+    /// Stella's real shape: the live section, then an unrelated section, then the commented-out
+    /// reference copy that also says `heater_temp`.
     const CFG: &str = "[extruder]\nsensor_type: PT1000\n\n[heater_fan hotend_fan]\npin: EBBCan: PA1\nheater: extruder\nheater_temp: 50.0    # 2026-09-15: was 30.0 (Klipper default 50). Bed 60 kept the enclosed nozzle at 30 C\n\n[controller_fan controller_fan]\nheater_temp: 45.0\n\n#[heater_fan hotend_fan]\n#heater: extruder\n#heater_temp: 50.0\n";
 
     #[test]
@@ -270,7 +274,7 @@ mod tests {
         assert_eq!(changed[0].0, 6);
         assert_eq!(CFG.lines().count(), after.lines().count());
 
-        // The trailing comment survives byte for byte; only the number moved.
+        // our trailing comment survives byte for byte; only the number moved.
         assert_eq!(
             changed[0].2,
             "heater_temp: 45.0    # 2026-09-15: was 30.0 (Klipper default 50). Bed 60 kept the enclosed nozzle at 30 C"

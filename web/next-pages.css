@@ -1,0 +1,264 @@
+/* Stella Scope UI board U06 (2026-10-20): the printer's own pages in the LED language (the owner: square keys, lit glass, no pills, no little corner arrows, numbers that are set are the kit's
+   controls, numbers that are read are LED figures). Every rule here sits under .nx-u06, which only the sheet bodies of those pages carry (next-pages.js u06()), so no other sheet changes.
+   Loaded after next.css and next-control.css; it uses their tokens and does not redefine them. */
+
+
+/* ---------- the square key (the kit's .nxkey, for the buttons the pages already make) ---------- */
+.nx-u06 .nx-btn{min-height:44px;padding:0 16px;border:1px solid var(--glass-line);background:linear-gradient(180deg,rgba(255,255,255,.11),rgba(255,255,255,.035));
+ box-shadow:inset 0 1px 0 rgba(255,255,255,.09),0 3px 0 rgba(0,0,0,.38),0 6px 12px rgba(0,0,0,.3);
+ transition:transform 120ms cubic-bezier(.2,.8,.2,1),background 180ms cubic-bezier(.2,.8,.2,1),box-shadow 180ms cubic-bezier(.2,.8,.2,1),color 180ms,opacity 180ms}
+.nx-u06 .nx-btn .nx-lbl{letter-spacing:.1em}
+@media (hover:hover){.nx-u06 .nx-btn:not(:disabled):not([aria-disabled=true]):hover{transform:translateY(-1px);box-shadow:inset 0 1px 0 rgba(255,255,255,.09),0 4px 0 rgba(0,0,0,.38),0 8px 16px rgba(0,0,0,.35)}}
+.nx-u06 .nx-btn:active,.nx-u06 .nx-btn[data-pressed]{transform:translateY(3px)!important;box-shadow:inset 0 2px 6px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.05)!important}
+.nx-u06 .nx-btn[data-kind=primary]{border-color:transparent;background:linear-gradient(180deg,var(--accent-hi),var(--accent));box-shadow:inset 0 1px 0 rgba(255,255,255,.25),0 3px 0 var(--accent-lo),0 6px 14px rgba(var(--accent-rgb),.3)}
+@media (hover:hover){.nx-u06 .nx-btn[data-kind=primary]:not(:disabled):hover{background:linear-gradient(180deg,var(--accent-2),var(--accent-hi));box-shadow:inset 0 1px 0 rgba(255,255,255,.3),0 4px 0 var(--accent-lo),0 8px 18px rgba(var(--accent-rgb),.38)}}
+.nx-u06 .nx-btn[data-kind=danger]{border-color:rgba(255,45,146,.45);box-shadow:inset 0 1px 0 rgba(255,45,146,.12),0 3px 0 rgba(90,10,50,.7),0 6px 12px rgba(0,0,0,.3)}
+.nx-u06 .nx-btn:disabled,.nx-u06 .nx-btn[aria-disabled=true]{box-shadow:inset 0 1px 0 rgba(255,255,255,.04)}
+.nx-u06 .nx-btn[data-attention]::after{border-radius:0}
+.nx-u06 .nx-btn[data-hold] .nx-hold{inset:-3px}
+.nx-u06 .nx-btn[data-size=icon]{width:44px;padding:0}
+.nx-u06 .nx-btn[data-busy]::before{border-radius:50%!important}
+
+/* ---------- tabs and choices: a row of separate keys, the chosen one lit ---------- */
+.nx-u06 .nx-seg{background:none;border:0;padding:0;gap:8px;flex-wrap:wrap}
+.nx-u06 .nx-seg button,.nx-u06 .nx-chip{flex:1;min-width:max-content;min-height:44px;height:auto;padding:0 14px;border:1px solid var(--glass-line);color:var(--ink-2);cursor:pointer;
+ font:600 12px/1.15 var(--sans);letter-spacing:.09em;text-transform:uppercase;background:linear-gradient(180deg,rgba(255,255,255,.11),rgba(255,255,255,.035));
+ box-shadow:inset 0 1px 0 rgba(255,255,255,.09),0 3px 0 rgba(0,0,0,.38),0 6px 12px rgba(0,0,0,.3);
+ transition:transform 120ms cubic-bezier(.2,.8,.2,1),background 180ms,box-shadow 180ms,color 180ms}
+.nx-u06 .nx-chip{flex:none;white-space:normal;text-align:left;text-transform:none;letter-spacing:.02em;font:600 12px/1.25 var(--mono);padding:8px 14px}
+@media (hover:hover){.nx-u06 .nx-seg button:hover,.nx-u06 .nx-chip:hover{color:var(--ink-1);transform:translateY(-1px)}}
+.nx-u06 .nx-seg button:active,.nx-u06 .nx-chip:active{transform:translateY(3px);box-shadow:inset 0 2px 6px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.05)}
+.nx-u06 .nx-seg button[aria-pressed=true],.nx-u06 .nx-chip[aria-pressed=true]{color:var(--accent-ink);background:linear-gradient(180deg,var(--accent-hi),var(--accent));border-color:transparent;
+ box-shadow:inset 0 1px 0 rgba(255,255,255,.25),0 3px 0 var(--accent-lo),0 6px 14px rgba(var(--accent-rgb),.3)}
+.nx-u06 .nx-chips{gap:10px;padding:2px 2px 8px}
+.nx-u06 .nx-chip--tool{border-style:dashed}
+
+/* ---------- numbers that are read: an LED figure in a black window, lit in the state's neon (the kit's panel language) ---------- */
+.nx-u06 .nx-stat{display:flex;flex-direction:column;align-items:flex-start;gap:8px;padding:12px 14px;border:1px solid var(--glass-line);
+ background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.012));box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 3px 0 rgba(0,0,0,.3)}
+.nx-u06 .nx-stat-v{display:inline-block;max-width:100%;padding:7px 9px 6px;background:#07090c;box-shadow:inset 0 1px 4px rgba(0,0,0,.85),0 0 0 1px rgba(255,255,255,.07);
+ font:500 20px/1.1 var(--mono);letter-spacing:.01em;color:var(--accent-hi);text-shadow:0 0 9px var(--accent),0 0 2px var(--accent)}
+.nx-u06 .nx-stat[data-tone=ok] .nx-stat-v{color:#7DFFAE;text-shadow:0 0 9px var(--ok),0 0 2px var(--ok)}
+.nx-u06 .nx-stat[data-tone=warn] .nx-stat-v{color:#FFB067;text-shadow:0 0 9px var(--heat),0 0 2px var(--heat)}
+.nx-u06 .nx-stat[data-tone=alarm] .nx-stat-v{color:#FF8CC4;text-shadow:0 0 9px var(--alarm),0 0 2px var(--alarm)}
+.nx-u06 .nx-stat[data-tone=alarm]{box-shadow:inset 0 0 0 1px rgba(255,45,146,.4),0 3px 0 rgba(0,0,0,.3)}
+.nx-u06 .nx-stat-v:where(:not(:empty)){min-width:3.2ch}
+.nx-u06 .nx-stat[data-swatch]::after{border-radius:0!important}
+.nx-u06 .nx-stat--xyz{grid-column:span 2}
+.nx-u06 .nx-xyz{display:flex;gap:8px;flex-wrap:wrap}
+.nx-u06 .nx-xyz .nx-stat-v{display:inline-flex;align-items:baseline;gap:6px;color:var(--ink-1);text-shadow:0 0 8px rgba(255,255,255,.3)}
+.nx-u06 .nx-xyz .nx-stat-v i{font:700 11px/1 var(--sans);font-style:normal;color:var(--ok);text-shadow:0 0 6px var(--ok)}
+.nx-u06 .nx-xyz .nx-stat-v b{font-weight:500}
+
+/* ---------- slabs: the cards of these pages are square lit glass with a depth edge ---------- */
+.nx-u06 .nx-spark,.nx-u06 .nx-qgl-run,.nx-u06 .nx-cause,.nx-u06 .nx-asm-card,.nx-u06 .nx-maint-row,.nx-u06 .nx-filjob,.nx-u06 .nx-raw,.nx-u06 .nx-sheetpick,.nx-u06 .nx-lv-gantry,.nx-u06 .nx-lv-verdict,.nx-u06 .nx-led,.nx-u06 .nx-hist-row,.nx-u06 .nx-matcard,.nx-u06 .nx-motor,.nx-u06 .nx-part,.nx-u06 .nx-ht,.nx-u06 .nx-ht-fan,.nx-u06 .nx-obj{
+ border:1px solid var(--glass-line);background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.012));box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 3px 0 rgba(0,0,0,.3)}
+.nx-u06 .nx-input{flex:none;height:48px;border:1px solid var(--glass-line);background:#07090c;box-shadow:inset 0 1px 4px rgba(0,0,0,.85);font:500 14px var(--mono)}
+.nx-u06 .nx-input:focus{outline:2px solid var(--accent);outline-offset:2px}
+.nx-u06 textarea.nx-input{height:auto;padding:12px 14px}
+.nx-u06 .nx-mesh-cv,.nx-u06 .nx-shaper-cv,.nx-u06 .nx-layer-cv{border:1px solid var(--glass-line);background:#07090c;box-shadow:inset 0 2px 20px rgba(0,0,0,.6)}
+.nx-u06 .nx-console{border:1px solid var(--glass-line);background:#07090c;box-shadow:inset 0 1px 4px rgba(0,0,0,.85);color:var(--accent-hi);text-shadow:0 0 6px rgba(var(--accent-rgb),.35)}
+.nx-u06 .nx-console .cmd{color:#FFB067;text-shadow:0 0 6px rgba(255,106,0,.35)}
+
+/* the disclosure rows: no triangles, a lit key that opens */
+.nx-u06 .nx-raw>summary{min-height:44px;align-items:center;list-style:none}
+.nx-u06 .nx-raw>summary::-webkit-details-marker{display:none}
+.nx-u06 .nx-raw>summary::after{content:"+";border:1px solid var(--glass-line);width:28px;height:28px;display:grid;place-items:center;color:var(--accent)}
+.nx-u06 .nx-raw[open]>summary{color:var(--accent)}
+
+/* meters: LED chiclets, never a smooth bar */
+.nx-u06 .nx-print-bar,.nx-u06 .nx-lv-track,.nx-u06 .nx-qgl-track,.nx-u06 .nx-thermo-power{background:#07090c;box-shadow:inset 0 1px 3px rgba(0,0,0,.8),0 0 0 1px rgba(255,255,255,.07);height:12px}
+.nx-u06 .nx-print-bar i,.nx-u06 .nx-lv-track i,.nx-u06 .nx-qgl-track i,.nx-u06 .nx-thermo-power i{-webkit-mask:repeating-linear-gradient(90deg,#000 0 7px,transparent 7px 9px);mask:repeating-linear-gradient(90deg,#000 0 7px,transparent 7px 9px);box-shadow:none}
+.nx-u06 .nx-thermo-power{margin-top:2px}
+.nx-u06 .nx-thermo-power i{background:var(--heat)}
+.nx-u06 .nx-lv-track em,.nx-u06 .nx-qgl-track em{width:3px;top:-3px;bottom:-3px;background:#fff;opacity:.85}
+
+/* pills are gone: a state or a kind is a lit tag with square corners */
+.nx-u06 .nx-thermo-pill,.nx-u06 .nx-mesh-live,.nx-u06 .nx-hist-s,.nx-u06 .nx-obj-state{border-radius:0}
+.nx-u06 .nx-key::before{border-radius:0;height:4px}
+
+/* ---------- Heat & fans ---------- */
+.nx-u06 .nx-ht-grid{display:grid;grid-template-columns:1fr;gap:14px}
+.nx-u06 .nx-ht{display:flex;flex-direction:column;align-items:stretch;gap:14px;padding:16px}
+.nx-u06 .nx-ht>.nxctl{flex:none;align-self:center;--nxctl-size:132px}
+.nx-u06 .nx-ht-side{flex:1;min-width:0;display:flex;flex-direction:column;gap:12px}
+.nx-u06 .nx-ht-figs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.nx-u06 .nx-ht .nx-thermo{width:auto;padding:10px 12px;border:1px solid var(--glass-line);background:#07090c;box-shadow:inset 0 1px 4px rgba(0,0,0,.85);cursor:default}
+.nx-u06 .nx-ht .nx-thermo::before{display:none}
+.nx-u06 .nx-ht .nx-thermo-head,.nx-u06 .nx-ht .nx-thermo-row{display:none}
+.nx-u06 .nx-ht .nx-thermo .line{stroke:var(--heat);filter:drop-shadow(0 0 4px var(--heat))}
+.nx-u06 .nx-ht .nx-thermo .tline{stroke:#fff;opacity:.7}
+.nx-u06 .nx-ht-fans{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.nx-u06 .nx-ht-fan{display:flex;flex-direction:column;align-items:center;gap:8px;padding:14px 10px 12px}
+.nx-u06 .nx-ht-fan .nxctl{--nxctl-size:118px}
+.nx-u06 .nx-ht-fan small{font:600 11px/1 var(--sans);letter-spacing:.1em;color:var(--ink-3);text-transform:uppercase;text-align:center}
+@media (min-width:900px){.nx-u06 .nx-ht-grid{grid-template-columns:1fr 1fr}}
+@media (max-width:520px){.nx-u06 .nx-ht-fan .nxctl{--nxctl-size:84px}.nx-u06 .nx-ht-fans{gap:8px}.nx-u06 .nx-ht-fan{padding:12px 4px 10px}.nx-u06 .nx-ht-figs{gap:6px}.nx-u06 .nx-ht .nx-stat{padding:8px}.nx-u06 .nx-ht .nx-stat-v{font-size:16px;padding:6px}}
+
+/* ---------- Motion & motors: the jog wheel, the readings, the motor keys ---------- */
+.nx-u06 .nx-jw{display:flex;gap:22px;align-items:center;padding:16px;border:1px solid var(--glass-line);background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.012));box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 3px 0 rgba(0,0,0,.3)}
+.nx-u06 .nx-jw>.nxctl{flex:none;--nxctl-size:150px}
+.nx-u06 .nx-jw-side{flex:1;min-width:0;display:flex;flex-direction:column;gap:10px}
+.nx-u06 .nx-jw-keys{display:flex;gap:8px}
+.nx-u06 .nx-jw-keys .nxkey{flex:1;font:600 13px/1 var(--sans);letter-spacing:.1em}
+.nx-u06 .nx-jw-l{font:650 10px/1 var(--sans);letter-spacing:.16em;color:var(--ink-3);text-transform:uppercase}
+@media (max-width:520px){.nx-u06 .nx-jw{flex-direction:column;align-items:stretch;gap:14px}.nx-u06 .nx-jw>.nxctl{align-self:center;--nxctl-size:132px}}
+.nx-u06 .nx-motors{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px}
+.nx-u06 .nx-motor{display:grid;grid-template-columns:1fr auto;grid-template-areas:"b b" "v s" "m m";align-items:center;gap:8px 10px;padding:12px;text-align:left;cursor:pointer;color:var(--ink-1);
+ transition:transform 120ms,box-shadow 180ms,border-color 180ms}
+.nx-u06 .nx-motor:disabled{cursor:default;opacity:.7}
+.nx-u06 .nx-motor:not(:disabled):active{transform:translateY(3px);box-shadow:inset 0 2px 6px rgba(0,0,0,.45)}
+.nx-u06 .nx-motor b{grid-area:b;font:600 13.5px/1.2 var(--sans)}
+.nx-u06 .nx-motor-v{grid-area:v;justify-self:start;padding:6px 8px 5px;background:#07090c;box-shadow:inset 0 1px 4px rgba(0,0,0,.85),0 0 0 1px rgba(255,255,255,.07);font:500 18px/1 var(--mono);color:var(--ink-3)}
+.nx-u06 .nx-motor[data-on] .nx-motor-v{color:#7DFFAE;text-shadow:0 0 9px var(--ok),0 0 2px var(--ok)}
+.nx-u06 .nx-motor[data-alarm] .nx-motor-v{color:#FF8CC4;text-shadow:0 0 9px var(--alarm)}
+.nx-u06 .nx-motor[data-alarm]{border-color:rgba(255,45,146,.5)}
+.nx-u06 .nx-motor-s{grid-area:s;font:650 10px/1 var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--ink-2)}
+.nx-u06 .nx-motor small{grid-area:m;font:500 11px/1.2 var(--mono);color:var(--ink-3)}
+.nx-u06 .nx-sparks{gap:12px}
+.nx-u06 .nx-spark-h b{padding:4px 6px 3px;background:#07090c;box-shadow:inset 0 1px 3px rgba(0,0,0,.85),0 0 0 1px rgba(255,255,255,.07);color:var(--accent-hi);text-shadow:0 0 8px var(--accent);font-size:13px}
+
+.nx-u06 .nx-jw .nxc-read b{font-size:calc(var(--nxctl-size)*.17)}
+
+/* ---------- Gantry & bed ---------- */
+.nx-u06 .nx-lv-now{gap:14px}
+.nx-u06 .nx-lv-gantry{padding:12px;background:linear-gradient(180deg,rgba(var(--accent-rgb),.07),rgba(0,0,0,.2))}
+.nx-u06 .nx-lv-frame{border:2px dashed rgba(255,255,255,.14)}
+.nx-u06 .nx-lv-beam{height:8px;margin-top:-4px;background:linear-gradient(90deg,rgba(var(--accent-rgb),.55),rgba(var(--accent-rgb),.25),rgba(var(--accent-rgb),.55));box-shadow:0 0 16px rgba(var(--accent-rgb),.4)}
+.nx-u06 .nx-lv-corner{position:relative;display:flex;flex-direction:column;gap:7px;padding:12px;border:1px solid var(--glass-line);background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.012));box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 3px 0 rgba(0,0,0,.3)}
+.nx-u06 .nx-lv-corner b{align-self:flex-start;padding:6px 8px 5px;background:#07090c;box-shadow:inset 0 1px 4px rgba(0,0,0,.85),0 0 0 1px rgba(255,255,255,.07);font:500 20px/1 var(--mono);color:var(--ink-2)}
+.nx-u06 .nx-lv-dir{font:650 10px/1 var(--sans);font-style:normal;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);min-height:10px}
+.nx-u06 .nx-lv-corner[data-hit]{border-color:rgba(var(--accent-rgb),.6)}
+.nx-u06 .nx-lv-corner[data-hit] b{color:var(--accent-hi);text-shadow:0 0 9px var(--accent)}
+.nx-u06 .nx-lv-corner[data-ok]{border-color:rgba(24,227,107,.55);box-shadow:inset 0 0 0 1px rgba(24,227,107,.12),0 3px 0 rgba(0,0,0,.3)}
+.nx-u06 .nx-lv-corner[data-ok] b{color:#7DFFAE;text-shadow:0 0 9px var(--ok),0 0 2px var(--ok)}
+/* in tolerance: a lit square lamp, not a round tick */
+.nx-u06 .nx-lv-corner[data-ok]::after{content:"";top:12px;right:12px;width:12px;height:12px;background:var(--ok);box-shadow:0 0 10px var(--ok),0 0 3px #fff;animation:none}
+.nx-u06 .nx-lv-verdict{padding:14px 16px;font:650 14px/1.35 var(--sans)}
+.nx-u06 .nx-lv-verdict[data-tone=ok]{color:#7DFFAE;border-color:rgba(24,227,107,.5)}
+.nx-u06 .nx-lv-round{grid-template-columns:70px 1fr auto}
+.nx-u06 .nx-lv-round b,.nx-u06 .nx-qgl-bar b{padding:4px 6px 3px;background:#07090c;box-shadow:inset 0 1px 3px rgba(0,0,0,.85),0 0 0 1px rgba(255,255,255,.07);color:var(--accent-hi);text-shadow:0 0 8px var(--accent);font-weight:500}
+.nx-u06 .nx-lv-track i,.nx-u06 .nx-qgl-track i{background:var(--heat)}
+.nx-u06 .nx-lv-track i[data-pass=true],.nx-u06 .nx-qgl-track i[data-pass=true]{background:var(--ok)}
+.nx-u06 .nx-qgl-head .ok{color:#7DFFAE}.nx-u06 .nx-qgl-head .warn{color:#FFB067}
+.nx-u06 .nx-qgl-corner{padding:8px 10px;background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.01));border:1px solid var(--glass-line)}
+.nx-u06 .nx-qgl-corner b{padding:3px 5px 2px;background:#07090c;box-shadow:inset 0 1px 3px rgba(0,0,0,.85);color:var(--ink-1)}
+.nx-u06 .nx-qgl-corner[data-far] b{color:#FFB067;text-shadow:0 0 8px var(--heat)}
+.nx-u06 .nx-mesh-legend .nx-mesh-grad{height:10px}
+.nx-u06 .nx-mesh-bar{flex-wrap:wrap}
+.nx-u06 .nx-mesh-live{border:1px solid rgba(255,214,10,.4);padding:6px 10px}
+/* the circle round a part ("Show me") and its tag are not inside a sheet, so they are squared here */
+.nx-spot-tag,.nx-spot .nx-btn{border-radius:0!important}
+
+/* ---------- Signals, Timeline, Parts, Electronics, Service journal ---------- */
+.nx-u06 .nx-sig-obj{background:#0b1016;border-radius:0}
+.nx-u06 .nx-raw-row b{padding:2px 6px;background:#07090c;box-shadow:inset 0 1px 3px rgba(0,0,0,.85);color:var(--accent-hi);text-shadow:0 0 7px rgba(var(--accent-rgb),.5);font-weight:500}
+.nx-u06 .nx-tl-kind{align-self:start;justify-self:start;padding:3px 6px;border:1px solid var(--glass-line);background:rgba(255,255,255,.03)}
+.nx-u06 .nx-tl-time{color:var(--ink-3)}
+.nx-u06 .nx-tl-row[data-kind=command] .nx-tl-kind{border-color:rgba(var(--accent-rgb),.5)}
+.nx-u06 .nx-parts-grid{grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px}
+.nx-u06 .nx-part{align-items:flex-start;min-height:58px;padding:10px 12px;text-align:left;cursor:pointer;color:var(--ink-2);transition:transform 120ms,box-shadow 180ms,border-color 180ms}
+.nx-u06 .nx-part:active{transform:translateY(3px);box-shadow:inset 0 2px 6px rgba(0,0,0,.45)}
+.nx-u06 .nx-part[data-wired]{border-color:rgba(var(--accent-rgb),.35)}
+.nx-u06 .nx-part-t b,.nx-u06 .nx-part-t small{white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere}
+.nx-u06 .nx-journal-form textarea{font:500 13px/1.4 var(--sans)}
+.nx-u06 .nx-sig-list{gap:0}
+
+/* ---------- Assembly, Suspected causes ---------- */
+.nx-u06 .nx-cause,.nx-u06 .nx-asm-card{padding:16px}
+.nx-u06 .nx-specs dd{font:500 12.5px/1.4 var(--mono)}
+.nx-u06 .nx-cause-why{color:var(--ink-3)}
+
+/* ---------- Input shaper ---------- */
+.nx-u06 .nx-table th{padding:8px 8px}
+.nx-u06 .nx-table td{padding:8px 8px}
+.nx-u06 .nx-table tr[data-best] td{color:var(--accent-hi);text-shadow:0 0 7px rgba(var(--accent-rgb),.5);background:rgba(var(--accent-rgb),.06)}
+.nx-u06 .nx-table-wrap{border:1px solid var(--glass-line);background:#07090c}
+.nx-u06 .nx-key::before{width:16px;height:4px}
+.nx-u06 .nx-belt-advice{margin:0;padding:12px 14px;border:1px solid var(--glass-line);background:rgba(255,255,255,.03);font:600 14px/1.45 var(--sans)}
+.nx-u06 .nx-review{border:1px solid var(--glass-line);background:#07090c;color:var(--accent-hi);padding:12px 14px;font:500 12.5px/1.5 var(--mono);white-space:pre-wrap}
+
+/* ---------- Maintenance ---------- */
+.nx-u06 .nx-maint-row{grid-template-columns:1fr auto auto;gap:14px;padding:12px 14px}
+.nx-u06 .nx-maint-row .nxctl{--nxctl-size:92px}
+.nx-u06 .nx-maint-row[data-due=true]{border-color:rgba(255,156,85,.6)}
+.nx-u06 .nx-maint-row[data-due=true] .nx-print-bar i{background:var(--heat)}
+@media (max-width:520px){.nx-u06 .nx-maint-row{grid-template-columns:1fr auto}.nx-u06 .nx-maint-row .nxctl{display:block;--nxctl-size:72px}.nx-u06 .nx-maint-row .nx-btn{grid-column:1/-1}}
+
+/* ---------- Filament ---------- */
+.nx-u06 .nx-matcards{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.nx-u06 .nx-matcard{padding:14px 14px 12px;min-height:92px;cursor:pointer;transition:transform 120ms,box-shadow 180ms,border-color 180ms,background 180ms}
+.nx-u06 .nx-matcard:active{transform:translateY(3px);box-shadow:inset 0 2px 6px rgba(0,0,0,.45)}
+.nx-u06 .nx-matcard[aria-pressed=true]{color:var(--accent-ink);background:linear-gradient(180deg,var(--accent-hi),var(--accent));border-color:transparent;box-shadow:inset 0 1px 0 rgba(255,255,255,.25),0 3px 0 var(--accent-lo),0 6px 14px rgba(var(--accent-rgb),.3)}
+.nx-u06 .nx-matcard[aria-pressed=true] b,.nx-u06 .nx-matcard[aria-pressed=true] .nx-matcard-b{color:var(--accent-ink)}
+.nx-u06 .nx-matcard-t{display:inline-block;padding:4px 6px 3px;background:#07090c;box-shadow:inset 0 1px 3px rgba(0,0,0,.85);color:#FFB067;text-shadow:0 0 8px var(--heat)}
+.nx-u06 .nx-matcard-in{position:static;padding:3px 5px;border:1px solid var(--ok);background:#07090c;color:#7DFFAE;text-shadow:0 0 6px var(--ok)}
+.nx-u06 .nx-filjob{padding:16px;gap:14px}
+.nx-u06 .nx-filjob[data-step=done]{border-color:rgba(24,227,107,.45);box-shadow:inset 0 0 0 1px rgba(24,227,107,.12),0 3px 0 rgba(0,0,0,.3)}
+.nx-u06 .nx-filjob[data-step=failed]{border-color:rgba(255,45,146,.5);box-shadow:inset 0 0 0 1px rgba(255,45,146,.15),0 3px 0 rgba(0,0,0,.3)}
+.nx-u06 .nx-filsteps li{padding:10px 12px 10px 42px;background:#07090c;box-shadow:inset 0 1px 3px rgba(0,0,0,.85)}
+.nx-u06 .nx-filsteps li::before{left:10px;width:22px;height:22px;background:rgba(255,255,255,.06);border:1px solid var(--glass-line)}
+.nx-u06 .nx-filsteps li[data-state=now]{box-shadow:inset 0 1px 3px rgba(0,0,0,.85),0 0 0 1px rgba(var(--accent-hi-rgb),.5)}
+.nx-u06 .nx-filsteps li[data-state=now]::before{background:var(--accent);border-color:transparent;animation:none;box-shadow:0 0 10px var(--accent)}
+.nx-u06 .nx-filsteps li[data-state=done]::before{background:rgba(24,227,107,.2);border-color:rgba(24,227,107,.5)}
+/* the progress ring is the kit's ring: 36 LED chiclets lit to the progress, the figure in the middle */
+.nx-u06 .nx-filring{--p:0;--c:var(--ink-3);position:relative;width:128px;height:128px;border-radius:0;background:none!important;box-shadow:none!important;display:grid;place-items:center}
+.nx-u06 .nx-filring::before{content:"";position:absolute;inset:0;border-radius:0;background:conic-gradient(var(--c) calc(var(--p)*360deg),#151a20 0);
+ -webkit-mask:radial-gradient(closest-side,transparent 71%,#000 72% 96%,transparent 97%),repeating-conic-gradient(#000 0 8deg,transparent 8deg 10deg);-webkit-mask-composite:source-in;
+ mask:radial-gradient(closest-side,transparent 71%,#000 72% 96%,transparent 97%),repeating-conic-gradient(#000 0 8deg,transparent 8deg 10deg);mask-composite:intersect}
+.nx-u06 .nx-filring::after{content:"";position:absolute;inset:18%;border-radius:50%!important;background:#090c10;box-shadow:inset 0 0 0 1px rgba(255,255,255,.06)}
+.nx-u06 .nx-filring span{position:relative;z-index:1;font:400 26px/1 var(--mono);color:var(--ink-1);text-shadow:0 0 8px rgba(255,255,255,.3)}
+.nx-u06 .nx-filring[data-step=heating]{--c:var(--heat)}
+.nx-u06 .nx-filring[data-step=heating] span{color:#FFB067;text-shadow:0 0 9px var(--heat)}
+.nx-u06 .nx-filring[data-step=running],.nx-u06 .nx-filring[data-step=ready]{--c:var(--accent)}
+.nx-u06 .nx-filring[data-step=running] span,.nx-u06 .nx-filring[data-step=ready] span{color:var(--accent-hi);text-shadow:0 0 9px var(--accent)}
+.nx-u06 .nx-filring[data-step=done],.nx-u06 .nx-filring[data-step=confirmed]{--p:1;--c:var(--ok)}
+.nx-u06 .nx-filring[data-step=done] span,.nx-u06 .nx-filring[data-step=confirmed] span{color:#7DFFAE;text-shadow:0 0 9px var(--ok)}
+.nx-u06 .nx-filring[data-step=failed]{--p:1;--c:var(--alarm)}
+.nx-u06 .nx-filring[data-step=failed] span{color:#FF8CC4;text-shadow:0 0 9px var(--alarm)}
+
+/* ---------- Console, Macros, Recording ---------- */
+.nx-u06 .nx-console{padding:12px}
+.nx-u06 .nx-list .nx-btn{justify-content:flex-start}
+.nx-u06 .nx-item{border:1px solid var(--glass-line);background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.012));box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 3px 0 rgba(0,0,0,.3)}
+
+/* ---------- the colour swatches on a part panel are square tiles ---------- */
+.nx-u06 .nx-swatch{border-radius:0!important;width:36px;height:36px;border:1px solid var(--glass-line);box-shadow:0 3px 0 rgba(0,0,0,.38)}
+.nx-u06 .nx-swatch[aria-pressed=true]{outline:2px solid var(--accent);outline-offset:2px}
+.nx-u06 .nx-led>i{border-radius:50%!important}
+.nx-u06 .nx-jw-keys .nxkey{padding:0 8px;white-space:nowrap}
+.nx-u06 .nx-filring{border-radius:0}
+.nx-u06 .nx-filring::after{border-radius:50%}
+.nx-u06 .nx-part-hero{display:grid;grid-template-columns:auto 1fr;gap:18px;align-items:center}
+.nx-u06 .nx-part-hero>.nxctl{--nxctl-size:150px}
+@media (max-width:640px){.nx-u06 .nx-part-hero{grid-template-columns:1fr;justify-items:center}.nx-u06 .nx-part-hero>.nxctl{--nxctl-size:132px}}
+.nx-u06 .nx-hfs{display:none}
+.nx-u06 .nx-sheetpick .nxctl{--nxctl-size:132px;margin:6px auto}
+/* a long part name wraps in the title of these pages (the frame truncates it) */
+.nx-sheet:has(.nx-u06) .nx-sheet-titles .nx-sheet-title,.nx-sheet:has(.nx-u06) .nx-sheet-title{white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere}
+.nx-u06 .nx-part-hero{grid-template-columns:1fr;justify-items:center;gap:14px}
+.nx-u06 .nx-part-hero .nx-stats{width:100%;grid-template-columns:repeat(auto-fit,minmax(120px,1fr))}
+.nx-u06 .nx-part-hero .nx-stat:first-child{grid-column:auto}
+.nx-u06 .nx-stat-v{overflow-wrap:break-word}
+.nx-u06 .nx-btn[data-kind=ghost]{background:none;border-color:var(--glass-line);box-shadow:0 3px 0 rgba(0,0,0,.3)}
+.nx-u06 .nx-stats{align-items:start}
+.nx-u06 .nx-specs dd.nx-led-dd{justify-self:start;padding:3px 7px 2px;background:#07090c;box-shadow:inset 0 1px 3px rgba(0,0,0,.85),0 0 0 1px rgba(255,255,255,.07);color:var(--accent-hi);text-shadow:0 0 8px var(--accent)}
+.nx-u06 .nx-raw[open]>summary::after{content:"\2212"}
+.nx-u06 .nx-tabs{background:rgba(21,27,35,.98);padding:0 0 10px}
+
+/* ---------- the two cards the pages put on the main view: the levelling card and the filament marker, square and lit like the rest ---------- */
+.nx-activity,.nx-filmark,.nx-act-c,.nx-act-x,.nx-act-c::after{border-radius:0!important}
+.nx-activity{box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 3px 0 rgba(0,0,0,.3),var(--shadow-1)}
+.nx-act-c{background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.012));box-shadow:inset 0 1px 0 rgba(255,255,255,.07)}
+.nx-act-c b{padding:3px 5px 2px;background:#07090c;box-shadow:inset 0 1px 3px rgba(0,0,0,.85),0 0 0 1px rgba(255,255,255,.07);color:var(--accent-hi);text-shadow:0 0 7px var(--accent);font-weight:500}
+.nx-act-c[data-far] b{color:#FFB067;text-shadow:0 0 7px var(--heat)}
+.nx-act-c[data-ok] b{color:#7DFFAE;text-shadow:0 0 7px var(--ok)}
+.nx-act-c[data-ok]::after{content:"";width:10px;height:10px;top:6px;right:6px;background:var(--ok);box-shadow:0 0 8px var(--ok);animation:none}
+.nx-act-x{border:1px solid var(--glass-line);background:linear-gradient(180deg,rgba(255,255,255,.11),rgba(255,255,255,.035));box-shadow:0 3px 0 rgba(0,0,0,.38)}
+.nx-filmark-bar{border-radius:0;height:6px;background:linear-gradient(90deg,var(--accent) calc(var(--p)*100%),#07090c 0);-webkit-mask:repeating-linear-gradient(90deg,#000 0 7px,transparent 7px 9px);mask:repeating-linear-gradient(90deg,#000 0 7px,transparent 7px 9px)}
+.nx-u06 .nx-mesh-legend .nx-mesh-grad{-webkit-mask:repeating-linear-gradient(90deg,#000 0 8px,transparent 8px 10px);mask:repeating-linear-gradient(90deg,#000 0 8px,transparent 8px 10px);box-shadow:none}
+.nx-u06 .nx-stats{grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}
+/* the legend and the list of measurements wrap instead of running past the edge; only the mesh history's long row scrolls */
+.nx-u06 .nx-chips:not(.nx-chips--scroll){flex-wrap:wrap;overflow:visible}
+.nx-u06 .nx-chips:not(.nx-chips--scroll) .nx-chip{max-width:100%}
+.nx-u06 .nx-chips--scroll .nx-chip{max-width:min(calc(100vw - 96px),420px);min-width:0;white-space:normal}

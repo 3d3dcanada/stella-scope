@@ -1,20 +1,23 @@
-// L7: the five histories, each row carrying evidence pointers back into the recording. Evidence
-// is the whole point of this file. A row here is never a bare number: it names the recorded rows
-// it was computed from, as `{kind, id, ts}`, and every one of those is resolvable by `GET
-// /api/at?ts=<ts>` — which is what makes a claim on a report page checkable instead of merely
-// asserted. `id` is always a string: the `events`/`qgl`/`probe_points` rowid, or the sample
-// timestamp for `kind:"sample"`. Reading strategy (2026-09-22): a recording is keyframes (a whole
-// sample, every 60 s) plus deltas that store only what changed, under `$.set`. The first cut here
-// ran `json_extract` on `$.<field>`, which only keyframes carry. On the live recording 41 of 47
-// heat-up switch-ons exist only in deltas, so heat-ups were dated by the next keyframe (up to 60
-// s late, in 60 s steps), and its LIMIT on rows scanned from the oldest stopped the thermal page
-// at 2026-09-17 12:13 and read 150 s of 2026-09-16 for motor drift. Samples are now rebuilt by
+// L7: the five histories, each row carrying evidence pointers back into the recording.
+//
+// Evidence is the whole point of this file. A row here is never a bare number: it names the
+// recorded rows it was computed from, as `{kind, id, ts}`, and every one of those is resolvable
+// by `GET /api/at?ts=<ts>` — which is what makes a claim on a report page checkable instead of
+// merely asserted. `id` is always a string: the `events`/`qgl`/`probe_points` rowid, or the
+// sample timestamp for `kind:"sample"`.
+//
+// Reading strategy (WO-15, 2026-09-22): a recording is keyframes (a whole sample, every 60 s)
+// plus deltas that store only what changed, under `$.set`. The first cut here ran `json_extract`
+// on `$.<field>`, which only keyframes carry. On the live recording 41 of 47 heat-up switch-ons
+// exist only in deltas, so heat-ups were dated by the next keyframe (up to 60 s late, in 60 s
+// steps), and its LIMIT on rows scanned from the oldest stopped the thermal page at 2026-09-17
+// 12:13 and read 150 s of 2026-09-16 for motor drift. Samples are now rebuilt by
 // `Store::replay`, the decoder load_sample and run_start use, narrowed to the rows that carry the
 // fields a history reads, and values carried into a window come from `Store::at`. The seed
-// timestamp is still reported so nobody has to trust a carried value blind. ponytail: each route
-// is one pass over its window (SQL reads every delta's text once): measured 1.2 to 2.1 s for the
-// whole 6-day, 553 MB live recording; it grows with the window. Extract these fields at write
-// time into an additive table, like print_sessions, if that gets slow.
+// timestamp is still reported so nobody has to trust a carried value blind.
+// ponytail: each route is one pass over its window (SQL reads every delta's text once): measured
+// 1.2 to 2.1 s for the whole 6-day, 553 MB live recording; it grows with the window. Extract
+// these fields at write time into an additive table, like print_sessions, if that gets slow.
 use crate::{
     api::Response,
     config::Config,
@@ -36,7 +39,7 @@ const HEATER_ON_C: f64 = 30.0;
 const MAX_DRIVER_EVENTS: usize = 2000;
 /// A session's overshoot is measured for this long after the target is first reached.
 const SETTLE_WINDOW_S: f64 = 180.0;
-/// Bound: a heat-up is replayed from its switch-on only until this long has passed without
+/// WO-15 bound: a heat-up is replayed from its switch-on only until this long has passed without
 /// reaching the target. Longer is a fault or an abandoned target, not a heat-up to rate.
 const MAX_HEAT_UP_S: f64 = 3600.0;
 /// Target changes read per heater and request; reaching it is declared as `capped`.
@@ -181,8 +184,8 @@ fn mesh_row(ts: f64, profile: Option<String>, matrix: &Value, adaptive: bool) ->
 }
 
 fn mesh_history(db: &Store, from: f64, to: f64, limit: usize) -> Result<Value> {
-    // Every change of bed_mesh.probed_matrix to a grid, replayed, so a mesh set (or cleared)
-    // between two keyframes counts, dated by the sample that carried it. Klipper reports
+    // WO-15: every change of bed_mesh.probed_matrix to a grid, replayed, so a mesh set (or
+    // cleared) between two keyframes counts, dated by the sample that carried it. Klipper reports
     // `probed_matrix: [[]]` whenever no mesh is loaded, and on this printer that is most samples
     // (4326 of 4937 rows on 2026-09-20): never a mesh. Identical consecutive grids are the same
     // mesh still being reported, not a new one. `limit` counts meshes.
@@ -586,34 +589,39 @@ fn thermal_sessions(
             .find(|(ts, t)| *ts > start_ts && (t - session_target).abs() > 0.5)
             .map(|(ts, _)| *ts)
             .unwrap_or(f64::INFINITY);
-        // Only this heat-up's own stretch is replayed, from the switch-on sample (it carries the
-        // target change, so it is the first one visited) to the settle window after the target is
-        // reached; a heater still short after MAX_HEAT_UP_S, or re-aimed first, is not reported.
+        // WO-15: only this heat-up's own stretch is replayed, from the switch-on sample (it carries
+        // the target change, so it is the first one visited) to the settle window after the target
+        // is reached; a heater still short after MAX_HEAT_UP_S, or re-aimed first, is not reported.
         let (mut start_c, mut reached, mut peak) = (None, None::<(f64, f64)>, None::<(f64, f64)>);
-        db.replay(start_ts, to, &[&temperature_at, &target_at], |ts, sample| {
-            let Some(c) = sample.pointer(&temperature_at).and_then(Value::as_f64) else {
-                return true;
-            };
-            start_c.get_or_insert(c);
-            match reached {
-                None if ts >= next_change || ts - start_ts > MAX_HEAT_UP_S => false,
-                None => {
-                    if c + 0.5 >= session_target {
-                        reached = Some((ts, c));
-                        peak = reached;
+        db.replay(
+            start_ts,
+            to,
+            &[&temperature_at, &target_at],
+            |ts, sample| {
+                let Some(c) = sample.pointer(&temperature_at).and_then(Value::as_f64) else {
+                    return true;
+                };
+                start_c.get_or_insert(c);
+                match reached {
+                    None if ts >= next_change || ts - start_ts > MAX_HEAT_UP_S => false,
+                    None => {
+                        if c + 0.5 >= session_target {
+                            reached = Some((ts, c));
+                            peak = reached;
+                        }
+                        true
                     }
-                    true
-                }
-                // Overshoot is the peak inside the settle window that follows.
-                Some((reached_ts, _)) if ts > reached_ts + SETTLE_WINDOW_S => false,
-                Some(_) => {
-                    if peak.is_some_and(|(_, best)| c > best) {
-                        peak = Some((ts, c));
+                    // Overshoot is the peak inside the settle window that follows.
+                    Some((reached_ts, _)) if ts > reached_ts + SETTLE_WINDOW_S => false,
+                    Some(_) => {
+                        if peak.is_some_and(|(_, best)| c > best) {
+                            peak = Some((ts, c));
+                        }
+                        true
                     }
-                    true
                 }
-            }
-        })?;
+            },
+        )?;
         let (Some(start_c), Some((reached_ts, _)), Some(peak)) = (start_c, reached, peak) else {
             continue;
         };
@@ -698,7 +706,7 @@ fn thermal_history(db: &Store, from: f64, to: f64, limit: usize) -> Result<Value
 // HTTP
 // ---------------------------------------------------------------------------------------------
 
-/// Every finished print, newest first, straight from the additive print_sessions table the
+/// WO-13: every finished print, newest first, straight from the additive print_sessions table the
 /// recorder fills at write time. No reconstruction, no extrapolation: a row exists only for a
 /// transition the recorder actually saw, and the ones it joined mid-run say so.
 fn prints_history(db: &Store, from: f64, to: f64, limit: usize) -> Result<Value> {
@@ -823,7 +831,7 @@ mod tests {
         )
     }
 
-    /// The prints history is the recorder's own session rows, newest first, each with
+    /// WO-13: the prints history is the recorder's own session rows, newest first, each with
     /// resolvable evidence and the honest caveat when the recorder joined mid-run.
     #[test]
     fn print_history_returns_recorded_sessions_with_evidence() {
@@ -838,7 +846,7 @@ mod tests {
             20.0,
             json!({"print_stats":{"state":"printing","filename":"cube.gcode","print_duration":60.0,"filament_used":1250.0},"virtual_sdcard":{"progress":0.5}}),
         );
-        // Sampled up to the end, as a print the recorder watched through is; the 60 s of
+        // WO-15: sampled up to the end, as a print the recorder watched through is; the 60 s of
         // silence this fixture had before the completion now reads, correctly, as a gap.
         put(
             &mut db,
@@ -1314,9 +1322,9 @@ mod tests {
         })
     }
 
-    /// Changes the recorder stored only in deltas, made and undone between two keyframes, are
-    /// returned by every history that reads them. The first cut read keyframes only and saw none
-    /// of it: no heat-up, no mesh, one cs_actual value, and the old offset beside the change.
+    /// WO-15: changes the recorder stored only in deltas, made and undone between two keyframes,
+    /// are returned by every history that reads them. The first cut read keyframes only and saw
+    /// none of it: no heat-up, no mesh, one cs_actual value, and the old offset beside the change.
     #[test]
     fn a_change_stored_only_in_a_delta_is_returned() {
         let mut db = store();

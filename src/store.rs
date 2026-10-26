@@ -30,11 +30,11 @@ impl Event {
     }
 }
 
-/// One finished print, extracted at record time from print_stats. `result` is the Klipper state
-/// that ended it (complete / error / cancelled) or "interrupted" when no completion was recorded
-/// before the sample stream moved on. `evidence` carries the honest caveat when the recorder
-/// joined a print already running: the start time is then the first sample seen, not the real
-/// start, and it says so instead of inventing one.
+/// One finished print, extracted at record time from print_stats (WO-13). `result` is the Klipper
+/// state that ended it (complete / error / cancelled) or "interrupted" when no completion was
+/// recorded before the sample stream moved on. `evidence` carries the honest caveat when the
+/// recorder joined a print already running: the start time is then the first sample seen, not the
+/// real start, and it says so instead of inventing one.
 #[derive(Clone, Debug, Serialize)]
 pub struct PrintSession {
     pub start_ts: f64,
@@ -63,7 +63,7 @@ struct OpenPrint {
     filename: String,
     start_ts: f64,
     joined_mid_print: bool,
-    /// The recorder restarted inside this print and read its start back from the recording.
+    /// WO-14: the recorder restarted inside this print and read its start back from the recording.
     recovered: bool,
     /// The newest sample seen inside this print: where an interrupted print really stopped
     /// being recorded, instead of the first sample after a gap (which can be days later).
@@ -73,13 +73,13 @@ struct OpenPrint {
     progress: Option<f64>,
 }
 
-/// A print's start counts as recorded only when a quiet sample (idle, finished, or another file)
-/// lies at most this far before its first printing sample. In the recording of 2026-09-16..22 every
-/// print start the recorder saw followed a quiet sample by under 0.7 s; the one print it joined late
-/// (2026-09-21 20:06:45, Klipper's total_duration already 162.9 s) followed the previous quiet
-/// sample by 5518 s, and a stale quiet sample like that proves nothing.
+/// WO-14: a print's start counts as recorded only when a quiet sample (idle, finished, or another
+/// file) lies at most this far before its first printing sample. In our recording of
+/// 2026-09-16..22 every print start the recorder saw followed a quiet sample by under 0.7 s; the one
+/// print it joined late (2026-09-21 20:06:45, Klipper's total_duration already 162.9 s) followed
+/// the previous quiet sample by 5518 s, and a stale quiet sample like that proves nothing.
 const START_SEEN_S: f64 = 30.0;
-/// How far back a restarted recorder replays the recording to find where its print began.
+/// WO-14: how far back a restarted recorder replays the recording to find where its print began.
 const RUN_SCAN_S: f64 = 48.0 * 3600.0;
 fn seen_start(quiet_ts: Option<f64>, first_ts: f64) -> bool {
     quiet_ts.is_some_and(|q| first_ts - q <= START_SEEN_S)
@@ -98,7 +98,7 @@ impl PrintTracker {
     /// Seed from the newest sample at Store::open. `joined` flags a session the recorder never saw
     /// start; a terminal state is remembered so a restarted recorder does not record the same
     /// finished print once per restart. A printing seed starts at the newest sample, flagged
-    /// joined; Store::open then reads the real start back from the recording.
+    /// joined; Store::open then reads the real start back from the recording (WO-14).
     pub fn seed(ts: f64, data: &Value) -> Self {
         let state = data["print_stats"]["state"].as_str().unwrap_or("");
         let filename = data["print_stats"]["filename"].as_str().unwrap_or("");
@@ -141,7 +141,8 @@ impl PrintTracker {
         // readings are the truth; only a terminal state's sample describes the print it closes.
         let close = |open: &OpenPrint, result: &str, evidence: String| {
             let own = result != "interrupted";
-            let pick = |now: Option<f64>, last: Option<f64>| if own { now.or(last) } else { last.or(now) };
+            let pick =
+                |now: Option<f64>, last: Option<f64>| if own { now.or(last) } else { last.or(now) };
             PrintSession {
                 start_ts: open.start_ts,
                 end_ts: if own { ts } else { open.last_ts },
@@ -166,13 +167,13 @@ impl PrintTracker {
                 }
                 // A different filename while a session is open: the previous print ended without a
                 // terminal state recorded (restart, cancelled from the panel). It closes honestly,
-                // and this same sample opens the new file's session, not the next one.
+                // and WO-15: this same sample opens the new file's session, not the next one.
                 let ended = self.open.take();
-                // Fully recorded only when the tracker saw the machine quiet just before. because
-                // a quiet sample from before a hole in the recording (service stopped, printer
-                // unreachable) says nothing about when this print began. the ended print's last
-                // sample is a witness too (another file, the rule run_start applies after a
-                // restart), whichever of the two is newer.
+                // Fully recorded only when the tracker saw the machine quiet just before. WO-14:
+                // "just before", because a quiet sample from before a hole in the recording
+                // (service stopped, printer unreachable) says nothing about when this print began.
+                // WO-15: the ended print's last sample is a witness too (another file, the rule
+                // run_start applies after a restart), whichever of the two is newer.
                 let witness = ended
                     .as_ref()
                     .map(|o| o.last_ts)
@@ -215,7 +216,7 @@ impl PrintTracker {
                         } else {
                             "start recorded"
                         };
-                        // A terminal state first seen after a gap in the recording ended
+                        // WO-15: a terminal state first seen after a gap in the recording ended
                         // somewhere inside that gap. The row still ends at this sample, the only
                         // recorded proof, and says how much earlier it may have finished. The
                         // Files modal shows end_ts as a local time and this text as its tooltip,
@@ -372,10 +373,10 @@ impl Store {
                 store.write_state = Some(split_context(&data)?.0);
                 // A restart mid-print continues the open session instead of opening a second one.
                 let mut sessions = PrintTracker::seed(ts, &data);
-                // ...and keeps the start its own recording holds, instead of restarting the clock
-                // at the last sample before the restart. A replay that cannot read the recording
-                // leaves the seed's honest default (joined, at the newest sample): the recorder
-                // starting matters more than the session's start time.
+                // WO-14: ...and keeps the start its own recording holds, instead of restarting the
+                // clock at the last sample before the restart. A replay that cannot read the
+                // recording leaves the seed's honest default (joined, at the newest sample): the
+                // recorder starting matters more than the session's start time.
                 if let Some(open) = sessions.open.as_mut() {
                     if let Ok((start, quiet)) = store.run_start(ts, &open.filename) {
                         open.start_ts = start;
@@ -496,7 +497,7 @@ impl Store {
             .map_err(db_error)?;
         Ok(())
     }
-    /// Finished prints, newest first. Every row is a real recorded transition, never an
+    /// WO-13: finished prints, newest first. Every row is a real recorded transition, never an
     /// extrapolation; rows the recorder only joined mid-run say so in `evidence`.
     pub fn print_sessions(&self, from: f64, to: f64, limit: usize) -> Result<Vec<PrintSession>> {
         let mut stmt = self
@@ -652,16 +653,16 @@ impl Store {
         }
         Ok(Some((target, state, n)))
     }
-    /// Where the print holding the newest sample began, for a recorder restarted mid-print. The run
-    /// is the contiguous stretch of samples printing/paused with `file`. Returns its first sample
-    /// and the sample just before it, which is quiet by construction (idle, finished, or another
-    /// file); None when the run reaches the start of the recording or of the scan. A state change
-    /// is stored as a delta, not a keyframe: the 2026-09-21 cancel (11:53:19) and reprint
-    /// (11:54:37) of the same file both are, so reading keyframes alone would start that reprint at
-    /// the 11:54:45 keyframe, and a cancel and reprint inside one 60 s keyframe interval would
-    /// vanish. The run is replayed through the same keyframe/delta decoder load_sample uses.
-    // Ponytail: replays every sample of the current run from the newest keyframe outside it, never
-    // more than RUN_SCAN_S back. Measured 2026-09-22 on the 55 min Voron run of 2026-09-17 (8385
+    /// WO-14: where the print holding the newest sample began, for a recorder restarted mid-print.
+    /// The run is the contiguous stretch of samples printing/paused with `file`. Returns its first
+    /// sample and the sample just before it, which is quiet by construction (idle, finished, or
+    /// another file); None when the run reaches the start of the recording or of the scan.
+    /// A state change is stored as a delta, not a keyframe: the 2026-09-21 cancel (11:53:19) and
+    /// reprint (11:54:37) of the same file both are, so reading keyframes alone would start that
+    /// reprint at the 11:54:45 keyframe, and a cancel and reprint inside one 60 s keyframe interval
+    /// would vanish. The run is replayed through the same keyframe/delta decoder load_sample uses.
+    // ponytail: replays every sample of the current run from the newest keyframe outside it, never
+    // more than RUN_SCAN_S back. Measured 2026-09-22 on our 55 min Voron run of 2026-09-17 (8385
     // samples): +110 ms to service start, so about 6 s at the 48 h bound. Skip deltas that cannot
     // touch print_stats in the SQL, or record print starts as they happen, if prints get that long.
     fn run_start(&self, newest: f64, file: &str) -> Result<(f64, Option<f64>)> {
@@ -685,7 +686,10 @@ impl Store {
         while let Some(row) = rows.next().map_err(db_error)? {
             let ts: f64 = row.get(0).map_err(db_error)?;
             from = Some(ts);
-            if !in_run(&decode_sample(ts, &row.get::<_, String>(1).map_err(db_error)?)?) {
+            if !in_run(&decode_sample(
+                ts,
+                &row.get::<_, String>(1).map_err(db_error)?,
+            )?) {
                 break;
             }
         }
@@ -706,7 +710,7 @@ impl Store {
         })?;
         Ok(run)
     }
-    /// The one forward replay (run_start above, the history routes). Every sample from the
+    /// WO-15: the one forward replay (run_start above, the history routes). Every sample from the
     /// keyframe at or before `from` to `to` is rebuilt through the decoder load_sample uses
     /// (decode_sample + apply_delta) and handed to `visit` in time order from `from` on; `visit`
     /// returns false to stop. With no `paths` every row is rebuilt whole and visited. With JSON
@@ -767,7 +771,9 @@ impl Store {
                 }
                 narrow.push(')');
             }
-            format!("SELECT ts,{data},kind FROM samples WHERE ts>=?1 AND ts<=?2{narrow} ORDER BY ts")
+            format!(
+                "SELECT ts,{data},kind FROM samples WHERE ts>=?1 AND ts<=?2{narrow} ORDER BY ts"
+            )
         };
         let mut q = self.conn.prepare(&sql).map_err(db_error)?;
         let mut rows = q
@@ -791,8 +797,8 @@ impl Store {
                 )?,
                 Some(other) => {
                     return Err(format!(
-                        "sample at {ts} has unknown kind {other}; preserve this recording for repair"
-                    ))
+                    "sample at {ts} has unknown kind {other}; preserve this recording for repair"
+                ))
                 }
             }
             if let Some(sample) = &state {
@@ -947,8 +953,8 @@ impl Store {
             None
         };
         let mut next_parser = parser.clone();
-        // Print-session extraction runs on the same sample the write stores, so the session row
-        // lands in the same transaction and a crash replays from the seeded tracker on reopen.
+        // WO-13: print-session extraction runs on the same sample the write stores, so the session
+        // row lands in the same transaction and a crash replays from the seeded tracker on reopen.
         let closed = if let (Some((_, data)), Some(ts)) = (sample, actual_ts) {
             self.sessions.observe(ts, data)
         } else {
@@ -1044,7 +1050,12 @@ impl Store {
         Ok(result)
     }
 
-    pub fn prune(&mut self, cutoff: f64, max_db_mb: u64, active_filename: Option<&str>) -> Result<()> {
+    pub fn prune(
+        &mut self,
+        cutoff: f64,
+        max_db_mb: u64,
+        active_filename: Option<&str>,
+    ) -> Result<()> {
         if !cutoff.is_finite() {
             return Err("retention cutoff is not finite; check the recorder's clock".into());
         }
@@ -1115,7 +1126,12 @@ impl Store {
             .map_err(db_error)?;
         Ok(pages.saturating_sub(free).saturating_mul(page))
     }
-    fn prune_before(&mut self, sample_boundary: Option<f64>, timeline_boundary: f64, active_filename: Option<&str>) -> Result<()> {
+    fn prune_before(
+        &mut self,
+        sample_boundary: Option<f64>,
+        timeline_boundary: f64,
+        active_filename: Option<&str>,
+    ) -> Result<()> {
         let tx = self.conn.transaction().map_err(db_error)?;
         for kind in ["scope_geometry", "scope_health", "scope_origin"] {
             let row: Option<(f64,String)>=tx.query_row("SELECT ts,message FROM events WHERE kind=?1 AND ts<=?2 ORDER BY ts DESC,rowid DESC LIMIT 1",
@@ -1127,7 +1143,8 @@ impl Store {
                 }
             }
         }
-        tx.execute("DELETE FROM probe_points WHERE ts<=?1", [timeline_boundary]).map_err(db_error)?;
+        tx.execute("DELETE FROM probe_points WHERE ts<=?1", [timeline_boundary])
+            .map_err(db_error)?;
         for (table, boundary) in [
             ("samples", sample_boundary),
             ("events", Some(timeline_boundary)),
@@ -1145,19 +1162,23 @@ impl Store {
         if self.compact {
             tx.execute("DELETE FROM context WHERE id NOT IN (SELECT DISTINCT context_id FROM samples WHERE context_id IS NOT NULL)",[]).map_err(db_error)?;
         }
-        // Finished-print rows leave with the timeline. A session spanning the cutoff keeps its
-        // end (it ended after it), so a row is never cut in half.
+        // WO-13: finished-print rows leave with the timeline. A session spanning the cutoff keeps
+        // its end (it ended after it), so a row is never cut in half.
         tx.execute(
-                "DELETE FROM print_sessions WHERE end_ts<?1",
-                [timeline_boundary],
-            )
-            .map_err(db_error)?;
-        tx.execute("DELETE FROM print_context WHERE ts<?1 AND NOT EXISTS (
+            "DELETE FROM print_sessions WHERE end_ts<?1",
+            [timeline_boundary],
+        )
+        .map_err(db_error)?;
+        tx.execute(
+            "DELETE FROM print_context WHERE ts<?1 AND NOT EXISTS (
             SELECT 1 FROM print_sessions s WHERE s.end_ts>=?1 AND s.filename=print_context.filename
             AND print_context.ts>=s.start_ts-60 AND print_context.ts<=s.end_ts
         ) AND (?2 IS NULL OR print_context.rowid!=(
             SELECT rowid FROM print_context WHERE filename=?2 ORDER BY ts DESC,rowid DESC LIMIT 1
-        ))", params![timeline_boundary, active_filename]).map_err(db_error)?;
+        ))",
+            params![timeline_boundary, active_filename],
+        )
+        .map_err(db_error)?;
         tx.commit().map_err(db_error)?;
         Ok(())
     }
@@ -1318,75 +1339,7 @@ fn store_context(conn: &Connection, value: &Value) -> Result<Option<i64>> {
     Ok(Some(id))
 }
 fn sha256_hex(data: &[u8]) -> String {
-    const K: [u32; 64] = [
-        0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4,
-        0xab1c5ed5, 0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe,
-        0x9bdc06a7, 0xc19bf174, 0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f,
-        0x4a7484aa, 0x5cb0a9dc, 0x76f988da, 0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7,
-        0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967, 0x27b70a85, 0x2e1b2138, 0x4d2c6dfc,
-        0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85, 0xa2bfe8a1, 0xa81a664b,
-        0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070, 0x19a4c116,
-        0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
-        0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7,
-        0xc67178f2,
-    ];
-    let mut bytes = data.to_vec();
-    let bits = (bytes.len() as u64) * 8;
-    bytes.push(0x80);
-    while bytes.len() % 64 != 56 {
-        bytes.push(0)
-    }
-    bytes.extend_from_slice(&bits.to_be_bytes());
-    let mut h = [
-        0x6a09e667_u32,
-        0xbb67ae85,
-        0x3c6ef372,
-        0xa54ff53a,
-        0x510e527f,
-        0x9b05688c,
-        0x1f83d9ab,
-        0x5be0cd19,
-    ];
-    for block in bytes.chunks_exact(64) {
-        let mut w = [0_u32; 64];
-        for (i, c) in block.chunks_exact(4).enumerate() {
-            w[i] = u32::from_be_bytes(c.try_into().unwrap());
-        }
-        for i in 16..64 {
-            let s0 = w[i - 15].rotate_right(7) ^ w[i - 15].rotate_right(18) ^ (w[i - 15] >> 3);
-            let s1 = w[i - 2].rotate_right(17) ^ w[i - 2].rotate_right(19) ^ (w[i - 2] >> 10);
-            w[i] = w[i - 16]
-                .wrapping_add(s0)
-                .wrapping_add(w[i - 7])
-                .wrapping_add(s1);
-        }
-        let (mut a, mut b, mut c, mut d, mut e, mut f, mut g, mut z) =
-            (h[0], h[1], h[2], h[3], h[4], h[5], h[6], h[7]);
-        for i in 0..64 {
-            let s1 = e.rotate_right(6) ^ e.rotate_right(11) ^ e.rotate_right(25);
-            let ch = (e & f) ^ (!e & g);
-            let t1 = z
-                .wrapping_add(s1)
-                .wrapping_add(ch)
-                .wrapping_add(K[i])
-                .wrapping_add(w[i]);
-            let s0 = a.rotate_right(2) ^ a.rotate_right(13) ^ a.rotate_right(22);
-            let maj = (a & b) ^ (a & c) ^ (b & c);
-            let t2 = s0.wrapping_add(maj);
-            z = g;
-            g = f;
-            f = e;
-            e = d.wrapping_add(t1);
-            d = c;
-            c = b;
-            b = a;
-            a = t1.wrapping_add(t2);
-        }
-        for (i, v) in [a, b, c, d, e, f, g, z].iter().enumerate() {
-            h[i] = h[i].wrapping_add(*v);
-        }
-    }
-    h.iter().map(|v| format!("{v:08x}")).collect()
+    crate::sha256::hex(data)
 }
 
 fn insert_event(conn: &Connection, e: &Event) -> rusqlite::Result<usize> {
@@ -1409,22 +1362,49 @@ mod tests {
     #[test]
     fn print_context_retention_keeps_spanning_and_active_runs_atomically() {
         let mut db = Store::open(":memory:", false).unwrap();
-        for (ts, name) in [(1.0,"expired.gcode"),(2.0,"spanning.gcode"),(3.0,"active.gcode"),(18.0,"recent.gcode")] {
-            db.write_print_context(ts, name, &json!({"slicer":"fixture"}), &json!({})).unwrap();
+        for (ts, name) in [
+            (1.0, "expired.gcode"),
+            (2.0, "spanning.gcode"),
+            (3.0, "active.gcode"),
+            (18.0, "recent.gcode"),
+        ] {
+            db.write_print_context(ts, name, &json!({"slicer":"fixture"}), &json!({}))
+                .unwrap();
         }
         db.conn.execute("INSERT INTO print_sessions(start_ts,end_ts,filename,result,evidence) VALUES(2,20,'spanning.gcode','complete','fixture')", []).unwrap();
-        db.conn.execute("INSERT INTO events(ts,kind,message) VALUES(1,'response','old')", []).unwrap();
+        db.conn
+            .execute(
+                "INSERT INTO events(ts,kind,message) VALUES(1,'response','old')",
+                [],
+            )
+            .unwrap();
         db.conn.execute_batch("CREATE TRIGGER refuse_context_delete BEFORE DELETE ON print_context BEGIN SELECT RAISE(ABORT,'fixture failure'); END;").unwrap();
         assert!(db.prune(10.0, 4096, Some("active.gcode")).is_err());
         assert_eq!(db.print_context(0.0, 30.0, 10).unwrap().len(), 4);
-        assert_eq!(db.events(0.0, 30.0, 10).unwrap().len(), 1, "the failed prune rolls back earlier deletes");
-        db.conn.execute_batch("DROP TRIGGER refuse_context_delete").unwrap();
+        assert_eq!(
+            db.events(0.0, 30.0, 10).unwrap().len(),
+            1,
+            "the failed prune rolls back earlier deletes"
+        );
+        db.conn
+            .execute_batch("DROP TRIGGER refuse_context_delete")
+            .unwrap();
         db.prune(10.0, 4096, Some("active.gcode")).unwrap();
-        let names = db.print_context(0.0, 30.0, 10).unwrap().into_iter().map(|r|r.1).collect::<Vec<_>>();
-        assert_eq!(names, ["spanning.gcode","active.gcode","recent.gcode"]);
+        let names = db
+            .print_context(0.0, 30.0, 10)
+            .unwrap()
+            .into_iter()
+            .map(|r| r.1)
+            .collect::<Vec<_>>();
+        assert_eq!(names, ["spanning.gcode", "active.gcode", "recent.gcode"]);
         db.prune(10.0, 4096, None).unwrap();
-        let names = db.print_context(0.0, 30.0, 10).unwrap().into_iter().map(|r|r.1).collect::<Vec<_>>();
-        assert_eq!(names, ["spanning.gcode","recent.gcode"]);
+        let names = db
+            .print_context(0.0, 30.0, 10)
+            .unwrap()
+            .into_iter()
+            .map(|r| r.1)
+            .collect::<Vec<_>>();
+        assert_eq!(names, ["spanning.gcode", "recent.gcode"]);
     }
     #[test]
     fn sha256_known_vector() {
@@ -1434,7 +1414,7 @@ mod tests {
         );
     }
 
-    /// The session state machine, exercised on the shapes the printer really produces.
+    /// WO-13: the session state machine, exercised on the shapes the printer really produces.
     #[test]
     fn print_sessions_track_complete_interrupted_and_joined_runs() {
         let sample = |state: &str, file: &str, dur: f64| {
@@ -1446,8 +1426,8 @@ mod tests {
         assert!(t
             .observe(20.0, &sample("printing", "cube.gcode", 60.0))
             .is_none());
-        // A print the recorder watched to the end is sampled right up to it; without this sample
-        // the 60 s of silence before the completion is, correctly, a gap.
+        // WO-15: a print the recorder watched to the end is sampled right up to it; without this
+        // sample the 60 s of silence before the completion is, correctly, a gap.
         assert!(t
             .observe(70.0, &sample("printing", "cube.gcode", 700.0))
             .is_none());
@@ -1501,7 +1481,7 @@ mod tests {
         );
     }
 
-    /// The write path fills the table and reports the outcome for the collector's notice.
+    /// WO-13: the write path fills the table and reports the outcome for the collector's notice.
     #[test]
     fn write_records_print_sessions_and_reports_the_outcome() {
         let mut db = Store::open(":memory:", false).unwrap();
@@ -1521,7 +1501,7 @@ mod tests {
         assert_eq!(rows[0].duration_s, Some(720.0));
     }
 
-    /// A service restart mid-print continues the same session instead of opening a second.
+    /// WO-13: a service restart mid-print continues the same session instead of opening a second.
     #[test]
     fn a_restart_mid_print_continues_the_same_session() {
         let path = std::env::temp_dir().join(format!("stella-wo13-{}.sqlite3", std::process::id()));
@@ -1549,7 +1529,7 @@ mod tests {
             "restart must continue, not duplicate: {rows:?}"
         );
         assert!(rows[0].evidence.contains("mid-run"), "{}", rows[0].evidence);
-        // The start is the first sample of the run, not the last one before the restart.
+        // WO-14: the start is the first sample of the run, not the last one before the restart.
         assert_eq!(rows[0].start_ts, 10.0);
         for suffix in ["", "-wal", "-shm"] {
             let _ = std::fs::remove_file(path.with_file_name(format!(
@@ -1557,13 +1537,26 @@ mod tests {
                 path.file_name().unwrap().to_string_lossy()
             )));
         }
-        // The recorder saw the start (idle at 5, printing from 10), then restarted at 50. One
-        // row, starting at 10, and the evidence says the start was recorded.
+        // WO-14: the recorder saw the start (idle at 5, printing from 10), then restarted at 50.
+        // One row, starting at 10, and the evidence says the start was recorded.
         let path = temp_db("wo14-seen");
-        write_all(&path, &[(5.0, ps("standby", "", 0.0)), (10.0, ps("printing", "cube.gcode", 0.2)), (50.0, ps("printing", "cube.gcode", 40.2))]);
-        // The restarted recorder keeps sampling the print up to its end (at 495); a first sample
-        // after a restart that is already the completion is the gap case, tested apart.
-        let rows = write_all(&path, &[(495.0, ps("printing", "cube.gcode", 485.2)), (500.0, ps("complete", "cube.gcode", 490.2))]);
+        write_all(
+            &path,
+            &[
+                (5.0, ps("standby", "", 0.0)),
+                (10.0, ps("printing", "cube.gcode", 0.2)),
+                (50.0, ps("printing", "cube.gcode", 40.2)),
+            ],
+        );
+        // WO-15: the restarted recorder keeps sampling the print up to its end (at 495); a first
+        // sample after a restart that is already the completion is the gap case, tested apart.
+        let rows = write_all(
+            &path,
+            &[
+                (495.0, ps("printing", "cube.gcode", 485.2)),
+                (500.0, ps("complete", "cube.gcode", 490.2)),
+            ],
+        );
         assert_eq!(rows.len(), 1, "{rows:?}");
         assert_eq!(rows[0].start_ts, 10.0);
         assert_eq!(rows[0].result, "complete");
@@ -1575,11 +1568,21 @@ mod tests {
         // No quiet sample before the run: the run reaches the start of the recording. The start
         // is the first sample seen (10, not the 50 before the restart), flagged joined.
         let path = temp_db("wo14-joined");
-        write_all(&path, &[(10.0, ps("printing", "cube.gcode", 300.0)), (50.0, ps("printing", "cube.gcode", 340.0))]);
+        write_all(
+            &path,
+            &[
+                (10.0, ps("printing", "cube.gcode", 300.0)),
+                (50.0, ps("printing", "cube.gcode", 340.0)),
+            ],
+        );
         let rows = write_all(&path, &[(500.0, ps("complete", "cube.gcode", 790.0))]);
         assert_eq!(rows.len(), 1, "{rows:?}");
         assert_eq!(rows[0].start_ts, 10.0);
-        assert!(rows[0].evidence.contains("joined this print mid-run"), "{}", rows[0].evidence);
+        assert!(
+            rows[0].evidence.contains("joined this print mid-run"),
+            "{}",
+            rows[0].evidence
+        );
         remove_db(&path);
     }
 
@@ -1597,7 +1600,8 @@ mod tests {
     }
     /// A fresh on-disk recording path; a restart is a reopen of the same file.
     fn temp_db(tag: &str) -> std::path::PathBuf {
-        let path = std::env::temp_dir().join(format!("stella-{tag}-{}.sqlite3", std::process::id()));
+        let path =
+            std::env::temp_dir().join(format!("stella-{tag}-{}.sqlite3", std::process::id()));
         remove_db(&path);
         path
     }
@@ -1620,21 +1624,24 @@ mod tests {
         db.print_sessions(0.0, f64::MAX, 50).unwrap()
     }
 
-    /// A cancel and a reprint of the same file. The real ones (2026-09-21 11:53:19 and 11:54:37)
-    /// were both stored as deltas; here they fall inside one keyframe interval, where a
+    /// WO-14: a cancel and a reprint of the same file. The real ones (2026-09-21 11:53:19 and
+    /// 11:54:37) were both stored as deltas; here they fall inside one keyframe interval, where a
     /// keyframe-only walk cannot see the cancel at all and hands the reprint the first print's
     /// start (and its primary key). The replay must find the reprint's own start.
     #[test]
     fn a_restart_finds_the_reprint_not_the_cancelled_print_before_it() {
         let path = temp_db("wo14-reprint");
         let f = "Voron_Design_Cube_v7_0.2mm_PETG_Generic Klipper Printer_37m22s.gcode";
-        write_all(&path, &[
-            (100.0, ps("printing", f, 0.1)),
-            (110.0, ps("printing", f, 10.1)),
-            (120.0, ps("cancelled", f, 20.1)),
-            (130.0, ps("printing", f, 0.1)),
-            (140.0, ps("printing", f, 10.1)),
-        ]);
+        write_all(
+            &path,
+            &[
+                (100.0, ps("printing", f, 0.1)),
+                (110.0, ps("printing", f, 10.1)),
+                (120.0, ps("cancelled", f, 20.1)),
+                (130.0, ps("printing", f, 0.1)),
+                (140.0, ps("printing", f, 10.1)),
+            ],
+        );
         {
             let db = Store::open(path.to_str().unwrap(), true).unwrap();
             let kinds: Vec<String> = db
@@ -1651,37 +1658,51 @@ mod tests {
         assert_eq!(rows.len(), 2, "{rows:?}");
         let done = rows.iter().find(|r| r.result == "complete").unwrap();
         assert_eq!(done.start_ts, 130.0);
-        assert!(done.evidence.contains("start recovered"), "{}", done.evidence);
+        assert!(
+            done.evidence.contains("start recovered"),
+            "{}",
+            done.evidence
+        );
         let cancelled = rows.iter().find(|r| r.result == "cancelled").unwrap();
         assert_eq!(cancelled.start_ts, 100.0);
         remove_db(&path);
     }
 
-    /// On the recording's own numbers. 2026-09-17: the Voron cube started at 1789641574.518 (idle
-    /// 0.236 s before) and the recorder restarted at 08:16:27 (last sample 1789643787.979, next
-    /// 1789643790.337, Klipper total_duration 2215.899 there). 2026-09-21: the recorder was down
-    /// for 5518 s and came back at 1790032005.993 with the next cube already 162.87 s in. A quiet
-    /// sample from before that hole must not pass for a witnessed start, whether or not the
-    /// recorder restarts again during the print.
+    /// WO-14, on the recording's own numbers. 2026-09-17: the Voron cube started at
+    /// 1789641574.518 (idle 0.236 s before) and the recorder restarted at 08:16:27 (last sample
+    /// 1789643787.979, next 1789643790.337, Klipper total_duration 2215.899 there). 2026-09-21: the
+    /// recorder was down for 5518 s and came back at 1790032005.993 with the next cube already
+    /// 162.87 s in. A quiet sample from before that hole must not pass for a witnessed start,
+    /// whether or not the recorder restarts again during the print.
     #[test]
     fn real_restart_keeps_the_start_and_a_late_join_stays_joined() {
         let cube = "Voron_Design_Cube_v7_0.2mm_PLA_Generic Klipper Printer_31m39s.gcode";
         let path = temp_db("wo14-0917");
-        write_all(&path, &[
-            (1789641574.282, ps("standby", "", 0.0)),
-            (1789641574.518, ps("printing", cube, 0.2233640919998834)),
-            (1789643787.979, ps("printing", cube, 2213.64350268)),
-        ]);
-        // Plus the recording's own last printing sample before the completion (0.51 s
+        write_all(
+            &path,
+            &[
+                (1789641574.282, ps("standby", "", 0.0)),
+                (1789641574.518, ps("printing", cube, 0.2233640919998834)),
+                (1789643787.979, ps("printing", cube, 2213.64350268)),
+            ],
+        );
+        // WO-15: plus the recording's own last printing sample before the completion (0.51 s
         // earlier), so the fixture has no gap the recording did not have.
-        let rows = write_all(&path, &[
-            (1789643790.337, ps("printing", cube, 2215.8989497720004)),
-            (1789644527.958, ps("printing", cube, 2953.686487999)),
-            (1789644528.471, ps("complete", cube, 2953.86146361)),
-        ]);
+        let rows = write_all(
+            &path,
+            &[
+                (1789643790.337, ps("printing", cube, 2215.8989497720004)),
+                (1789644527.958, ps("printing", cube, 2953.686487999)),
+                (1789644528.471, ps("complete", cube, 2953.86146361)),
+            ],
+        );
         assert_eq!(rows.len(), 1, "{rows:?}");
         assert_eq!(rows[0].start_ts, 1789641574.518);
-        assert!(rows[0].evidence.contains("start recovered"), "{}", rows[0].evidence);
+        assert!(
+            rows[0].evidence.contains("start recovered"),
+            "{}",
+            rows[0].evidence
+        );
         assert!(!rows[0].evidence.contains("gap"), "{}", rows[0].evidence);
         // Klipper's own clock agrees to within a sample: first sample after the restart minus its
         // total_duration is where the print began.
@@ -1692,12 +1713,15 @@ mod tests {
         let cube = "Voron_Design_Cube_v7_0.2mm_PETG_Generic Klipper Printer_32m3s.gcode";
         for restart_mid_print in [false, true] {
             let path = temp_db(&format!("wo14-0921-{restart_mid_print}"));
-            write_all(&path, &[(1790026487.540, ps("complete", flow, 2741.209989996))]);
+            write_all(
+                &path,
+                &[(1790026487.540, ps("complete", flow, 2741.209989996))],
+            );
             let first = [
                 (1790032005.993, ps("printing", cube, 162.87465042199983)),
                 (1790033000.0, ps("printing", cube, 1156.9)),
             ];
-            // The recording's own last printing sample, 0.26 s before the completion.
+            // WO-15: the recording's own last printing sample, 0.26 s before the completion.
             let last = [
                 (1790034532.319, ps("printing", cube, 2688.2021875459995)),
                 (1790034532.574, ps("complete", cube, 2688.250605065)),
@@ -1708,7 +1732,10 @@ mod tests {
             } else {
                 write_all(&path, &[first.as_slice(), last.as_slice()].concat())
             };
-            let row = rows.iter().find(|r| r.filename == cube).expect("the cube row");
+            let row = rows
+                .iter()
+                .find(|r| r.filename == cube)
+                .expect("the cube row");
             assert_eq!(row.start_ts, 1790032005.993);
             assert!(
                 row.evidence.contains("joined this print mid-run"),
@@ -1720,8 +1747,8 @@ mod tests {
         }
     }
 
-    /// Narrowing the replay to a field never hides a change to it. A delta that removes a whole
-    /// object names the object, not its fields (the recording has such removals when the
+    /// WO-15: narrowing the replay to a field never hides a change to it. A delta that removes a
+    /// whole object names the object, not its fields (the recording has such removals when the
     /// transport switches, e.g. [["system_stats"],["webhooks"]]), so it is decoded anyway and the
     /// rebuilt sample drops the field instead of keeping a stale value.
     #[test]
@@ -1758,10 +1785,10 @@ mod tests {
                "virtual_sdcard":{"progress":0.5}})
     }
 
-    /// A direct switch from one file to another (the recorder missed the first print's end)
-    /// closes the first as interrupted at its own last sample and opens the second on the same
-    /// sample, not the next one. The first print's last sample witnesses the second start, as
-    /// another file does for run_start after a restart; after a hole it is too old to.
+    /// WO-15: a direct switch from one file to another (the recorder missed the first print's
+    /// end) closes the first as interrupted at its own last sample and opens the second on the
+    /// same sample, not the next one. The first print's last sample witnesses the second start,
+    /// as another file does for run_start after a restart; after a hole it is too old to.
     #[test]
     fn a_file_switch_opens_the_new_print_on_its_first_sample() {
         let mut t = PrintTracker::default();
@@ -1797,10 +1824,10 @@ mod tests {
         );
     }
 
-    /// A completion first seen more than START_SEEN_S after the print's last sample happened
-    /// somewhere in that gap. The row still ends at the terminal sample (the only recorded
-    /// proof), keeps Klipper's own print_duration, and says so; with no gap (30 s is still
-    /// none) the evidence is what it was.
+    /// WO-15: a completion first seen more than START_SEEN_S after the print's last sample
+    /// happened somewhere in that gap. The row still ends at the terminal sample (the only
+    /// recorded proof), keeps Klipper's own print_duration, and says so; with no gap (30 s is
+    /// still none) the evidence is what it was.
     #[test]
     fn a_completion_seen_after_a_gap_says_it_finished_inside_the_gap() {
         let mut t = PrintTracker::default();
@@ -1837,8 +1864,8 @@ mod tests {
         );
     }
 
-    /// On the recording's own numbers. 2026-09-17 the recorder's last sample inside a Cube
-    /// print was 11:18:31 (1789654711.750); it came back at 11:53:50 and its first sample
+    /// WO-15, on the recording's own numbers. 2026-09-17 the recorder's last sample inside a
+    /// Cube print was 11:18:31 (1789654711.750); it came back at 11:53:50 and its first sample
     /// already said complete (1789656831.397). Klipper's own total_duration there (1504.19 s)
     /// puts the real end about 770 s before that sample, inside the 2119.6 s gap the row names.
     #[test]

@@ -1,0 +1,1028 @@
+{
+  "about": "Where printer X0 Y0 Z0 is in the model's frame (millimetres, the frame the motion table is written in), the printer's axes in that frame, and the motion group that carries the plate. A print file is drawn at origin + x * axes[0] + y * axes[1] + z * axes[2].",
+  "machines": {
+    "annex_k1_assembly": {
+      "axes": [
+        [
+          1.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          1.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "basis": "Measured from the model (mm, display frame, Y up): the plate is a 254.0 x 254.0 slab centred at X 195.0, Z 264.0, top 95.8; the 250 mm print area is centred on it and Y0 is its front edge (the +Z side, the project's convention). The nozzle tip is at X 180.0, Z 255.9, height 197.8, so 102.0 mm over the plate.",
+      "group": null,
+      "model_sha256": "03f3c99734f20f9b4af1b17d1f31443e0c05f534e163ad03b8a88e5f8ea92240",
+      "nozzle_mm": [
+        180.002,
+        -255.91,
+        197.76
+      ],
+      "origin_mm": [
+        70.0,
+        -389.0,
+        95.762
+      ],
+      "plate_mm": [
+        250.0,
+        250.0
+      ],
+      "profile": {
+        "axes": {
+          "x": [
+            -110.00239006695656,
+            139.99760993304344
+          ],
+          "y": [
+            -133.08959266118183,
+            116.91040733881817
+          ],
+          "z": [
+            -63.001678254875515,
+            101.99832174512449
+          ]
+        },
+        "calibration": {
+          "offset_mm": [
+            -110.00239006695656,
+            -133.08959266118183,
+            101.99832174512449
+          ],
+          "sign": [
+            1.0,
+            1.0,
+            -1.0
+          ],
+          "source": [
+            0,
+            1,
+            2
+          ]
+        },
+        "calibration_basis": "Measured from the model: the nozzle tip is 102.0 mm over the plate, 110.0 mm from its left edge and 133.1 mm from its front edge in the model's pose. X is carried by the head, Y by the head and Z by the head; reported 0,0,0 puts the nozzle at the plate's front left corner, and the travel is the 250 mm print area and the machine's registered Z travel."
+      }
+    },
+    "annex_k2_assembly": {
+      "axes": [
+        [
+          1.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          -1.0
+        ],
+        [
+          0.0,
+          1.0,
+          0.0
+        ]
+      ],
+      "basis": "Measured from the model (mm, display frame, Y up): the plate is a 350.0 x 350.0 slab centred at X 496.3, Z 575.2, top 180.8; the 350 mm print area is centred on it and Y0 is its front edge (the +Z side, the project's convention). The nozzle tip is at X 606.3, Z 469.1, height 326.6, so 145.8 mm over the plate.",
+      "group": "bed",
+      "model_sha256": "0efe6df3f44824d2431cd514fb31b3c135cc9cd81cf232d07ec9ac3f3ccdc450",
+      "nozzle_mm": [
+        606.302,
+        326.565,
+        469.136
+      ],
+      "origin_mm": [
+        321.327,
+        180.762,
+        750.156
+      ],
+      "plate_mm": [
+        350.0,
+        350.0
+      ],
+      "profile": {
+        "axes": {
+          "x": [
+            -284.97488732962654,
+            65.02511267037346
+          ],
+          "y": [
+            -281.0199556768062,
+            68.9800443231938
+          ],
+          "z": [
+            -145.80300405531784,
+            64.19699594468216
+          ]
+        },
+        "calibration": {
+          "offset_mm": [
+            -284.97488732962654,
+            -281.0199556768062,
+            -145.80300405531784
+          ],
+          "sign": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "source": [
+            0,
+            1,
+            2
+          ]
+        },
+        "calibration_basis": "Measured from the model: the nozzle tip is 145.8 mm over the plate, 285.0 mm from its left edge and 281.0 mm from its front edge in the model's pose. X is carried by the head, Y by the head and Z by the bed; reported 0,0,0 puts the nozzle at the plate's front left corner, and the travel is the 350 mm print area and the machine's registered Z travel."
+      }
+    },
+    "annex_k3_assembly": {
+      "axes": [
+        [
+          1.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          -1.0
+        ],
+        [
+          0.0,
+          1.0,
+          0.0
+        ]
+      ],
+      "basis": "Measured from the model (mm, display frame, Y up): the plate is a 180.0 x 180.0 slab centred at X 164.0, Z -141.0, top 177.0; the 180 mm print area is centred on it and Y0 is its front edge (the +Z side, the project's convention). The nozzle tip is at X 152.4, Z -129.9, height 276.5, so 99.5 mm over the plate.",
+      "group": "bed",
+      "model_sha256": "aa9cea21120eef1d395d02800c179d169169d40321c8b480b672d9b841f8f1cf",
+      "nozzle_mm": [
+        152.425,
+        276.501,
+        -129.913
+      ],
+      "origin_mm": [
+        74.0,
+        177.0,
+        -51.0
+      ],
+      "plate_mm": [
+        180.0,
+        180.0
+      ],
+      "profile": {
+        "axes": {
+          "x": [
+            -78.42504020273046,
+            101.57495979726954
+          ],
+          "y": [
+            -78.91250357627425,
+            101.08749642372575
+          ],
+          "z": [
+            -99.5004979527568,
+            70.4995020472432
+          ]
+        },
+        "calibration": {
+          "offset_mm": [
+            -78.42504020273046,
+            -78.91250357627425,
+            -99.5004979527568
+          ],
+          "sign": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "source": [
+            0,
+            1,
+            2
+          ]
+        },
+        "calibration_basis": "Measured from the model: the nozzle tip is 99.5 mm over the plate, 78.4 mm from its left edge and 78.9 mm from its front edge in the model's pose. X is carried by the head, Y by the head and Z by the bed; reported 0,0,0 puts the nozzle at the plate's front left corner, and the travel is the 180 mm print area and the machine's registered Z travel."
+      }
+    },
+    "doomcube2_350_reference": {
+      "axes": [
+        [
+          -1.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          -1.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "basis": "Measured from the model (mm, display frame, Y up): the plate is a 355.0 x 355.0 slab centred at X 0.0, Z -39.0, top 144.0; the 350 mm print area is centred on it and Y0 is its front edge (the +Z side, the project's convention).",
+      "group": null,
+      "model_sha256": "7a8d958a198ffabd374314c95a9d49e8b0f0f64fc51a488cdb3a1b973c8e95ad",
+      "nozzle_mm": null,
+      "origin_mm": [
+        175.0,
+        136.0,
+        143.976
+      ],
+      "plate_mm": [
+        350.0,
+        350.0
+      ]
+    },
+    "ender3_stock_220": {
+      "axes": [
+        [
+          1.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          -1.0
+        ],
+        [
+          0.0,
+          1.0,
+          0.0
+        ]
+      ],
+      "basis": "Measured from the model (mm, display frame, Y up): the plate is a 235.0 x 235.0 slab centred at X 0.0, Z 63.7, top 101.5; the 220 mm print area is centred on it and Y0 is its front edge (the +Z side, the project's convention). The nozzle tip is at X 6.1, Z 63.7, height 155.1, so 53.6 mm over the plate.",
+      "group": "bed",
+      "model_sha256": "ef494370b069a5e8bdbdb45640aab791a822106c0f1636807342ebefe1ecc1cd",
+      "nozzle_mm": [
+        6.112,
+        155.089,
+        63.7
+      ],
+      "origin_mm": [
+        -110.0,
+        101.464,
+        173.713
+      ],
+      "plate_mm": [
+        220.0,
+        220.0
+      ]
+    },
+    "fysetc_v24_250_pro": {
+      "axes": [
+        [
+          1.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          1.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "basis": "Measured from the model (mm, display frame, Y up): the plate is a 254.0 x 254.0 slab centred at X 127.0, Z -127.0, top -0.1; the 250 mm print area is centred on it and Y0 is its front edge (the +Z side, the project's convention). The nozzle tip is at X 127.0, Z -132.0, height 28.1, so 28.2 mm over the plate.",
+      "group": null,
+      "model_sha256": "4ee4c9612380f007a9c5f107d1d7a2f59e2d89bc7ebabe802bf272eb7c53faff",
+      "nozzle_mm": [
+        127.0,
+        132.0,
+        28.092
+      ],
+      "origin_mm": [
+        2.0,
+        2.0,
+        -0.086
+      ],
+      "plate_mm": [
+        250.0,
+        250.0
+      ],
+      "profile": {
+        "axes": {
+          "x": [
+            -125.00012665987015,
+            124.99987334012985
+          ],
+          "y": [
+            -130.0002858042717,
+            119.9997141957283
+          ],
+          "z": [
+            -28.177648593555205,
+            111.8223514064448
+          ]
+        },
+        "calibration": {
+          "offset_mm": [
+            -125.00012665987015,
+            -130.0002858042717,
+            -28.177648593555205
+          ],
+          "sign": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "source": [
+            0,
+            1,
+            2
+          ]
+        },
+        "calibration_basis": "Measured from the model: the nozzle tip is 28.2 mm over the plate, 125.0 mm from its left edge and 130.0 mm from its front edge in the model's pose. X is carried by the head, Y by the head and Z by the head; reported 0,0,0 puts the nozzle at the plate's front left corner, and the travel is the 250 mm print area and the machine's registered Z travel."
+      }
+    },
+    "micron_plus_r1_180": {
+      "axes": [
+        [
+          1.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          1.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "basis": "The maker's machine profile: the nozzle tip is at CAD -0.06, -12.72, 83.35 and is 89.94, 108.58, 27.90 mm over the bed in the model's pose, so printer 0,0,0 is the plate's corner at CAD -90.00, -121.30, 55.45; the plate top (55.45) agrees.",
+      "group": null,
+      "model_sha256": "c28985823dbeb5534405509dac351e0f54fc46e77b0887edd562249b0dbb501a",
+      "nozzle_mm": [
+        -0.063,
+        -12.719,
+        83.347
+      ],
+      "origin_mm": [
+        -90.0,
+        -121.3,
+        55.45
+      ],
+      "plate_mm": [
+        180.0,
+        180.0
+      ]
+    },
+    "prusa_core_one_l": {
+      "axes": [
+        [
+          0,
+          1,
+          0
+        ],
+        [
+          -1,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          1
+        ]
+      ],
+      "basis": "From Prusa's CAD and the registered calibration (X0 is the sheet's left edge and Y0 its front edge, Z0 the sheet touching the nozzle): the Nextruder nozzle is at CAD -14.5, 80.0, 449.0 in the pose, the head moves 315.5, -230.0 and the bed 21.0 to reported zero, so printer 0,0,0 is CAD 301.0, -150.0, 428.0. X runs along CAD +Y and Y along CAD -X.",
+      "group": "bed",
+      "model_sha256": "f068e1b72dfd41eaa3bc5350225044cc03482c57a5a8ba97b8cab2530beb1539",
+      "nozzle_mm": [
+        -14.5,
+        80.0,
+        449.0
+      ],
+      "origin_mm": [
+        301.0,
+        -150.0,
+        428.0
+      ],
+      "plate_mm": [
+        300.0,
+        300.0
+      ]
+    },
+    "rook_mk2_120": {
+      "axes": [
+        [
+          1.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          1.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "basis": "Measured from the model (mm, display frame, Y up): the plate is a 127.0 x 127.0 slab centred at X 0.0, Z 41.1, top 102.8; the 120 mm print area is centred on it and Y0 is its front edge (the +Z side, the project's convention). The nozzle tip is at X -66.9, Z 3.8, height 222.4, so 119.6 mm over the plate.",
+      "group": "bed",
+      "model_sha256": "16d278caa466868340ad8c97d91b80d96bfbc2af2d871565ab8d1e3559faf861",
+      "nozzle_mm": [
+        -66.927,
+        -3.778,
+        222.36
+      ],
+      "origin_mm": [
+        -59.996,
+        -101.114,
+        102.8
+      ],
+      "plate_mm": [
+        120.0,
+        120.0
+      ],
+      "profile": {
+        "axes": {
+          "x": [
+            6.9309962540864944,
+            126.9309962540865
+          ],
+          "y": [
+            -97.3365143314004,
+            22.663485668599606
+          ],
+          "z": [
+            -119.55972760915755,
+            -9.559727609157548
+          ]
+        },
+        "calibration": {
+          "offset_mm": [
+            6.9309962540864944,
+            -97.3365143314004,
+            -119.55972760915755
+          ],
+          "sign": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "source": [
+            0,
+            1,
+            2
+          ]
+        },
+        "calibration_basis": "Measured from the model: the nozzle tip is 119.6 mm over the plate, -6.9 mm from its left edge and 97.3 mm from its front edge in the model's pose. X is carried by the head, Y by the head and Z by the bed; reported 0,0,0 puts the nozzle at the plate's front left corner, and the travel is the 120 mm print area and the machine's registered Z travel."
+      }
+    },
+    "satsuma180_v10": {
+      "axes": [
+        [
+          1.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          1.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "basis": "Measured from the model (mm, display frame, Y up): the plate is a 187.0 x 197.0 slab centred at X -1.0, Z -68.5, top 372.0; the 180 mm print area is centred on it and Y0 is its front edge (the +Z side, the project's convention). The nozzle tip is at X -0.9, Z -55.3, height 370.2, so -1.8 mm over the plate.",
+      "group": "bed",
+      "model_sha256": "8c6a1a7d0118ee2bda8ff2278a60e9150324af9f24be59fee4efbe93007cf952",
+      "nozzle_mm": [
+        -0.9,
+        55.252,
+        370.191
+      ],
+      "origin_mm": [
+        -91.0,
+        -21.512,
+        371.997
+      ],
+      "plate_mm": [
+        180.0,
+        180.0
+      ],
+      "profile": {
+        "axes": {
+          "x": [
+            -90.09999936446548,
+            89.90000063553452
+          ],
+          "y": [
+            -76.7643304169178,
+            103.2356695830822
+          ],
+          "z": [
+            -2.194366693496761,
+            197.80563330650324
+          ]
+        },
+        "calibration": {
+          "offset_mm": [
+            -90.09999936446548,
+            -76.7643304169178,
+            -2.194366693496761
+          ],
+          "sign": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "source": [
+            0,
+            1,
+            2
+          ]
+        },
+        "calibration_basis": "Measured from the model: the nozzle tip is -1.8 mm over the plate, 90.1 mm from its left edge and 76.8 mm from its front edge in the model's pose. X is carried by the head, Y by the head and Z by the bed; reported 0,0,0 puts the nozzle at the plate's front left corner, and the travel is the 180 mm print area and the machine's registered Z travel."
+      }
+    },
+    "snakeoil_xy_idex": {
+      "axes": [
+        [
+          1.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          1.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "basis": "Measured from the model (mm, display frame, Y up): the plate is a 254.0 x 243.0 slab centred at X 0.0, Z -1.5, top 172.5; the 250 mm print area is centred on it and Y0 is its front edge (the +Z side, the project's convention). The nozzle tip is at X -174.0, Z -41.4, height 330.0, so 157.5 mm over the plate.",
+      "group": "bed",
+      "model_sha256": "798136042b99c6a206a662b4e113b0ec7b08532d2235f496b573b5aa47468181",
+      "nozzle_mm": [
+        -173.967,
+        41.445,
+        329.968
+      ],
+      "origin_mm": [
+        -125.0,
+        -123.5,
+        172.5
+      ],
+      "plate_mm": [
+        250.0,
+        250.0
+      ],
+      "profile": {
+        "axes": {
+          "x": [
+            48.96674305200577,
+            298.96674305200577
+          ],
+          "y": [
+            -164.94514606893063,
+            85.05485393106937
+          ],
+          "z": [
+            -82.53199398517609,
+            157.4680060148239
+          ]
+        },
+        "calibration": {
+          "offset_mm": [
+            48.96674305200577,
+            -164.94514606893063,
+            157.4680060148239
+          ],
+          "sign": [
+            1.0,
+            1.0,
+            -1.0
+          ],
+          "source": [
+            0,
+            1,
+            2
+          ]
+        },
+        "calibration_basis": "Measured from the model: the nozzle tip is 157.5 mm over the plate, -49.0 mm from its left edge and 164.9 mm from its front edge in the model's pose. X is carried by the head, Y by the head and Z by the bed; reported 0,0,0 puts the nozzle at the plate's front left corner, and the travel is the 250 mm print area and the machine's registered Z travel.",
+        "rest_offsets_mm": {
+          "head2": [
+            -237.0,
+            0.0,
+            0.0
+          ]
+        },
+        "tools": [
+          {
+            "group": "head",
+            "park": {
+              "x": 48.96674305200577
+            }
+          },
+          {
+            "group": "head2",
+            "park": {
+              "x": 298.96674305200577
+            }
+          }
+        ]
+      }
+    },
+    "sovol_sv08_350": {
+      "axes": [
+        [
+          1.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          -1.0
+        ],
+        [
+          0.0,
+          1.0,
+          0.0
+        ]
+      ],
+      "basis": "Measured from the model (mm, display frame, Y up): the plate is a 355.0 x 355.0 slab centred at X -0.0, Z 0.0, top 108.2; the 350 mm print area is centred on it and Y0 is its front edge (the +Z side, the project's convention). The nozzle tip is at X -18.2, Z 88.7, height 116.2, so 8.0 mm over the plate.",
+      "group": null,
+      "model_sha256": "95af277a4543096620b30f64d2d3fb6403fa6f07ca624719734d1c3a35c51ea3",
+      "nozzle_mm": [
+        -18.214,
+        116.232,
+        88.698
+      ],
+      "origin_mm": [
+        -175.0,
+        108.2,
+        175.0
+      ],
+      "plate_mm": [
+        350.0,
+        350.0
+      ],
+      "profile": {
+        "axes": {
+          "x": [
+            -156.78655840456486,
+            193.21344159543514
+          ],
+          "y": [
+            -86.30213439464569,
+            263.6978656053543
+          ],
+          "z": [
+            -8.03146511316298,
+            300.0
+          ]
+        },
+        "calibration": {
+          "offset_mm": [
+            -156.78655840456486,
+            -86.30213439464569,
+            -8.03146511316298
+          ],
+          "sign": [
+            1,
+            1,
+            1
+          ],
+          "source": [
+            0,
+            1,
+            2
+          ]
+        },
+        "calibration_basis": "Measured from the model: the nozzle tip is 8.0 mm over the plate, 156.8 mm from its left edge and 86.3 mm from its front edge in the model's pose, so reported 0,0,0 is that far back along each axis; the travel is widened to the 350 mm print area."
+      }
+    },
+    "the100_v11_165": {
+      "axes": [
+        [
+          1.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          1.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "basis": "Measured from the model (mm, display frame, Y up): the plate is a 165.0 x 165.0 slab centred at X -0.0, Z 43.5, top 220.5; the 165 mm print area is centred on it and Y0 is its front edge (the +Z side, the project's convention). The nozzle tip is at X 17.9, Z 35.8, height 291.2, so 70.7 mm over the plate.",
+      "group": "bed",
+      "model_sha256": "0a3088eb107137530b22e2b4a9ee41b52d0aff3ebd531e68f35d7c825256f8b5",
+      "nozzle_mm": [
+        17.942,
+        -35.839,
+        291.238
+      ],
+      "origin_mm": [
+        -82.509,
+        -126.039,
+        220.5
+      ],
+      "plate_mm": [
+        165.0,
+        165.0
+      ],
+      "profile": {
+        "axes": {
+          "x": [
+            -100.45073039829731,
+            64.54926960170269
+          ],
+          "y": [
+            -90.2000018209219,
+            74.7999981790781
+          ],
+          "z": [
+            -70.73800265789035,
+            84.26199734210965
+          ]
+        },
+        "calibration": {
+          "offset_mm": [
+            -100.45073039829731,
+            -90.2000018209219,
+            -70.73800265789035
+          ],
+          "sign": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "source": [
+            0,
+            1,
+            2
+          ]
+        },
+        "calibration_basis": "Measured from the model: the nozzle tip is 70.7 mm over the plate, 100.5 mm from its left edge and 90.2 mm from its front edge in the model's pose. X is carried by the head, Y by the head and Z by the bed; reported 0,0,0 puts the nozzle at the plate's front left corner, and the travel is the 165 mm print area and the machine's registered Z travel."
+      }
+    },
+    "tictac_21_120": {
+      "axes": [
+        [
+          1.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          1.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "basis": "Measured from the model (mm, display frame, Y up): the plate is a 120.0 x 125.0 slab centred at X 61.1, Z -48.7, top 96.3; the 120 mm print area is centred on it and Y0 is its front edge (the +Z side, the project's convention). The nozzle tip is at X -22.5, Z 10.0, height 175.4, so 79.1 mm over the plate.",
+      "group": "bed",
+      "model_sha256": "73755c5b4f0cdd134554c68d9b37102348af2d71c2e9a31e761c492856939f9b",
+      "nozzle_mm": [
+        -22.54,
+        -10.036,
+        175.431
+      ],
+      "origin_mm": [
+        1.118,
+        -11.278,
+        96.3
+      ],
+      "plate_mm": [
+        120.0,
+        120.0
+      ],
+      "profile": {
+        "axes": {
+          "x": [
+            23.658016228582703,
+            143.6580162285827
+          ],
+          "y": [
+            -118.75795497559011,
+            1.2420450244098902
+          ],
+          "z": [
+            -79.13071662187576,
+            40.86928337812424
+          ]
+        },
+        "calibration": {
+          "offset_mm": [
+            23.658016228582703,
+            1.2420450244098902,
+            -79.13071662187576
+          ],
+          "sign": [
+            1.0,
+            -1.0,
+            1.0
+          ],
+          "source": [
+            0,
+            1,
+            2
+          ]
+        },
+        "calibration_basis": "Measured from the model: the nozzle tip is 79.1 mm over the plate, -23.7 mm from its left edge and 1.2 mm from its front edge in the model's pose. X is carried by the head, Y by the bed and Z by the head; reported 0,0,0 puts the nozzle at the plate's front left corner, and the travel is the 120 mm print area and the machine's registered Z travel."
+      }
+    },
+    "voron_trident_300": {
+      "axes": [
+        [
+          1.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          1.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "basis": "Measured from the model (mm, display frame, Y up): the plate is a 304.0 x 304.0 slab centred at X -0.0, Z 39.2, top 303.3; the 300 mm print area is centred on it and Y0 is its front edge (the +Z side, the project's convention).",
+      "group": "bed",
+      "model_sha256": "d927d9e14276901cdfcd2d433a16e67ae461ec0bc67ea1912715881a64181b16",
+      "nozzle_mm": null,
+      "origin_mm": [
+        -150.0,
+        -189.2,
+        303.25
+      ],
+      "plate_mm": [
+        300.0,
+        300.0
+      ]
+    },
+    "voron_v02_120": {
+      "axes": [
+        [
+          1.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          1.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "basis": "The maker's machine profile: the nozzle tip is at CAD 0.05, -24.61, 173.75 and is 60.05, 67.24, 4.00 mm over the bed in the model's pose, so printer 0,0,0 is the plate's corner at CAD -60.00, -91.85, 169.75; the plate top (169.75) agrees.",
+      "group": "bed",
+      "model_sha256": "da642150957fa38289499bd1c1586737f4f970968c3b32b3f7b81d76bef05ea9",
+      "nozzle_mm": [
+        0.049,
+        -24.611,
+        173.75
+      ],
+      "origin_mm": [
+        -59.998,
+        -91.85,
+        169.75
+      ],
+      "plate_mm": [
+        120.0,
+        120.0
+      ]
+    },
+    "voron_v24_300_printed": {
+      "axes": [
+        [
+          1.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          1.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "basis": "The maker's machine profile: the nozzle tip is at CAD -0.00, -35.90, 85.02 and is 150.00, 154.10, 27.01 mm over the bed in the model's pose, so printer 0,0,0 is the plate's corner at CAD -150.00, -190.00, 58.01; the plate top (58.01) agrees.",
+      "group": null,
+      "model_sha256": "6f16caedf58dd81149955d5c215aba46cea386bc3ded88bc18bd73722a8d2f5a",
+      "nozzle_mm": [
+        -0.0,
+        -35.9,
+        85.019
+      ],
+      "origin_mm": [
+        -150.0,
+        -190.0,
+        58.01
+      ],
+      "plate_mm": [
+        300.0,
+        300.0
+      ]
+    },
+    "voron_v24_350_printed": {
+      "axes": [
+        [
+          1.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          1.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "basis": "The maker's machine profile: the nozzle tip is at CAD -0.00, -35.90, 85.02 and is 175.00, 179.10, 27.01 mm over the bed in the model's pose, so printer 0,0,0 is the plate's corner at CAD -175.00, -215.00, 58.01; the plate top (58.01) agrees.",
+      "group": null,
+      "model_sha256": "255ba847abf4f7d862d6e5aaac3f284a860eedac08e5bac32534d75ef42f361f",
+      "nozzle_mm": [
+        -0.0,
+        -35.9,
+        85.019
+      ],
+      "origin_mm": [
+        -175.0,
+        -215.0,
+        58.01
+      ],
+      "plate_mm": [
+        350.0,
+        350.0
+      ]
+    }
+  },
+  "schema": "stella-scope.printer-print-frames.v1",
+  "source": "Read from each model file and the maker's machine profile by tools/printer-print-frames.rs",
+  "tools": {
+    "jabberwocky_jabberwocky_drive_conch": {
+      "basis": "The centre of the lowest faces (within 0.25 mm of the lowest point) of the parts of the tool's head file that are drawn, in the file's display frame, millimetres.",
+      "part": "head_jabberwocky",
+      "tip_file_mm": [
+        -0.037,
+        -36.685,
+        23.557
+      ]
+    },
+    "xol_sherpa_mini_rapido2_uhf": {
+      "basis": "The centre of the lowest faces (within 0.25 mm of the lowest point) of the parts of the tool's head file that are drawn, in the file's display frame, millimetres.",
+      "part": "xol",
+      "tip_file_mm": [
+        -0.013,
+        302.176,
+        24.222
+      ]
+    }
+  }
+}

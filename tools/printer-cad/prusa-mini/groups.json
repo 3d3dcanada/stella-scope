@@ -1,0 +1,187 @@
+{
+  "about": "Original Prusa MINI / MINI+ (Printables 307054, Prusa Mini Assembly.STEP, sha256 26d3bad5...). The STEP is written Y-up with the display box at CAD -Z: orient turns it into the display frame (X right, Y up, front toward +Z). Bed = Y (the heatbed on its carriage, bearings and belt holder: CAD Z); gantry = Z (the X axis on the Z rods: CAD Y); head = X and Z (the extruder on the X rods, climbing with the gantry).",
+  "orient": [
+    [
+      -1,
+      0,
+      0
+    ],
+    [
+      0,
+      1,
+      0
+    ],
+    [
+      0,
+      0,
+      -1
+    ]
+  ],
+  "rules": [
+    {
+      "group": "bed",
+      "match": [
+        "MINI-y-carriage",
+        "Heatbed",
+        "MINI-heatbed-cable-cover",
+        "MINI-y-belt-holder"
+      ]
+    },
+    {
+      "group": "bed",
+      "match": [
+        "Lm8uu"
+      ],
+      "inside": [
+        -200,
+        5,
+        -300,
+        100,
+        35,
+        100
+      ]
+    },
+    {
+      "group": "head",
+      "match": [
+        "MINI-x-carriage",
+        "E3D_Hotend",
+        "MINI-heatsink",
+        "Fan-5015",
+        "fan_40x40",
+        "MINI-minda-holder",
+        "MINI-fan-spacer",
+        "Lm8uu"
+      ]
+    },
+    {
+      "group": "gantry",
+      "match": [
+        "MINI-z-carriage",
+        "MINI-extruder",
+        "MINI-x-end",
+        "8mm bar 285mm",
+        "LM10uu",
+        "Nema17 Stepper Motor 5mm shaft"
+      ],
+      "inside": [
+        -230,
+        60,
+        -140,
+        110,
+        170,
+        80
+      ]
+    }
+  ],
+  "looks_about": "The STEP carries no colours. Printed parts orange (the ones Prusa lists under PRINTED PARTS in Original-Prusa-MINI), the frame extrusions black, rods and the hotend steel, as on the real machine.",
+  "looks": [
+    {
+      "look": {
+        "color": [
+          0.98,
+          0.42,
+          0.07
+        ],
+        "metal": 0.0,
+        "rough": 0.55
+      },
+      "match": [
+        "MINI-y-plate",
+        "MINI-z-bottom",
+        "MINI-z-top",
+        "MINI-z-carriage",
+        "MINI-x-end",
+        "MINI-x-carriage",
+        "MINI-extruder",
+        "MINI-y-carriage",
+        "MINI-y-belt-holder",
+        "MINI-y-idler",
+        "MINI-display-box",
+        "MINI-knob",
+        "MINI-minda-holder",
+        "MINI-fan-spacer",
+        "MINI-heatbed-cable-cover",
+        "MINI-inspection-door"
+      ]
+    },
+    {
+      "look": {
+        "color": [
+          0.78,
+          0.8,
+          0.83
+        ],
+        "metal": 0.9,
+        "rough": 0.25
+      },
+      "match": [
+        "8mm bar",
+        "10mm 342",
+        "MINI-heatsink",
+        "E3D_Hotend"
+      ]
+    },
+    {
+      "look": {
+        "color": [
+          0.06,
+          0.065,
+          0.07
+        ],
+        "metal": 0.5,
+        "rough": 0.42
+      },
+      "match": [
+        "30X30",
+        "MINI-z-plate-bottom"
+      ]
+    },
+    {
+      "look": {
+        "color": [
+          0.1,
+          0.1,
+          0.11
+        ],
+        "metal": 0.2,
+        "rough": 0.6
+      },
+      "match": [
+        "Nema17",
+        "Fan-5015",
+        "fan_40x40"
+      ]
+    },
+    {
+      "look": {
+        "color": [
+          0.07,
+          0.08,
+          0.09
+        ],
+        "metal": 0.3,
+        "rough": 0.5
+      },
+      "match": [
+        "Heatbed"
+      ]
+    },
+    {
+      "look": {
+        "color": [
+          0.45,
+          0.46,
+          0.48
+        ],
+        "metal": 0.8,
+        "rough": 0.35
+      },
+      "match": [
+        "Lm8uu",
+        "LM10uu",
+        "GT2"
+      ]
+    }
+  ]
+}

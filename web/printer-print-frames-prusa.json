@@ -1,0 +1,115 @@
+{
+  "about": "The Prusa machines whose converted CAD ships in the build: where printer X0 Y0 Z0 is in the model's frame, the printer's axes in that frame and the motion group that carries the plate, in the form of printer-print-frames.json.",
+  "machines": {
+    "prusa_core_one": {
+      "axes": [
+        [
+          1.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          1.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "basis": "From the model's CAD and its registered calibration (X0 is the plate's left edge, Y0 its front edge, Z0 the sheet touching the nozzle): the nozzle tip is at CAD -1.17, -57.94, 329.00 in the pose (the lowest point of the hotend), the head moves -130.24, -87.07, 0.00 and the bed 0.00, 0.00, 250.56 to reported zero, so printer 0,0,0 is CAD -131.41, -145.01, 78.44 and the sheet's top (78.44) is there. The margins of the plate on the sheet are the CORE One L's, measured in F02; here they are estimates.",
+      "group": "bed",
+      "model_sha256": "4d226bc6ce3f93f031d9d78fd3d0b8a80473bdc5d9706eb8d01ea7d33a1c42ae",
+      "nozzle_mm": [
+        -1.17,
+        -57.94,
+        329.0
+      ],
+      "origin_mm": [
+        -131.41,
+        -145.01,
+        78.44
+      ],
+      "plate_mm": [
+        250.0,
+        220.0
+      ]
+    },
+    "prusa_mini": {
+      "axes": [
+        [
+          -1.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          1.0
+        ],
+        [
+          0.0,
+          1.0,
+          0.0
+        ]
+      ],
+      "basis": "From the model's CAD and its registered calibration (X0 is the plate's left edge, Y0 its front edge, Z0 the sheet touching the nozzle): the nozzle tip is at CAD -41.30, 59.70, -93.40 in the pose (the lowest point of the hotend), the head moves 98.90, -15.41, 0.00 and the bed 0.00, 0.00, 93.63 to reported zero, so printer 0,0,0 is CAD 57.60, 44.29, -187.03 and the sheet's top (44.29) is there. The margins of the plate on the sheet are the CORE One L's, measured in F02; here they are estimates.",
+      "group": "bed",
+      "model_sha256": "24f7bf7c030922de8baf0fd1d13d941ba420843d84821bd71e5bc4db32899fb3",
+      "nozzle_mm": [
+        -41.3,
+        59.7,
+        -93.4
+      ],
+      "origin_mm": [
+        57.6,
+        44.29,
+        -187.03
+      ],
+      "plate_mm": [
+        180.0,
+        180.0
+      ]
+    },
+    "prusa_mk3s": {
+      "axes": [
+        [
+          1.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          1.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "basis": "From the model's CAD and its registered calibration (X0 is the plate's left edge, Y0 its front edge, Z0 the sheet touching the nozzle): the nozzle tip is at CAD -21.66, -47.47, 179.78 in the pose (the lowest point of the hotend), the head moves -102.58, 0.00, -102.60 and the bed 0.00, 126.14, 0.00 to reported zero, so printer 0,0,0 is CAD -124.24, -173.61, 77.18 and the sheet's top (77.18) is there. The margins of the plate on the sheet are the CORE One L's, measured in F02; here they are estimates.",
+      "group": "bed",
+      "model_sha256": "5a1a71a2d6396f1e6ef3a4ba66fb812856863d8a60f10bd1d19a359dfc9a1639",
+      "nozzle_mm": [
+        -21.66,
+        -47.47,
+        179.78
+      ],
+      "origin_mm": [
+        -124.24,
+        -173.61,
+        77.18
+      ],
+      "plate_mm": [
+        250.0,
+        210.0
+      ]
+    }
+  },
+  "schema": "stella-scope.printer-print-frames.v1",
+  "source": "Read from each model file and the registered calibration by tools/printer-print-frames.rs (F09, 2026-10-19)"
+}

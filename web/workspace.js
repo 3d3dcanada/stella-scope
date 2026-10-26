@@ -4,7 +4,7 @@ const $=id=>document.getElementById(id),initial=viewState(location.href);
 const state={page:initial.page,part:initial.part,mode:initial.ts===null?'live':'rewind',cursor:initial.ts,window:900,snapshot:null,reference:null,inspector:'overview',playing:false,busy:false,seq:0,controller:null,notes:[],noteKey:null};
 const el=(tag,cls,content)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(content!==undefined)e.textContent=content;return e;};
 const put=(id,value)=>{$(id).textContent=value;},empty=(root,message)=>root.replaceChildren(el('p','empty',message));
-const safeNum=(n,d=2)=>finite(n)===null?'—':n.toFixed(d),localTime=t=>{const d=new Date(t*1000);return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,23);};
+const safeNum=(n,d=2)=>finite(n)===null?'—':n.toFixed(d);
 const scene=new PrinterScene($('printer-scene'),id=>choose(id));
 let toastTimer=null,playClock=0,sliderTimer=null,noteTarget=null;
 function toast(message){put('toast',message);$('toast').hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').hidden=true,3800);}

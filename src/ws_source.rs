@@ -3,7 +3,10 @@
 // philosophy kept: subscribing requests data; it sends no printer command.
 use crate::{config::Config, ws::WsClient, Result};
 use serde_json::{json, Value};
+use std::collections::HashMap;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{Receiver, SyncSender};
+use std::sync::{Arc, Mutex, OnceLock};
 use std::time::{Duration, Instant};
 
 /// Idle-resample cadence: the recorder re-sends the merged status at 2 Hz even when
@@ -79,12 +82,19 @@ pub fn host_port(cfg: &Config) -> Result<(String, u16)> {
 
 /// Live objects for the subscription: everything configured except configfile, which the
 /// collector fetches once per connect/restart/SAVE_CONFIG instead of every sample.
+/// display_status always rides along: it carries the slicer's M73 progress the time left is worked out from, and a
+/// configuration written before 2026-10-23 does not list it.
 pub fn subscribe_objects(cfg: &Config) -> Vec<String> {
-    cfg.objects
+    let mut v: Vec<String> = cfg
+        .objects
         .iter()
         .filter(|o| !o.split('=').next().unwrap_or(o).eq("configfile"))
         .map(|o| o.split('=').next().unwrap_or(o).to_string())
-        .collect()
+        .collect();
+    if !v.iter().any(|o| o == "display_status") {
+        v.push("display_status".into());
+    }
+    v
 }
 
 // Klipper status deltas are one object -> field map deep. Merge that layer only; a non-object
@@ -112,52 +122,84 @@ fn merge_delta(full: &mut Value, delta: &Value) {
 
 // L4 `reconnect`: the operator asks for a fresh subscription without restarting the service.
 // The flag is read at the top of every read tick, so the drop happens within one RESAMPLE
-// (500 ms) rather than waiting out the 30 s idle timeout.
-static RECONNECT: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
-/// Set once `spawn` has started the reader thread. In poll mode nothing ever spawns, and a
-/// reconnect request there has nothing to act on — so it is reported as refused, not as done.
-static SOURCE_RUNNING: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+// (500 ms) rather than waiting out the 30 s idle timeout. One pair of flags per printer address
+// (farm board WO-03: there used to be one pair for the whole process).
+struct Flags {
+    reconnect: AtomicBool,
+    /// Set once `spawn` has started the reader thread. In poll mode nothing ever spawns, and a
+    /// reconnect request there has nothing to act on, so it is reported as refused, not as done.
+    running: AtomicBool,
+}
+fn flags(url: &str) -> Arc<Flags> {
+    static R: OnceLock<Mutex<HashMap<String, Arc<Flags>>>> = OnceLock::new();
+    let mut map = R
+        .get_or_init(|| Mutex::new(HashMap::new()))
+        .lock()
+        .unwrap_or_else(|e| e.into_inner());
+    map.entry(url.trim_end_matches('/').to_owned())
+        .or_insert_with(|| {
+            Arc::new(Flags {
+                reconnect: AtomicBool::new(false),
+                running: AtomicBool::new(false),
+            })
+        })
+        .clone()
+}
 
-/// Ask the push source to drop its connection. Returns false when there is no push source,
-/// which is the caller's cue to say so rather than to claim a reconnect happened.
-pub fn request_reconnect() -> bool {
-    if !SOURCE_RUNNING.load(std::sync::atomic::Ordering::Relaxed) {
+/// Ask the push source of the printer at `url` to drop its connection. Returns false when there is no
+/// push source, which is the caller's cue to say so rather than to claim a reconnect happened.
+pub fn request_reconnect(url: &str) -> bool {
+    let f = flags(url);
+    if !f.running.load(Ordering::Relaxed) {
         return false;
     }
-    RECONNECT.store(true, std::sync::atomic::Ordering::Relaxed);
+    f.reconnect.store(true, Ordering::Relaxed);
     true
 }
 
-/// True once per request, so one press drops one connection.
-fn reconnect_requested() -> bool {
-    RECONNECT.swap(false, std::sync::atomic::Ordering::Relaxed)
-}
-
-pub fn spawn(cfg: &Config) -> Receiver<WsEvent> {
+/// `stop` ends the source (a printer removed from the farm): the thread leaves at its next tick.
+pub fn spawn(cfg: &Config, stop: &Arc<AtomicBool>) -> Receiver<WsEvent> {
     // Bounded (round-4 item 4): a wedged collector cannot grow this queue forever —
     // backpressure reaches Moonraker's TCP buffers instead of process memory.
     let (tx, rx) = std::sync::mpsc::sync_channel::<WsEvent>(1024);
     let cfg = cfg.clone();
-    SOURCE_RUNNING.store(true, std::sync::atomic::Ordering::Relaxed);
+    let f = flags(&cfg.moonraker_url);
+    f.running.store(true, Ordering::Relaxed);
+    let stop = stop.clone();
     std::thread::spawn(move || {
         // Reconnect forever; the safe failure direction is the collector's HTTP poll fallback.
-        loop {
-            match run_connection(&cfg, &tx) {
+        while !stop.load(Ordering::Relaxed) {
+            match run_connection(&cfg, &tx, &f, &stop) {
                 // Ok is only ever returned for an operator-requested reconnect: go straight back
                 // round without the 5 s error backoff, or the button appears not to work.
                 Ok(()) => continue,
                 Err(e) => {
+                    if stop.load(Ordering::Relaxed) {
+                        break;
+                    }
                     let _ = tx.send(WsEvent::Sample(Value::Null)); // probe: let the collector see silence
-                    eprintln!("websocket push source: {e}"); // observable, one line per 5 s retry
+                    eprintln!("websocket push source ({}): {e}", cfg.printer_id);
+                    // observable, one line per 5 s retry
                 }
             }
-            std::thread::sleep(Duration::from_secs(5));
+            for _ in 0..50 {
+                if stop.load(Ordering::Relaxed) {
+                    break;
+                }
+                std::thread::sleep(Duration::from_millis(100));
+            }
         }
+        f.running.store(false, Ordering::Relaxed);
     });
     rx
 }
 
-fn run_connection(cfg: &Config, tx: &SyncSender<WsEvent>) -> Result<()> {
+fn run_connection(
+    cfg: &Config,
+    tx: &SyncSender<WsEvent>,
+    flags: &Flags,
+    stop: &AtomicBool,
+) -> Result<()> {
     let (host, port) = host_port(cfg)?;
     let mut client = WsClient::connect(
         &host,
@@ -166,8 +208,7 @@ fn run_connection(cfg: &Config, tx: &SyncSender<WsEvent>) -> Result<()> {
         Duration::from_millis(cfg.request_timeout_ms.max(2000)),
     )?;
     // Moonraker v0.10 takes the subscription as a plain dict param: {"objects": {name: fields}}.
-    // A null value means every field of that object. Confirmed live against the test printer
-    // 2026-09-17.
+    // A null value means every field of that object. Confirmed live against Stella 2026-09-17.
     let mut sub = serde_json::Map::new();
     for name in subscribe_objects(cfg) {
         sub.insert(name, Value::Null);
@@ -185,7 +226,10 @@ fn run_connection(cfg: &Config, tx: &SyncSender<WsEvent>) -> Result<()> {
     // completion + item 4: partial frames stay buffered across quiet timeouts).
     let mut next_tick = last_send + RESAMPLE;
     loop {
-        if reconnect_requested() {
+        if stop.load(Ordering::Relaxed) {
+            return Err("this printer was removed".into());
+        }
+        if flags.reconnect.swap(false, Ordering::Relaxed) {
             return Ok(());
         }
         match client.read_text_until(next_tick) {
@@ -273,7 +317,10 @@ mod tests {
     use super::*;
     #[test]
     fn host_port_parses_plain_host_and_port() {
-        let cfg = Config::default();
+        let cfg = Config {
+            moonraker_url: "http://127.0.0.1:7125".into(),
+            ..Config::default()
+        };
         assert_eq!(host_port(&cfg).unwrap(), ("127.0.0.1".into(), 7125));
     }
     #[test]
@@ -286,7 +333,7 @@ mod tests {
         ];
         assert_eq!(
             subscribe_objects(&cfg),
-            vec!["motion_report".to_string(), "tmc2209 stepper_z".to_string()]
+            vec!["motion_report".to_string(), "tmc2209 stepper_z".to_string(), "display_status".to_string()]
         );
     }
     #[test]

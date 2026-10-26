@@ -1,11 +1,14 @@
-//! Stella Scope anywhere. One idea: a TCP pipe over iroh. The desktop runs [`serve`]: an iroh
-//! endpoint with a key kept on disk, so its id never changes. Every stream a phone opens is joined
-//! to Stella Scope's phone listener (the LAN port), so the pairing code, the device cookie and
-//! every control check still apply exactly as they do on the home network. The phone runs
-//! [`Tunnel`]: a listener on its own loopback, and each connection the app's web view makes there
-//! travels as one iroh stream. iroh dials by public key, punches through NAT when it can and falls
-//! back to a relay when it cannot. QUIC with TLS 1.3 end to end: a relay only forwards packets it
-//! cannot read.
+//! Stella Scope anywhere (2026-09-25: "access it on their phone anywhere as long as their
+//! computer and their printer is on ... safely and securely").
+//!
+//! One idea: a TCP pipe over iroh. The desktop runs [`serve`]: an iroh endpoint with a key kept on
+//! disk, so its id never changes. Every stream a phone opens is joined to Stella Scope's phone
+//! listener (the LAN port), so the pairing code, the device cookie and every control check still
+//! apply exactly as they do on the home network. The phone runs [`Tunnel`]: a listener on its own
+//! loopback, and each connection the app's web view makes there travels as one iroh stream.
+//!
+//! iroh dials by public key, punches through NAT when it can and falls back to a relay when it
+//! cannot. QUIC with TLS 1.3 end to end: a relay only forwards packets it cannot read.
 use anyhow::{Context, Result};
 use iroh::{endpoint::presets, Endpoint, EndpointAddr, EndpointId, SecretKey};
 use std::{future::{Future, IntoFuture}, io::Write, net::SocketAddr, path::{Path, PathBuf}, str::FromStr, sync::Arc, time::Duration};
@@ -136,10 +139,11 @@ pub async fn serve(key: SecretKey, forward: SocketAddr, allow: Option<PathBuf>, 
     serve_endpoint(ep, forward, allow, on_status).await
 }
 
-/// Who may hold a connection. Stella Scope writes `{"peers":[<phone link ids>],"pairing_until":<unix
-/// s>}`: a paired phone always gets in; any other phone only while the desktop shows a pairing code,
-/// and then at most [`MAX_UNPAIRED`] at once. Everyone else is closed right after the handshake, so
-/// knowing a printer's link id is no longer enough to fill its slots.
+/// Who may hold a connection (2026-09-27: "all four slots aren't always full ... binding it to
+/// one phone"). Stella Scope writes `{"peers":[<phone link ids>],"pairing_until":<unix s>}`: a paired
+/// phone always gets in; any other phone only while the desktop shows a pairing code, and then at
+/// most [`MAX_UNPAIRED`] at once. Everyone else is closed right after the handshake, so knowing a
+/// printer's link id is no longer enough to fill its slots.
 #[derive(Debug, PartialEq)]
 pub enum Admission { Paired, Pairing, Refused }
 

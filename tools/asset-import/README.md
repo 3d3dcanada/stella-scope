@@ -34,13 +34,14 @@ source-offer obligations when distributing the importer or its bundled WASM.
 
 ## Native large-assembly path
 
-A full printer assembly (the Voron 2.4 350 master is about 240 MiB) exceeds the practical runtime of
-the WebAssembly OCCT converter. Large STEP assemblies can use the native OCP/XCAF converter instead.
-It needs a Python with Open CASCADE bindings (`pip install cadquery-ocp`); Stella Scope itself does
-not depend on Python:
+The 241 MiB Voron master exceeds the practical runtime of the WebAssembly OCCT converter on
+this workstation. Large local STEP assemblies can use the already-installed native OCP/XCAF
+converter without adding a Python dependency to Stella Scope:
 
 ```bash
-python3 tools/asset-import/native_step_import.py \
+PYTHONPATH=$FORMA/skills/cad/scripts/packages \
+  $FORMA/.venv/bin/python \
+  tools/asset-import/native_step_import.py \
   --database /absolute/path/stella.sqlite3 \
   --spec /absolute/path/asset.json
 ```
@@ -51,10 +52,10 @@ display tessellation, one core for deterministic output, staged writes, the shar
 and the same 256 MiB source / 128 MiB derivative caps. It records OCP/Open CASCADE provenance.
 Each mesh receives a source-derived top-level layer and, where the hierarchy is unambiguous, a
 source component slot ID. These mappings describe the reference assembly and do not assert that
-the same revision is fitted to your printer. Motion remains unset until a physical datum is established.
+the same revision is fitted to Stella. Motion remains unset until a physical datum is established.
 The native derivative omits optional serialized normals to stay within the display payload cap;
 the existing Three.js renderer computes vertex normals from the unchanged indexed surfaces.
-Source bed dimensions remain derived from the named source plate; the printer's 350 mm target is
+Source bed dimensions remain derived from the named source plate; Stella's 350 mm target is
 recorded separately and never used to scale reference geometry. Bed-center X/Y comes from that
 plate while Z uses the named flex-sheet top when the source assembly provides one.
 It does not add Python, OCP, or FORMA to the Rust product runtime.

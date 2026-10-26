@@ -424,10 +424,10 @@ dialog h2{font-size:20px;font-weight:800}
 
 /* ===== Electronics & parts ===== */
 /* Power-bay console (#page-electronics) + inventory console (#page-parts), 2026-09-18
-   user restyle. Same law as the leveling bay: glass panels scoped to their own page,
-   headings mirror the.ipanel h4 pattern (tiny mono uppercase + 3px teal bar; the
+   owner restyle. Same law as the leveling bay: glass panels scoped to their own page,
+   headings mirror the .ipanel h4 pattern (tiny mono uppercase + 3px teal bar; the
    original rules are untouched), global sticky mono th rides for free, tokens only,
-   no gradients, transitions.14s ease. The rgba(4,217,196,*) literals are the same
+   no gradients, transitions .14s ease. The rgba(4,217,196,*) literals are the same
    teal the mirrored ipanel / lev rules already use. */
 
 /* -- shared console shells -- */

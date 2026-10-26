@@ -2,7 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {
- angleOf,radialLayout,radialIndex,jogDirection,createHold,bindHold,createSwipe,createLongPress
+ angleOf,radialLayout,radialIndex,jogDirection,createHold,bindHold,swallowNextClick,createSwipe,createLongPress
 } from '../web/next-gesture.js';
 
 test('angleOf uses clockwise screen angles and has no zero-vector angle',()=>{
@@ -56,6 +56,21 @@ test('captured hold cancels when the pointer leaves or capture is lost',()=>{
  }finally{if(oldFrame===undefined)delete globalThis.requestAnimationFrame;else globalThis.requestAnimationFrame=oldFrame;
   if(oldCancel===undefined)delete globalThis.cancelAnimationFrame;else globalThis.cancelAnimationFrame=oldCancel;}
 });
+// 2026-10-22: a tap on CANCEL did nothing and said nothing. A hold says when it starts, and an early release is reported as a cancel (nothing sent).
+test('a hold reports its start at the first touch, and a tap is an early release: started, never confirmed',()=>{
+ const oldFrame=globalThis.requestAnimationFrame,oldCancel=globalThis.cancelAnimationFrame;
+ let frame,started=0,confirmed=0,cancelled=0;globalThis.requestAnimationFrame=fn=>{frame=fn;return 1;};globalThis.cancelAnimationFrame=()=>{};
+ const handlers=new Map(),el={disabled:false,isConnected:true,style:{setProperty(){}},getAttribute(){return null;},
+  getBoundingClientRect(){return {left:0,top:0,right:100,bottom:40};},setPointerCapture(){},
+  addEventListener(name,fn){handlers.set(name,fn);},removeEventListener(name){handlers.delete(name);}};
+ const emit=(name,x=50,y=20)=>handlers.get(name)?.({pointerType:'touch',pointerId:1,clientX:x,clientY:y});
+ try{const unbind=bindHold(el,{ms:900,onStart:()=>started++,onConfirm:()=>confirmed++,onCancel:()=>cancelled++});
+  emit('pointerdown');assert.equal(started,1,'said so at the first touch');emit('pointerup');   // a tap
+  assert.equal(confirmed,0);assert.equal(cancelled,1,'the early release is reported');
+  unbind();
+ }finally{if(oldFrame===undefined)delete globalThis.requestAnimationFrame;else globalThis.requestAnimationFrame=oldFrame;
+  if(oldCancel===undefined)delete globalThis.cancelAnimationFrame;else globalThis.cancelAnimationFrame=oldCancel;}
+});
 test('swipe dismisses after crossing distance threshold',()=>{
  const s=createSwipe();s.start(0,0);assert.equal(s.move(130,200),130);assert.equal(s.end(130,200),'dismiss');
 });
@@ -81,4 +96,13 @@ test('pure exports import and run without browser globals or imports',()=>{
  assert.equal(radialIndex(0,-50,8),0);assert.equal(jogDirection(40,0),'x+');
  assert.equal(createHold().progress(0),0);assert.equal(createSwipe().end(0,0),'stay');
  assert.equal(createLongPress().check(0),false);
+});
+
+test('after a completed hold the next click is swallowed once (the lift must not press the key that replaced the held one)',()=>{
+ const listeners=[];const oldDoc=globalThis.document;
+ globalThis.document={addEventListener(n,f,c){listeners.push([n,f,c]);},removeEventListener(n,f){const i=listeners.findIndex(l=>l[0]===n&&l[1]===f);if(i>=0)listeners.splice(i,1);}};
+ try{swallowNextClick(900);assert.equal(listeners.length,1);
+  let stopped=0,prevented=0;const ev={preventDefault(){prevented++;},stopPropagation(){stopped++;}};
+  listeners[0][1](ev);assert.equal(stopped,1);assert.equal(prevented,1);assert.equal(listeners.length,0,'one click only');
+ }finally{if(oldDoc===undefined)delete globalThis.document;else globalThis.document=oldDoc;}
 });

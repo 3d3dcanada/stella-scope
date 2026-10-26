@@ -1,0 +1,197 @@
+/* UI board U05 (2026-10-20: "nothing pops up", square keys, lit glass, no pills): the frame every sheet and dialog opens in.
+   A sheet or dialog is not slid or faded in: next-ui.js grows it out of the key that opened it (a uniform scale about that key on the kit's spring,
+   --nxctl-spring in next-control.css) and folds it back into it. Here: the resting state of that frame, the dim that gathers under a dialog, and the
+   panel's keys in the kit's language (square corners, a depth edge under them that a press eats). Loaded after next.css and next-control.css. */
+
+/* ---- the frame ---- */
+.nx-sheet,body[data-layout] .nx-sheet{transform:translateY(var(--drag,0px));transition:none}   /* it was translateX(100%) closed and slid in: it is at rest where it opens, and the grow does the rest */
+.nx-sheet[data-float]{transform:none}
+.nx-sheet[data-closing],.nx-modal[data-closing]{pointer-events:none}
+/* the dim under a dialog gathers where the dialog grew from (the kit's dim does the same under a held knob) */
+.nx-modal{background:radial-gradient(circle at var(--ox,50%) var(--oy,50%),rgba(3,5,8,.34),rgba(3,5,8,.74) 62%);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);animation:none}
+.nx-modal--anchored{background:transparent;-webkit-backdrop-filter:none;backdrop-filter:none}
+.nx-modal-card{animation:none!important}
+/* a knob held inside a panel is drawn by the kit on the page itself (a copy, see next-control.js): the panel's own copy steps aside while it is held */
+
+/* ---- the keys of a panel: the kit's square key, whatever made them ---- */
+.nx-sheet .nx-btn,.nx-modal .nx-btn,#fl-pops .nx-btn,.fm-licence .nx-btn,.fm-democard .nx-btn,.fm-empty .nx-btn,.fm-banner .nx-btn,.fl-cams .nx-btn{border-radius:0;
+ box-shadow:inset 0 1px 0 rgba(255,255,255,.09),0 3px 0 rgba(0,0,0,.38),0 6px 12px rgba(0,0,0,.3)}
+.nx-sheet .nx-btn[data-pressed],.nx-modal .nx-btn[data-pressed],#fl-pops .nx-btn[data-pressed],.fm-licence .nx-btn[data-pressed],.fm-empty .nx-btn[data-pressed],.fm-banner .nx-btn[data-pressed]{
+ transform:translateY(3px)!important;box-shadow:inset 0 2px 6px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.05)!important}
+.nx-sheet .nx-btn[data-kind=primary],.nx-modal .nx-btn[data-kind=primary],.fm-licence .nx-btn[data-kind=primary],.fm-empty .nx-btn[data-kind=primary],.fm-banner .nx-btn[data-kind=primary]{
+ box-shadow:inset 0 1px 0 rgba(255,255,255,.5),0 3px 0 var(--accent-lo),0 6px 20px rgba(var(--accent-rgb),.3)}
+.nx-sheet .nx-btn[data-kind=danger],.nx-modal .nx-btn[data-kind=danger]{box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 3px 0 rgba(90,8,46,.7),0 6px 14px rgba(255,45,146,.16)}
+.nx-sheet .nx-btn:disabled,.nx-modal .nx-btn:disabled{box-shadow:inset 0 1px 0 rgba(255,255,255,.04)}
+/* the small keys in a panel's head (close, dock, pin) are keys too, not bare icons */
+.nx-sheet-head .nx-btn[data-kind=ghost],.nx-modal .nx-sheet-head .nx-btn[data-kind=ghost]{background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.02));border:1px solid var(--glass-line)}
+.nx-sheet-tools .nx-btn[data-size=icon]{width:36px;height:36px;min-width:36px;min-height:36px}
+.nx-sheet-tools{gap:6px}
+.nx-sheet-head{gap:10px}
+
+/* a switch between a few choices is a row of square keys, the chosen one lit, not a pill */
+.nx-sheet .nx-seg,.nx-modal .nx-seg{gap:6px;padding:0;border:0;background:none;border-radius:0}
+.nx-sheet .nx-seg button,.nx-modal .nx-seg button{border-radius:0;min-height:44px;border:1px solid var(--glass-line);background:linear-gradient(180deg,rgba(255,255,255,.11),rgba(255,255,255,.035));
+ box-shadow:inset 0 1px 0 rgba(255,255,255,.09),0 3px 0 rgba(0,0,0,.38);transition:transform 120ms var(--ease),background 180ms,box-shadow 180ms,color 180ms}
+.nx-sheet .nx-seg button:active,.nx-modal .nx-seg button:active{transform:translateY(3px);box-shadow:inset 0 2px 6px rgba(0,0,0,.45)}
+.nx-sheet .nx-seg button[aria-pressed=true],.nx-modal .nx-seg button[aria-pressed=true]{color:var(--accent-ink);border-color:transparent;background:linear-gradient(180deg,var(--accent-hi),var(--accent));
+ box-shadow:inset 0 1px 0 rgba(255,255,255,.25),0 3px 0 var(--accent-lo),0 6px 14px rgba(var(--accent-rgb),.3)}
+/* a field is square glass, like the keys beside it */
+.nx-sheet .nx-input,.nx-modal .nx-input{border-radius:0}
+.nx-sheet .nx-q-chip,.nx-modal .nx-q-chip{border-radius:0}
+
+/* ---- the head's keys are all one size ---- */
+.nx-sheet-head .nx-btn[data-size=icon],.nx-modal .nx-sheet-head .nx-btn[data-size=icon]{width:40px;height:40px;min-width:40px;min-height:40px}
+.nx-sheet-head .nx-btn svg.nx-ico{width:20px;height:20px}
+.nx-sheet-head .nx-btn[data-kind=ghost] svg.nx-ico{color:var(--ink-2)}
+
+/* ---- the opener stays pressed while what it opened is open ---- */
+.nx-btn[data-showing]{transform:translateY(3px);color:var(--accent);background:rgba(var(--accent-rgb),.12);box-shadow:inset 0 0 0 1px rgba(var(--accent-rgb),.45),0 0 18px rgba(var(--accent-rgb),.18)}
+.nx-btn[data-showing] .nx-lbl{color:var(--accent)}
+
+/* ---- LED figures: the value lit in the panel's neon over a ghost of unlit digits (the farm wall's counts, in a sheet) ---- */
+.nx-fig{--lc:var(--accent);display:inline-flex;align-items:baseline;gap:6px;padding:8px 10px 7px;background:#07090c;box-shadow:inset 0 1px 4px rgba(0,0,0,.85),0 0 0 1px rgba(255,255,255,.07);
+ font:500 26px/1 var(--mono);letter-spacing:.02em;font-variant-numeric:tabular-nums;color:var(--lc);text-shadow:0 0 9px var(--lc),0 0 2px var(--lc);white-space:nowrap}
+.nx-fig-n{font-style:normal;position:relative;isolation:isolate;display:inline-block;min-width:2ch;text-align:right}
+.nx-fig-n::before{content:attr(data-ghost);position:absolute;right:0;top:0;z-index:-1;color:rgba(255,255,255,.05);text-shadow:none}
+.nx-fig small{font:700 11px/1 var(--sans);letter-spacing:.14em;color:var(--ink-3);text-shadow:none;text-transform:uppercase}
+.fl-stat{border-radius:0;align-items:flex-start;box-shadow:inset 0 1px 0 rgba(255,255,255,.06)}
+.fl-stat .nx-fig{--lc:var(--ink-1);font-size:24px}
+.fl-stat[data-tone=ok] .nx-fig{--lc:var(--ok)}.fl-stat[data-tone=warn] .nx-fig{--lc:#FFD60A}
+.fl-stat:not([data-tone]) .nx-fig,.fl-stat[data-tone=""] .nx-fig{--lc:var(--accent)}
+
+/* ---- a number that is set: the kit's gauge, small, with its name under it ---- */
+.nx-numf{display:inline-flex;flex-direction:column;align-items:center;gap:6px;min-width:0}
+.nx-numf .nxctl{--nxctl-size:var(--nsz,92px)}
+.nx-numf .nxc-l{display:none}
+.nx-numf-l{font:700 11px/1.1 var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--ink-2);text-align:center;max-width:calc(var(--nsz,92px) + 28px)}
+.nx-numrow{display:flex;flex-wrap:wrap;align-items:flex-end;gap:18px 22px}
+
+/* ---- tags and chips are square, a choice among a few is a key ---- */
+.nx-sheet .nx-fm-pill,.nx-modal .nx-fm-pill,.nx-sheet .nx-q-chip,.nx-modal .nx-q-chip,.nx-sheet .fl-spool-low,.nx-sheet .nx-md-chip,.nx-modal .nx-md-chip{border-radius:0}
+.nx-sheet .nx-md-chip,.nx-modal .nx-md-chip{min-height:44px;border:1px solid var(--glass-line);background:linear-gradient(180deg,rgba(255,255,255,.11),rgba(255,255,255,.035));color:var(--ink-2);box-shadow:inset 0 1px 0 rgba(255,255,255,.09),0 3px 0 rgba(0,0,0,.38)}
+.nx-sheet .nx-md-chip[aria-pressed=true],.nx-modal .nx-md-chip[aria-pressed=true]{color:var(--accent-ink);border-color:transparent;background:linear-gradient(180deg,var(--accent-hi),var(--accent));box-shadow:inset 0 1px 0 rgba(255,255,255,.25),0 3px 0 var(--accent-lo),0 6px 14px rgba(var(--accent-rgb),.3)}
+.nx-sheet .nx-item,.nx-modal .nx-item,.nx-sheet .nx-choice-btn,.nx-modal .nx-choice-btn{border-radius:0;border:1px solid var(--glass-line);background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.025));box-shadow:inset 0 1px 0 rgba(255,255,255,.09),0 3px 0 rgba(0,0,0,.38),0 6px 12px rgba(0,0,0,.25)}
+.nx-sheet .nx-item:active:not(:disabled),.nx-modal .nx-item:active:not(:disabled),.nx-sheet .nx-choice-btn:active,.nx-modal .nx-choice-btn:active{transform:translateY(3px);box-shadow:inset 0 2px 6px rgba(0,0,0,.45)}
+.nx-choice-caret{display:none}   /* no little corner arrows */
+.nx-sheet .nx-choice-list,.nx-modal .nx-choice-list{border-radius:0}.nx-sheet .nx-choice-opt,.nx-modal .nx-choice-opt{border-radius:0}
+/* a list of choices (a dropdown) is a key that shows what is chosen, with no arrow */
+.nx-sheet select.nx-input,.nx-modal select.nx-input{-webkit-appearance:none;appearance:none;background-image:none;cursor:pointer;
+ background:linear-gradient(180deg,rgba(255,255,255,.11),rgba(255,255,255,.035));border:1px solid var(--glass-line);box-shadow:inset 0 1px 0 rgba(255,255,255,.09),0 3px 0 rgba(0,0,0,.38),0 6px 12px rgba(0,0,0,.25)}
+/* the lists in a panel: the long rows stay glass cards; what is pressed in them is a key */
+.nx-sheet .nx-fm-pill{font-weight:700}
+.fl-more-row{grid-template-columns:200px minmax(0,1fr)}
+.fl-more-row .nx-btn{width:100%}
+@media (max-width:600px){.fl-more-row{grid-template-columns:1fr}}
+/* alert settings: one latched key and its words per row */
+.nx-al-row{align-items:center;border-radius:0;cursor:pointer}
+.nx-al-row .nxkey{flex:none;width:44px;padding:0}
+.nx-al-row .nxkey .nx-lbl{display:none}
+.nx-al-row .nxkey:not([aria-pressed=true]) svg.nx-ico{opacity:.35}
+/* the queue: copies is a gauge, a yes or a no is a latched key */
+.nx-q-copies{gap:14px}
+.nx-q-force{align-items:center;cursor:pointer}
+.nx-q-force .nxkey{flex:none;width:44px;padding:0}.nx-q-force .nxkey .nx-lbl{display:none}.nx-q-force .nxkey:not([aria-pressed=true]) svg.nx-ico{opacity:.35}
+.nx-sheet .fm-chip,.nx-modal .fm-chip{border-radius:0}
+.nx-sheet .nx-q-job,.nx-sheet .nx-q-printer{border-radius:var(--r-m)}
+.fl-numrow{grid-column:1/-1;justify-content:flex-start}
+.fl-form>.nx-btn{grid-column:auto}
+.fl-priceform{gap:18px}
+.fl-weigh{gap:18px;width:100%}
+.fl-spool-act .fl-weigh{align-items:flex-end}
+.fl-form>.nx-btn[data-kind=primary]{grid-column:1/-1;justify-self:start}
+.fl-form{margin-bottom:18px;row-gap:14px}
+
+/* ---- the More menu of the printer page: square keys that grow out of the key pressed and fold back into it ---- */
+.nx-radial{pointer-events:auto}.nx-radial[data-closing]{pointer-events:none}
+.nx-radial-hub .nx-btn{border-radius:0;animation-duration:520ms;animation-timing-function:cubic-bezier(.34,1.56,.64,1);
+ background:linear-gradient(180deg,rgba(255,255,255,.13),rgba(255,255,255,.04)),var(--glass-2);
+ box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 3px 0 rgba(0,0,0,.45),0 10px 22px rgba(0,0,0,.5)}
+.nx-radial-hub .nx-btn[data-hot]{transform:translateY(3px);box-shadow:inset 0 2px 6px rgba(0,0,0,.4)}
+.nx-radial-close{border-radius:0!important;width:56px;height:56px;margin:-28px 0 0 -28px}
+@media (hover:hover){.nx-radial-hub .nx-btn:hover{transform:translateY(-1px)}}
+
+/* ======== UI board U07 (2026-10-20): alarms and messages ======== */
+/* toasts and pop-ups: they grow out of where they belong and fold back into it (next-ui.js toast, next-fleet.js pop), so they have no slide-in of their own */
+.nx-toast{animation:none}
+.fl-pop{animation:none;transition:none}
+.fl-pop[data-out]{opacity:1;transform:none;pointer-events:none}
+.fl-pop .fl-pop-x{border-radius:0}
+
+/* the failure alarm takes the screen (the design: docs/design/real-parts-2026-10-20/shots/1-computer-alarm.png, 1-phone-alarm.png): the camera picture with the box where the
+   failure watch saw it, three answers as big square keys, a red wash at the edges, the day's alarms beside it */
+body[data-alarm]{overflow:hidden}
+.fl-alarm{position:fixed;inset:0;z-index:70;display:flex;align-items:center;justify-content:center;gap:28px;padding:24px}
+.fl-alarm::before{content:"";position:absolute;inset:0;background:radial-gradient(ellipse at 50% 58%,rgba(24,8,24,.5),rgba(40,4,26,.9) 78%);-webkit-backdrop-filter:blur(14px) saturate(120%);backdrop-filter:blur(14px) saturate(120%)}
+.fl-alarm::after{content:"";position:absolute;inset:0;pointer-events:none;z-index:2;box-shadow:inset 0 0 0 3px rgba(255,45,146,.9),inset 0 0 150px 30px rgba(255,45,146,.4);animation:fl-wash 2.6s ease-in-out infinite}
+@keyframes fl-wash{50%{opacity:.6}}
+@media (prefers-reduced-motion:reduce){.fl-alarm::after{animation:none}}
+.fl-alarm>*{position:relative;z-index:1}
+.fl-alarm-rail{flex:0 0 300px;align-self:flex-start;margin-top:clamp(0px,7vh,80px);padding:18px 16px 16px;border-radius:var(--r-xl);display:flex;flex-direction:column;gap:14px}
+.fl-alarm-rail h3{margin:0 0 0 4px;font:700 11px/1 var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--ink-2)}
+.fl-alarm-list{display:flex;flex-direction:column;gap:10px}
+.fl-alarm-row{--sev:var(--accent);display:grid;grid-template-columns:10px minmax(0,1fr);gap:12px;align-items:start;width:100%;text-align:left;padding:12px 14px;border:1px solid var(--glass-line);border-radius:var(--r-m);background:rgba(255,255,255,.04);color:var(--ink-1);font:inherit}
+button.fl-alarm-row{cursor:pointer}
+.fl-alarm-row[data-sev=alarm]{--sev:var(--alarm)}.fl-alarm-row[data-sev=warn]{--sev:var(--heat)}.fl-alarm-row[data-sev=ok]{--sev:var(--ok)}
+.fl-alarm-row .fl-dot{width:10px;height:10px;margin-top:5px;border-radius:50%;background:var(--sev);box-shadow:0 0 10px var(--sev)}
+.fl-alarm-rowtext{min-width:0;display:flex;flex-direction:column;gap:5px}
+.fl-alarm-rowtext b{font:650 14px/1.25 var(--sans);overflow-wrap:anywhere}
+.fl-alarm-rowtext span{font:500 13px/1.35 var(--sans);color:var(--ink-2);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.fl-alarm-rowtext small{font:500 11.5px/1 var(--mono);color:var(--ink-3)}
+.fl-alarm-card{flex:0 1 1060px;width:min(1060px,100%);max-height:calc(100vh - 48px);display:flex;flex-direction:column;border-radius:var(--r-xl);overflow:hidden auto;
+ box-shadow:var(--glass-rim),0 0 0 1px rgba(255,45,146,.35),0 30px 90px rgba(0,0,0,.6),0 0 60px rgba(255,45,146,.18)}
+.fl-alarm-shot{position:relative;flex:none;margin:0 auto;width:min(100%,calc(46vh * var(--ar,1.7778)));aspect-ratio:var(--ar,16/9);background:#05070a;overflow:hidden}
+.fl-alarm-shot img{position:absolute;inset:0;width:100%;height:100%;object-fit:fill;display:block}
+.fl-alarm-shot:not([data-ok]) img{visibility:hidden}
+.fl-alarm-box{position:absolute;border:3px solid var(--alarm);border-radius:4px;box-shadow:0 0 0 1px rgba(0,0,0,.45),0 0 26px rgba(255,45,146,.6),inset 0 0 18px rgba(255,45,146,.22);pointer-events:none}
+.fl-alarm-box b{position:absolute;left:-3px;bottom:calc(100% + 3px);padding:5px 9px 4px;background:var(--alarm);color:#fff;font:700 12px/1.1 var(--sans);letter-spacing:.06em;white-space:nowrap}
+.fl-alarm-box[data-low] b{bottom:auto;top:calc(100% + 3px)}
+.fl-alarm-nocam{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;color:var(--ink-2);font:500 14px/1.3 var(--sans)}
+.fl-alarm-nocam svg{width:44px;height:44px;color:var(--alarm)}
+.fl-alarm-shot:has(.fl-alarm-nocam:not([hidden])){--ar:16/5;width:100%}
+.fl-alarm-body{padding:22px 26px 26px;display:flex;flex-direction:column;gap:12px}
+.fl-alarm-kicker{display:flex;align-items:center;gap:10px;font:700 12px/1 var(--sans);letter-spacing:.1em;text-transform:uppercase;color:#FF8CC4}
+.fl-alarm-kicker svg{width:22px;height:22px;color:var(--alarm)}
+.fl-alarm-more{margin-left:auto;padding:5px 8px;border:1px solid rgba(255,45,146,.5);color:var(--alarm);font:700 11px/1 var(--mono);letter-spacing:.08em}
+.fl-alarm-more:empty{display:none}
+.fl-alarm-body h2{margin:0;font:700 clamp(22px,2.4vw,30px)/1.15 var(--sans);letter-spacing:-.005em}
+.fl-alarm-body p{margin:0;font:500 15px/1.5 var(--sans);color:var(--ink-2)}
+.fl-alarm-body .fl-alarm-say{color:#FF8CC4}
+.fl-alarm-keys{display:flex;flex-wrap:wrap;gap:12px;margin-top:8px}
+.fl-alarm-key{min-height:60px;padding:0 26px;gap:12px}
+.fl-alarm-key .nx-lbl{font:700 13px/1 var(--sans);letter-spacing:.1em;text-transform:uppercase}
+.fl-alarm-key svg.nx-ico{width:26px;height:26px}
+@media (max-width:1100px){.fl-alarm-rail{display:none}}
+@media (max-width:760px){.fl-alarm{padding:12px}
+ .fl-alarm-shot{width:min(100%,calc(34vh * var(--ar,1.7778)))}
+ .fl-alarm-body{padding:18px 18px 20px}.fl-alarm-body p{font-size:15px}
+ .fl-alarm-keys{display:grid;grid-template-columns:1fr 1fr;gap:10px}.fl-alarm-key{padding:0 10px;min-height:64px}.fl-alarm-key--pause{grid-column:1/-1}}
+.fl-alarm-box[data-minor]{border-width:2px;opacity:.55;box-shadow:none}
+.fl-alarm-card:focus-visible{outline:none}
+.fl-alarm-shot{width:min(100%,calc(52vh * var(--ar,1.7778)))}
+@media (max-width:760px){.fl-alarm-shot{width:min(100%,calc(34vh * var(--ar,1.7778)))}}
+
+/* ---- more square tags: the file cards' chips and badge, the numbered steps ---- */
+.nx-filecard-meta span,.nx-filecard-new,.nx-pairnum{border-radius:0}
+.fl-cams .nx-btn{min-height:44px}
+@keyframes nx-radial-in{from{opacity:0;transform:translate(calc(var(--kx,0px) - var(--x)),calc(var(--ky,0px) - var(--y))) scale(.3)}}
+.nx-fm-sw,.nx-swatch{border-radius:0}.nx-fm-sw[aria-pressed=true]{border-color:var(--ink-1)}
+.fl-cam-state{border-radius:0}
+.nx-md-badge,.nx-md-tags span,.fl-pop-kind{border-radius:0}
+.fm-democard .nx-btn,.fm-licence .nx-btn{border-radius:0;box-shadow:inset 0 1px 0 rgba(255,255,255,.09),0 3px 0 rgba(0,0,0,.38),0 6px 12px rgba(0,0,0,.3)}
+.fm-democard .nx-btn[data-kind=primary]{box-shadow:inset 0 1px 0 rgba(255,255,255,.5),0 3px 0 var(--accent-lo),0 6px 20px rgba(var(--accent-rgb),.3)}
+/* Things to print: on a phone the search takes the row and the count goes under it */
+@media (max-width:600px){.nx-files-top{flex-wrap:wrap}.nx-files-top .nx-input{flex:1 1 100%}}
+/* the demo card says its words across the wall, not in one narrow cell */
+body[data-layout=phone] .fm-democard{grid-column:1/-1}
+@media (min-width:700px){.fm-democard{grid-column:span 2}}
+.nx-toasts{z-index:80}   /* a message about what was just done is seen over the dialog it came from */
+.fl-alarm-box[data-right] b{left:auto;right:-3px}
+.fl-alarm-box b{max-width:calc(100vw - 48px);overflow:hidden;text-overflow:ellipsis}
+/* Review 2026-10-20: a typed number, an LED figure between two square keys */
+.nx-numi{display:inline-flex;flex-direction:column;align-items:center;gap:6px}
+.nx-numi-row{display:flex;align-items:stretch;gap:0}
+.nx-numi-v{width:9ch;min-height:44px;text-align:center;font:500 20px var(--mono);color:var(--accent-2);text-shadow:0 0 10px rgba(var(--accent-rgb),.55);
+ background:#05080b;border:1px solid rgba(255,255,255,.1);border-width:1px 0;border-radius:0;outline:none;box-shadow:inset 0 2px 6px rgba(0,0,0,.7)}
+.nx-numi-v:focus{border-color:rgba(var(--accent-hi-rgb),.6)}
+.nx-numi .nx-numi-k{border-radius:0!important;min-width:44px}
+.nx-numi-l{font:600 11px var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)}

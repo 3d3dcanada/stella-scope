@@ -1,0 +1,96 @@
+/* Stella Scope UI board U01 (2026-10-20): the control kit's stylesheet (web/next-control.js), the
+   other half of the one module every page imports. The gauge at rest, the knob when held, the
+   spring, and the square key. Steps and turn travel live in the JS; here are the parts and the two
+   sizes (phone and PC are the same parts at two sizes: --nxctl-size moves at 900 px).
+   UI rebuild 2026-10-22 (the owner): the knob is never the gauge scaled up. A held gauge is drawn again on the page (.nxctl--lift) at one fixed size, with its word and its live value
+   inside the knob, so they are in the same place and as readable at every size the gauge itself is. The bar's gauge is a CELL (.nxctl--cell): the ring with its value, its word under it. */
+.nxctl{--c:var(--accent);--c2:var(--accent-2);--nxctl-size:150px;--ink-2:#A7B0BA;--ink-3:#8B95A1;   /* the face is always dark: its words keep their own greys when a page turns its own ink dark (U02, light glass over the camera) */
+ --nxctl-spring:cubic-bezier(.34,1.56,.64,1);
+ position:relative;width:var(--nxctl-size);height:var(--nxctl-size);touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none;
+ transition:opacity .25s;transform-origin:50% 50%}
+.nxctl.held{opacity:.3}
+.nxctl--lift{z-index:41;cursor:grabbing;opacity:1!important;transition:transform .5s var(--nxctl-spring);--nxctl-size:200px}
+.nxctl svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+/* the LED segments: off ones are dark glass, lit ones glow in the control's colour; the one at the value is brightest */
+.nxctl .nxc-seg{fill:#151a20;stroke:rgba(255,255,255,.05);stroke-width:.6;transition:fill .08s}
+.nxctl .nxc-seg.on{fill:var(--c);filter:url(#nxctl-glow)}
+.nxctl .nxc-seg.hot{fill:#fff}
+/* the live reading rides the ring as a lit dot at the now-temperature */
+.nxctl .nxc-now circle{fill:var(--accent-hi);filter:drop-shadow(0 0 4px var(--accent))}
+.nxctl .nxc-read{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;pointer-events:none}
+.nxctl .nxc-read b{font:400 calc(var(--nxctl-size)*.22) var(--mono,"Geist Mono",ui-monospace,monospace);letter-spacing:-.05em;line-height:1;
+ color:var(--c2);text-shadow:0 0 calc(var(--nxctl-size)*.06) var(--c);font-variant-numeric:tabular-nums}
+.nxctl .nxc-read b small{font-size:.45em;color:var(--ink-2,#A7B0BA);text-shadow:none}
+.nxctl .nxc-read .nxc-n{font:600 calc(var(--nxctl-size)*.062) var(--mono,"Geist Mono",ui-monospace,monospace);color:var(--ink-3,#8B95A1);letter-spacing:.06em}
+.nxctl .nxc-read .nxc-l{font:700 calc(var(--nxctl-size)*.058) var(--sans,Geist,system-ui,sans-serif);color:var(--ink-2,#A7B0BA);letter-spacing:.18em}
+/* the knob: black anodised, a soft top light, a lit index tick in the control's colour at its rim, a ring of fine grip. It is the held copy's face; its word and its value sit on it. */
+.nxctl .nxc-knob{position:absolute;inset:17%;border-radius:50%;opacity:0;transform:scale(.5) rotate(-50deg);
+ transition:opacity .25s,transform .55s var(--nxctl-spring);pointer-events:none}
+.nxctl.live .nxc-knob{opacity:1;transform:none}
+.nxctl .nxc-knob .nxc-body{position:absolute;inset:0;border-radius:50%;
+ background:repeating-conic-gradient(from var(--a),#0b0d10 0 2deg,#1c2128 2deg 3deg),radial-gradient(circle,#0e1116,#050608);
+ box-shadow:0 0 0 1px #000,0 0 0 2px rgba(255,255,255,.07),0 18px 36px rgba(0,0,0,.8),0 0 40px -10px var(--c)}
+.nxctl .nxc-knob .nxc-top{position:absolute;inset:9%;border-radius:50%;
+ background:radial-gradient(circle at 50% 30%,#2a3038,#11151a 55%,#07090c);
+ box-shadow:inset 0 1px 0 rgba(255,255,255,.22),inset 0 -2px 6px rgba(0,0,0,.7),0 0 0 1px #000}
+.nxctl .nxc-knob .nxc-top::after{content:'';position:absolute;inset:0;border-radius:50%;
+ background:radial-gradient(ellipse 60% 35% at 45% 18%,rgba(255,255,255,.14),transparent 70%)}
+.nxctl .nxc-knob .nxc-idx{position:absolute;inset:0;transform:rotate(var(--a))}
+.nxctl .nxc-knob .nxc-idx i{position:absolute;left:50%;top:4%;width:5%;height:12%;margin-left:-2.5%;border-radius:3px;background:var(--c2);
+ box-shadow:0 0 6px var(--c),0 0 14px var(--c),0 0 26px var(--c)}
+/* held: the gauge's own word and value are drawn on the knob, above it, in the middle (the value, then NOW for a heater, then the word) */
+.nxctl--lift .nxc-read{inset:0;gap:calc(var(--nxctl-size)*.012);z-index:1}
+.nxctl--lift .nxc-read b{font-size:calc(var(--nxctl-size)*.2)}
+.nxctl--lift .nxc-read .nxc-n{font-size:max(11px,calc(var(--nxctl-size)*.058))}
+.nxctl--lift .nxc-read .nxc-l{font-size:max(11px,calc(var(--nxctl-size)*.058));letter-spacing:.14em}
+/* the cell: the bar's gauge. The ring is the gauge, the value is on its face, the word is under it in the bar's own label type; nothing in it is scaled from anything else. */
+.nxctl--cell{width:var(--cell-w,84px);height:calc(var(--nxctl-size) + 19px)}
+.nxctl--cell>svg,.nxctl--cell .nxc-read{inset:auto;left:calc((var(--cell-w,84px) - var(--nxctl-size))/2);top:0;width:var(--nxctl-size);height:var(--nxctl-size)}
+.nxctl--cell .nxc-knob{display:none}
+.nxctl--cell .nxc-read b{font-size:calc(var(--nxctl-size)*.25)}
+.nxctl--cell .nxc-read .nxc-l{position:absolute;top:calc(100% + 4px);left:50%;transform:translateX(-50%);white-space:nowrap;font:600 11px/1 var(--sans,Geist,system-ui,sans-serif);letter-spacing:.12em}
+.nxctl--cell .nxc-read .nxc-n{display:none}
+/* the dim that gathers under the control being held: it is not a scrim for a dialog, there is never a dialog */
+#nxctl-dim{position:fixed;inset:0;z-index:40;pointer-events:none;opacity:0;transition:opacity .3s;
+ background:radial-gradient(circle at var(--x) var(--y),transparent 0,rgba(3,4,6,.7) 45%)}
+#nxctl-dim.on{opacity:1}
+@media (max-width:899px){.nxctl{--nxctl-size:clamp(64px,calc((100vw - 70px)/4),86px)}.nxctl--lift{--nxctl-size:250px}}
+
+/* ---------- typed entry: a tap on a gauge opens the LED number field in a card that grows out of it ---------- */
+.nxc-entry{--c:var(--accent);--c2:var(--accent-2);display:flex;flex-direction:column;gap:12px;padding:16px;background:#0B0F14;border:1px solid rgba(255,255,255,.14);border-radius:0;
+ box-shadow:0 0 0 1px #000,0 22px 60px rgba(0,0,0,.7),0 0 40px -14px var(--c)}
+.nxc-entry-h{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+.nxc-entry-h b{font:700 13px/1 var(--sans,Geist,system-ui,sans-serif);letter-spacing:.14em;color:var(--c2)}
+.nxc-entry-h small{font:600 11px/1 var(--sans,Geist,system-ui,sans-serif);letter-spacing:.12em;color:#8B95A1}
+.nxc-entry .nx-numi{align-self:stretch}.nxc-entry .nx-numi-row{justify-content:center}.nxc-entry .nx-numi-l{display:none}
+.nxc-entry .nx-numi-v{flex:1;width:auto;min-width:0;font-size:26px;min-height:56px}
+.nxc-entry .nx-numi .nx-numi-k{min-width:56px;min-height:56px}
+.nxc-entry-n{margin:0;font:500 12px/1.4 var(--mono,"Geist Mono",ui-monospace,monospace);color:#8B95A1;text-align:center}
+.nxc-entry-n[data-warn]{color:#FF9C55}
+.nxc-entry-k{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.nxc-entry-k .nxkey{flex-direction:row;min-height:48px}
+
+/* ---------- the square key: square corners, depth, a pressed state that eats the depth, a click ---------- */
+.nxkey{position:relative;display:inline-flex;align-items:center;justify-content:center;gap:8px;min-width:44px;min-height:44px;
+ padding:0 16px;border:1px solid var(--glass-line,rgba(255,255,255,.08));border-radius:0;cursor:pointer;
+ user-select:none;-webkit-user-select:none;color:var(--ink-1,#EEF2F6);background:linear-gradient(180deg,rgba(255,255,255,.11),rgba(255,255,255,.035));
+ box-shadow:inset 0 1px 0 rgba(255,255,255,.09),0 3px 0 rgba(0,0,0,.38),0 6px 12px rgba(0,0,0,.3);
+ transition:transform 120ms cubic-bezier(.2,.8,.2,1),background 180ms cubic-bezier(.2,.8,.2,1),box-shadow 180ms cubic-bezier(.2,.8,.2,1),color 180ms,opacity 180ms}
+.nxkey .nx-lbl{color:var(--ink-2,#A7B0BA);transition:color 180ms}
+@media (hover:hover){.nxkey:not(:disabled):hover{background:linear-gradient(180deg,rgba(255,255,255,.12),rgba(255,255,255,.03));
+ transform:translateY(-1px);box-shadow:inset 0 1px 0 rgba(255,255,255,.09),0 4px 0 rgba(0,0,0,.38),0 8px 16px rgba(0,0,0,.35)}
+ .nxkey:not(:disabled):hover .nx-lbl{color:var(--ink-1,#EEF2F6)}}
+.nxkey:active{transform:translateY(3px);box-shadow:inset 0 2px 6px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.05)}
+.nxkey[data-pressed]{transform:translateY(3px);box-shadow:inset 0 2px 6px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.05)}
+.nxkey:disabled{cursor:not-allowed;color:var(--ink-3,#8B95A1);opacity:.46;box-shadow:inset 0 1px 0 rgba(255,255,255,.04)}
+.nxkey[aria-pressed=true]{color:var(--accent-ink,#031A17);background:linear-gradient(180deg,var(--accent-hi,var(--accent-hi)),var(--accent,var(--accent)));
+ border-color:transparent;box-shadow:inset 0 1px 0 rgba(255,255,255,.25),0 3px 0 var(--accent-lo,var(--accent-lo)),0 6px 14px rgba(var(--accent-rgb),.3)}
+.nxkey[aria-pressed=true] .nx-lbl{color:var(--accent-ink,#031A17)}
+.nxkey[aria-pressed=true]:active{transform:translateY(3px);box-shadow:inset 0 2px 6px rgba(0,0,0,.3)}
+.nxkey:focus-visible,.nxctl:focus-visible{outline:2px solid var(--accent,var(--accent));outline-offset:4px}
+/* U02 (2026-10-20): a control the printer refuses (locked), one the printer runs by itself (read-only), and one with no reading (a printer that is off) */
+.nxctl[data-locked]{cursor:not-allowed;opacity:.5}
+.nxctl[data-readonly]{cursor:pointer;touch-action:manipulation}
+.nxctl[data-unknown] .nxc-read b{color:var(--ink-3,#8B95A1);text-shadow:none}
+.nxc-entry .nx-numi{display:flex;width:100%}.nxc-entry .nx-numi-row{width:100%}
+.nxc-entry-n{min-height:2.9em}

@@ -33,7 +33,10 @@ export function createHold({ms=900}={}){
   get active(){return startT!==null;}
  };
 }
-export function bindHold(el,{ms=900,onProgress,onConfirm,onCancel}={}){
+// A completed hold usually changes what is under the finger (a cancel turns the bar into the finished bar, a restart rebuilds it): the click the finger's lift makes would land on the NEW key
+// there (found on a phone, 2026-10-22: after CANCEL the lift opened NEW PRINT). The next click anywhere, for a moment after a completed hold, is swallowed.
+export function swallowNextClick(ms=900){if(typeof document==='undefined')return;const until=performance.now()+ms;const f=e=>{if(performance.now()<=until){e.preventDefault();e.stopPropagation();}document.removeEventListener('click',f,true);};document.addEventListener('click',f,true);setTimeout(()=>{if(typeof document!=='undefined')document.removeEventListener('click',f,true);},ms);}
+export function bindHold(el,{ms=900,onStart,onProgress,onConfirm,onCancel}={}){
  const hold=createHold({ms});let frame=0,source=null,pointerId=null,completed=null,suppressUntil=0;
  const progress=value=>{el.style.setProperty('--hold',String(value));onProgress?.(value);};
  const stop=()=>{if(frame)cancelAnimationFrame(frame);frame=0;source=null;pointerId=null;hold.cancel();progress(0);};
@@ -42,14 +45,14 @@ export function bindHold(el,{ms=900,onProgress,onConfirm,onCancel}={}){
   if(!source)return;
   if(!el.isConnected||disabled(el)){finish(false);return;}
   const value=hold.progress(performance.now());progress(value);
-  if(value>=1){completed={source,pointerId};suppressUntil=performance.now()+50;stop();onConfirm?.();return;}
+  if(value>=1){completed={source,pointerId};suppressUntil=performance.now()+50;stop();swallowNextClick();onConfirm?.();return;}
   frame=requestAnimationFrame(tick);
  };
  const begin=(kind,e)=>{
   if(source||disabled(el))return;
   completed=null;
   source=kind;pointerId=kind==='pointer'?e.pointerId:null;
-  hold.start(performance.now());progress(0);frame=requestAnimationFrame(tick);
+  hold.start(performance.now());progress(0);onStart?.();frame=requestAnimationFrame(tick);
  };
  const finish=confirm=>{
   if(!source)return;

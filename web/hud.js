@@ -3,6 +3,7 @@
 import {preflight,installationAge,instanceRecordId,partWiring,partSignals,formatSignal,volumetricFlow,flowCeiling,printerLink,preheatMenu,presetDiff,linkAllows,controlsSummary} from './hud-core.js';
 import {meshSurface,meshColor,lineChart,psdChart} from './hud-graphs.js';
 import {safeUrl} from './service-core.js';
+import {GcodeFollower} from './gcode-follow.js';
 const $=id=>document.getElementById(id);
 const node=(tag,cls='',text='')=>{const e=document.createElement(tag);if(cls)e.className=cls;if(text)e.textContent=text;return e;};
 const button=(text,fn,cls='')=>{const e=node('button',cls,text);e.type='button';e.onclick=fn;return e;};
@@ -10,13 +11,13 @@ const svg=(tag)=>document.createElementNS('http://www.w3.org/2000/svg',tag);
 const known=v=>typeof v==='number'&&Number.isFinite(v);
 const number=(v,suffix='',digits=1)=>known(v)?v.toFixed(digits)+suffix:'—';
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
-// Numbers roll to a new reading over 650 ms (cubic ease-out, the card dials' timing) instead of
-// snapping. Unknown is set at once and is never rolled through zero. One helper for every number on
-// the HUD, so they all move alike. Frame budget, measured 2026-09-23: the printer scene takes about 13
-// ms of every 16.7 ms frame while it moves, so a number rewritten on every frame dropped frames all
-// through a print (playback: 16.8 ms mean without rolling, 18 to 22 with it). A roll now steps about
-// nine times a second, which still reads as a count, and a write that would not change the text is
-// skipped.
+// WO-19 (2026-09-23), the owner: "I just want it to feel really alive." Numbers roll to a new reading over
+// 650 ms (cubic ease-out, the card dials' timing) instead of snapping. Unknown is set at once and is
+// never rolled through zero. One helper for every number on the HUD, so they all move alike.
+// Frame budget, measured 2026-09-23: the printer scene takes about 13 ms of every 16.7 ms frame while
+// it moves, so a number rewritten on every frame dropped frames all through a print (playback: 16.8 ms
+// mean without rolling, 18 to 22 with it). A roll now steps about nine times a second, which still
+// reads as a count, and a write that would not change the text is skipped.
 const rolling=new WeakMap(),ROLL_STEP_MS=110;
 function roll(el,v,fmt,instant=false){const st=rolling.get(el)||{};rolling.set(el,st);cancelAnimationFrame(st.raf);
  const put=x=>{const s=fmt(x);if(el.textContent!==s)el.textContent=s;};
@@ -24,8 +25,8 @@ function roll(el,v,fmt,instant=false){const st=rolling.get(el)||{};rolling.set(e
  if(instant||from===v||matchMedia('(prefers-reduced-motion: reduce)').matches){st.shown=v;put(v);return;}
  const t0=performance.now();let last=0;const step=now=>{const k=Math.min(1,(now-t0)/650);if(k<1&&now-last<ROLL_STEP_MS){st.raf=requestAnimationFrame(step);return;}last=now;st.shown=from+(v-from)*(1-(1-k)**3);put(st.shown);if(k<1)st.raf=requestAnimationFrame(step);};st.raf=requestAnimationFrame(step);}
 
-// What each card dial and readout is, for its tooltip. They are read only; the HUD's own gauges
-// and dialogs are where values are set.
+// WO-19 (2026-09-23): what each card dial and readout is, for its tooltip. They are read only; the
+// HUD's own gauges and dialogs are where values are set.
 const READ_ABOUT={NOZZLE:['Nozzle temperature','Measured at the hotend thermistor; the notch marks the target. Read only here: the NOZZLE gauge sets it.'],BED:['Bed temperature','Measured at the bed thermistor; the notch marks the target. Read only here: the BED gauge sets it.'],
  TARGET:['Heater target','The temperature Klipper is holding. Read only.'],'HEATER OUTPUT':['Heater output','The duty Klipper commands, not measured watts. Read only.'],'RELAY DUTY':['Bed relay duty','How much of the time the bed heater output holds the relay on. Read only.'],
  FAN:['Fan command','The output Klipper commands, in percent. Read only.'],TACHOMETER:['Fan tachometer','Measured RPM where a tach wire exists; otherwise unknown. Read only.'],
@@ -74,8 +75,8 @@ export function mountHUD({getState,getScene,route,diagnose,partsAt,openDetail,ed
   head.addEventListener('pointerup',()=>{drag=null;});head.addEventListener('pointercancel',()=>{drag=null;});
   dialog.addEventListener('click',e=>{if(e.target===dialog)closeModal(entry);});
   dialog.addEventListener('cancel',e=>{e.preventDefault();closeModal(entry);});
-  // A dialog's printer controls are locked the moment it is built, and again once an async build
-  // (a file list, a macro list) has finished drawing them.
+  // WO-20: a dialog's printer controls are locked the moment it is built, and again once an async
+  // build (a file list, a macro list) has finished drawing them.
   modalStack.push(entry);entry.refresh=()=>{body.replaceChildren();const built=build(body,entry);lockControls(dialog);built?.then?.(()=>lockControls(dialog));};
   entry.refresh();showModal(entry);return entry;
  }
@@ -95,11 +96,12 @@ export function mountHUD({getState,getScene,route,diagnose,partsAt,openDetail,ed
   if(!out&&host){out=node('p','hud-command-feedback');out.setAttribute('role','status');host.append(out);}
   if(out){out.textContent=text;out.dataset.state=state;}else toast(text);
  }
- // ---------- tooltips ---------- One glass tooltip for the whole HUD: what the control is, what
- // clicking it does and, when it cannot be used right now, the service's own reason. The text lives on
- // the control (data-tip, data-tip-do, data-tip-cmd). A plain title is taken over on first hover so
- // the browser's tooltip never doubles it. Inside an open dialog the tooltip moves into that dialog,
- // or the dialog's top layer would hide it.
+ // ---------- tooltips (WO-19) ----------
+ // 2026-09-23: "there's not tooltips or hover states or anything." One glass tooltip for the whole
+ // HUD: what the control is, what clicking it does and, when it cannot be used right now, the
+ // service's own reason. The text lives on the control (data-tip, data-tip-do, data-tip-cmd). A plain
+ // title is taken over on first hover so the browser's tooltip never doubles it. Inside an open dialog
+ // the tooltip moves into that dialog, or the dialog's top layer would hide it.
  const tipEl=node('div','hud-tip');tipEl.id='hud-tip';tipEl.setAttribute('role','tooltip');let tipAt=null,tipTimer=0;
  function tip(el,what,does='',cmd=''){if(!el)return el;el.dataset.tip=what;if(does)el.dataset.tipDo=does;else delete el.dataset.tipDo;if(cmd)el.dataset.tipCmd=cmd;
   // A control whose only name was its title keeps one when the title is taken over.
@@ -127,14 +129,15 @@ export function mountHUD({getState,getScene,route,diagnose,partsAt,openDetail,ed
    else if(caps.reason==='controls_enabled is false')caps.reason='Printer controls are off: set controls_enabled in stella-scope.json.';}
   catch(e){caps={enabled:false,reason:e.message,commands:[]};}
   capsAt=performance.now();document.body.dataset.controls=caps.enabled?'on':'off';
-  // Both emergency stops, the header one and the toolbar's, carry the same tooltip. Whether they
-  // can be pressed is lockControls' call, the same as for every other printer control.
+  // Both emergency stops, the header one and the toolbar's (WO-19), carry the same tooltip. Whether
+  // they can be pressed is lockControls' call, the same as for every other printer control (WO-20).
   for(const b of document.querySelectorAll('.hud-emergency,.hud-estop'))tip(b,'Emergency stop','Stops Klipper at once through Moonraker\'s emergency-stop call, with no review. Heaters and motors cut out, and the printer then needs a firmware restart.','emergency_stop');
   paintControls();lockControls();return caps;
  }
- // The printer's state comes from the collector's own link, the newest observer service.js holds
- // (state.link), so a printer that is off locks every control at once and nothing here polls the
- // printer to find out.
+ // WO-20 (2026-09-23), the owner: "Nothing works without the printer being on. You can look at things, but
+ // you can't really alter anything." The printer's state comes from the collector's own link, the
+ // newest observer service.js holds (state.link), so a printer that is off locks every control at
+ // once and nothing here polls the printer to find out.
  function link(){const s=getState();return printerLink(s.link,{replay:s.snapshot?.observer_now?.mode==='replay'||s.link?.mode==='replay',lastSeen:s.link?.last_success??s.snapshot?.last_ts});}
  // The file list, the queue and the macros are the printer's: not asked for while it cannot answer.
  function noPrinter(){return ['off','replay'].includes(link().state);}
@@ -142,11 +145,11 @@ export function mountHUD({getState,getScene,route,diagnose,partsAt,openDetail,ed
  function why(id){const l=link();if(!linkAllows(l,id))return l.reason;if(id!=='emergency_stop'&&!getState().live)return 'Go to Live first. Commands never run against a recording cursor.';return (caps.enabled?caps.commands?.find(c=>c.id===id)?.reason:null)||caps.reason||'Unavailable';}
  // Every control that sends to the printer names its command in data-tip-cmd. While that command
  // cannot run it is disabled (a bar that is not a button says so with aria-disabled), and its
- // tooltip's third line gives the reason. A control disabled for a reason of its own (an empty field,
- // an object already excluded) is left as it is: only what this function locked it unlocks. the one
- // writer of the header badge and the line under the name. It reads the same state as the pill and
- // the locks (controlsSummary over printerLink), so the badge says what is true: live controls,
- // printer off, Klipper not ready, rewound, replay or service not running.
+ // tooltip's third line gives the reason. A control disabled for a reason of its own (an empty
+ // field, an object already excluded) is left as it is: only what this function locked it unlocks.
+ // WO-21 (2026-09-24): the one writer of the header badge and the line under the name. It reads the
+ // same state as the pill and the locks (controlsSummary over printerLink), so the badge says what is
+ // true: live controls, printer off, Klipper not ready, rewound, replay or service not running.
  function paintControls(l=link()){const c=controlsSummary(l,{live:getState().live,enabled:caps.enabled}),badge=document.querySelector('.header-actions .badge');if(badge){badge.textContent=c.badge;badge.dataset.controls=c.key;}readiness.textContent=c.line;}
  function lockControls(root=document){for(const el of root.querySelectorAll('[data-tip-cmd]')){const off=!can(el.dataset.tipCmd);
   if('disabled' in el){if(off){if(!el.disabled){el.disabled=true;el.dataset.locked='1';}}else if(el.dataset.locked){el.disabled=false;delete el.dataset.locked;}}
@@ -161,8 +164,8 @@ export function mountHUD({getState,getScene,route,diagnose,partsAt,openDetail,ed
   catch(e){report(e.message+' No automatic retry.','refused');return null;}
  }
  async function send(id,extra={}){
-  // Nothing is asked of the service, not even a preview, for a control that cannot run now. found
-  // replay controls still POSTing previews while their tooltips said they were off.
+  // WO-20: nothing is asked of the service, not even a preview, for a control that cannot run now.
+  // WO-19 found replay controls still POSTing previews while their tooltips said they were off.
   if(!link().lock&&!can(id))await controls(true);
   if(!can(id)){feedback(why(id),'refused');return null;}
   if(id==='emergency_stop')return execute(id,extra,false);
@@ -171,10 +174,10 @@ export function mountHUD({getState,getScene,route,diagnose,partsAt,openDetail,ed
    preview=await r.json();if(!r.ok)throw Error(preview.error||'Exact command preview is unavailable.');}
   catch(e){feedback(e.message,'refused');return null;}
   const previous=modalStack.find(m=>m.id==='command-review');if(previous?.busy){focusModal(previous);feedback('A printer command is already in flight. No second command was started.','pending');return null;}if(previous)closeModal(previous);
-  // A gauge is a control. Heaters, fans and factors (T2) go straight out and the exact G-code is
-  // reported; only motion and restarts (T3) stop for a review. HOME and QGL come back with
-  // review:false. They keep every T3 safety gate on the service side, they just do not stop for a
-  // dialog first, so the button homes the printer.
+  // Owner rule 2026-09-20: a gauge is a control. Heaters, fans and factors (T2) go straight out and
+  // the exact G-code is reported; only motion and restarts (T3) stop for a review.
+  // 2026-09-21: HOME and QGL come back with review:false. They keep every T3 safety gate on
+  // the service side, they just do not stop for a dialog first, so the button homes the printer.
   if(preview.tier!=='T3'||preview.review===false){const script=(preview.script||preview.action||'').toString().trim();feedback(script?`Sending ${script}`:'Sending…','pending');const result=await execute(id,extra,preview.tier==='T3');if(result)feedback(`${script||id} · ${result.message}`,'reported');return result;}
   return new Promise(resolve=>{const entry=modal('command-review','Review printer command',(body)=>{
    const status=node('p','hud-command-feedback');status.setAttribute('role','status');
@@ -199,11 +202,10 @@ export function mountHUD({getState,getScene,route,diagnose,partsAt,openDetail,ed
   let current=null,target=null,pending=null,holdUntil=0,hold=null;
   const level=v=>clamp((v-min)/(max-min),0,1);
   // After a set, show the commanded value until the printer reports it (or 4 s pass), so the bar
-  // does not snap back to the stale reading between ticks. That was the lag the user saw on the part
-  // fan.
+  // does not snap back to the stale reading between ticks. That was the lag the owner saw on the part fan.
   function paint(){const held=hold!==null&&performance.now()<holdUntil&&(!known(current)||Math.abs(current-hold)>(max-min)/segments)?hold:null;const shown=pending??held??current;const lv=known(shown)?level(shown):0,tg=known(target)?level(target):null;
    el.style.setProperty('--level',lv);cells.forEach((c,i)=>{const at=(i+.5)/segments;c.classList.toggle('on',known(shown)&&at<=lv);c.classList.toggle('target',tg!==null&&Math.abs(at-tg)<=.5/segments+1e-6);});
-   // The number rolls to each new reading; a value being dragged in is shown as it is.
+   // WO-19: the number rolls to each new reading; a value being dragged in is shown as it is.
    if(pending!==null)roll(value,pending,v=>v.toFixed(digits)+unit,true);else roll(value,current,v=>known(v)?v.toFixed(digits)+unit:'—');value.classList.toggle('pending',pending!==null);}
   function at(e){const r=track.getBoundingClientRect();const f=vertical?1-(e.clientY-r.top)/r.height:(e.clientX-r.left)/r.width;return min+clamp(f,0,1)*(max-min);}
   const snap=v=>Number((Math.round(v/((max-min)/segments))*((max-min)/segments)).toFixed(digits));
@@ -217,10 +219,10 @@ export function mountHUD({getState,getScene,route,diagnose,partsAt,openDetail,ed
    name.onclick=()=>settable.open?settable.open():null;name.style.cursor='pointer';
    if(presets){const row=node('div','hud-presets');for(const p of presets)row.append(button(p+unit,()=>{if(!can(settable.id)){toast(why(settable.id));return;}target=p;hold=p;holdUntil=performance.now()+4000;paint();settable.set(p);}));el.append(row);}
   }else{track.classList.add('readonly');if(open){value.onclick=open;name.onclick=open;name.style.cursor='pointer';track.addEventListener('click',open);}else value.disabled=true;}
-  // Every gauge says what it is and what a click does.
+  // WO-19 (2026-09-23), the owner: every gauge says what it is and what a click does.
   const what=about||label;
-  // The number and the name open the dialog, which is looking and stays open to everyone; only the
-  // bar sets, so only the bar is a printer control.
+  // WO-20: the number and the name open the dialog, which is looking and stays open to everyone; only
+  // the bar sets, so only the bar is a printer control.
   if(settable){tip(value,what,'Click for the exact value and the presets.');tip(track,what,'Click or drag along the bar to set it. It goes out through the same send path as every printer command.',settable.id);tip(name,what,'Click for the exact value and the presets.');}
   else if(open){tip(value,what,'Click for details.');tip(track,what,'Click for details. Read only: nothing here changes the printer.');tip(name,what,'Click for details.');}else tip(value,what,'Read only.');
   return {el,set(v,t,text=''){current=known(v)?v:null;if(known(t))target=t;else if(hold===null)target=null;if(hold!==null&&known(current)&&Math.abs(current-hold)<=(max-min)/segments)hold=null;note.textContent=text;paint();}};
@@ -251,8 +253,8 @@ export function mountHUD({getState,getScene,route,diagnose,partsAt,openDetail,ed
  const viewBox=overlay('hud-viewbox');
  const cube=svg('svg');cube.setAttribute('viewBox','0 0 128 120');cube.classList.add('hud-view-cube');cube.setAttribute('aria-label','View cube. Click a face or drag to turn.');
  const faces=new Map();for(const name of ['top','bottom','front','rear','left','right']){const group=svg('g'),face=svg('polygon'),label=svg('text');group.dataset.view=name;group.setAttribute('role','button');group.setAttribute('tabindex','0');label.textContent=name==='rear'?'BACK':name.toUpperCase();tip(group,label.textContent.charAt(0)+label.textContent.slice(1).toLowerCase()+' view','Click to look at the printer from the '+(name==='rear'?'back':name)+'. Drag the cube to turn the view freely.');group.append(face,label);cube.append(group);faces.set(name,{group,face,label});group.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();getScene()?.view(name);}});}
- // Each label is drawn in its own face's plane (orientation hands over the matrix) and fades out
- // as that face turns edge-on, so FRONT can no longer sit on LEFT or RIGHT.
+ // WO-17 (2026-09-23): each label is drawn in its own face's plane (orientation() hands over the
+ // matrix) and fades out as that face turns edge-on, so FRONT can no longer sit on LEFT or RIGHT.
  function drawCube(){for(const f of getScene()?.orientation()||[]){const {group,face,label}=faces.get(f.name);group.style.display=f.visible?'':'none';face.setAttribute('points',f.points.map(p=>p.join(',')).join(' '));label.setAttribute('transform',`matrix(${f.label.map(v=>v.toFixed(3)).join(' ')})`);label.style.opacity=String(Math.max(0,Math.min(1,(f.facing-.15)/.25)).toFixed(2));}}
  let cubeDrag=null;cube.addEventListener('pointerdown',e=>{if(e.button!==0)return;cubeDrag={x:e.clientX,y:e.clientY,total:0,face:e.target.closest('[data-view]')?.dataset.view};cube.setPointerCapture(e.pointerId);e.preventDefault();});
  cube.addEventListener('pointermove',e=>{if(!cubeDrag)return;const dx=e.clientX-cubeDrag.x,dy=e.clientY-cubeDrag.y;cubeDrag.total+=Math.abs(dx)+Math.abs(dy);cubeDrag.x=e.clientX;cubeDrag.y=e.clientY;getScene()?.orbitBy(dx,dy);});
@@ -271,16 +273,17 @@ export function mountHUD({getState,getScene,route,diagnose,partsAt,openDetail,ed
   try{localStorage.setItem('stella-theme',next);}catch{}
   getScene()?.theme(next==='light'?'light':'dark');});
  const headerTools=node('div','hud-header-tools');
- // The old "Tools" button opened Signals without saying so; it is now Pages, first in the row, and
- // opens the list of every page.
+ // WO-19 (2026-09-23), the owner: "I thought we were supposed to have a lot more to this application and I
+ // just don't know where to access it." The old "Tools" button opened Signals without saying so; it
+ // is now Pages, first in the row, and opens the list of every page.
  const pagesButton=button('Pages',()=>openPages(),'hud-pages-button'),fullscreenButton=$('fullscreen');
  headerTools.append(pagesButton,themeButton,button('Colors',()=>openColors()),button('Panels',()=>{panelsOn=!panelsOn;getScene()?.panels(panelsOn);}),fullscreenButton);
  for(const [el,what,does]of [[pagesButton,'Pages','Every page in one list: Signals (every signal on one table), Electronics, Parts, Timeline, the workspace and more.'],[themeButton,'Light or dark','Switches the HUD between the light and the dark theme. This browser remembers it.'],
   [headerTools.children[2],'Colours','Opens the paint panel: colour the whole printer, a group, or any part you click.'],[headerTools.children[3],'Enclosure panels','Shows or hides the enclosure panels on the model.'],[fullscreenButton,'Full screen','Fills the screen with the HUD. Escape leaves full screen.']])tip(el,what,does);
  document.querySelector('.header-actions').prepend(headerTools);
- // Hotend and part cooling stay together on the right rail, and the controller fan "can go somewhere
- // else". It is an automatic output with nothing to set, so it is a readout beside the recorder's
- // link dot rather than a gauge: purple dot, percentage, no click.
+ // 2026-09-21: hotend and part cooling stay together on the right rail, and the controller fan
+ // "can go somewhere else". It is an automatic output with nothing to set, so it is a readout beside
+ // the recorder's link dot rather than a gauge: purple dot, percentage, no click.
  const ctrlFan=node('span','hud-ctrlfan');ctrlFan.append(node('i'),node('b','','—'));
  tip(ctrlFan,'Controller fan','Automatic: Klipper runs it with the steppers and heaters. The percent is its commanded output.');
  $('led-transport')?.after(ctrlFan);
@@ -295,7 +298,8 @@ export function mountHUD({getState,getScene,route,diagnose,partsAt,openDetail,ed
  function selectionChanged(){const s=getScene()?.selected;selection.dataset.on=s?'1':'';selectionName.textContent=s?s.name:'Click any part';zoomPart.disabled=inspectPart.disabled=!s||Boolean(s.sourceOnly);}
  document.addEventListener('stella-selection-change',selectionChanged);selectionChanged();
 
- // ---------- toolhead reticle: the HUD follows the nozzle on screen ---------- Gone. The Z readout
+ // ---------- toolhead reticle: the HUD follows the nozzle on screen ----------
+ // 2026-09-21: "the crosshairs over the head — don't get why they're there." Gone. The Z readout
  // he does want keeps the same anchor, so it still rides with the head.
  const reticle=node('div','hud hud-reticle');canvasWrap.append(reticle);
  const reticleText=node('div','hud-reticle-text');reticle.append(reticleText);
@@ -303,14 +307,14 @@ export function mountHUD({getState,getScene,route,diagnose,partsAt,openDetail,ed
 
  // ---------- left rail: thermal, two upright bars side by side ----------
  const left=overlay('hud-rail left');left.append(node('div','hud-rail-title','THERMAL'));
- // Nozzle and bed carry their own colour, like the fans, so a glance at the bars says which
- // heater it is without reading the label.
+ // 2026-09-21: nozzle and bed carry their own colour, like the fans, so a glance at the bars
+ // says which heater it is without reading the label.
  const nozzle=gauge({about:'Nozzle temperature in °C; the white segment is the target',label:'NOZZLE',unit:'°',max:290,segments:29,kind:'heat',heat:'nozzle',vertical:true,settable:{id:'set_heater',set:v=>send('set_heater',{target:'extruder',value:v}),open:()=>openHeater('nozzle')}});
  const bed=gauge({about:'Bed temperature in °C; the white segment is the target',label:'BED',unit:'°',max:120,segments:24,kind:'heat',heat:'bed',vertical:true,settable:{id:'set_heater',set:v=>send('set_heater',{target:'heater_bed',value:v}),open:()=>openHeater('bed')}});
  const leftRow=node('div','hud-rail-row');leftRow.append(nozzle.el,bed.el);left.append(leftRow);
- // ---------- right rail: cooling, part over hotend ---------- stacked, not three across, and
- // the controller fan is off the rail entirely — it reads out in the header now, beside the
- // link dot.
+ // ---------- right rail: cooling, part over hotend ----------
+ // 2026-09-21: stacked, not three across, and the controller fan is off the rail entirely —
+ // it reads out in the header now, beside the link dot.
  const right=overlay('hud-rail right');right.append(node('div','hud-rail-title','COOLING'));
  const partFan=gauge({about:'Part cooling fan, commanded percent (the two 4010 blowers)',label:'PART',unit:'%',max:100,segments:20,kind:'fan',fan:'part',vertical:true,settable:{id:'set_fan',set:v=>send('set_fan',{value:v/100}),open:()=>openFan('fan')}});
  const partGlyph=fanGlyph();partFan.el.prepend(partGlyph.el);partFan.el.querySelector('.hud-gauge-note')?.remove();
@@ -321,15 +325,15 @@ export function mountHUD({getState,getScene,route,diagnose,partsAt,openDetail,ed
  // ---------- bottom band: motion + speed ----------
  const bottom=overlay('hud-bottom');
  const motion=node('div','hud-motion');const axes={};for(const a of ['X','Y','Z']){const cell=button('',()=>openMotion(),'hud-axis');cell.append(node('span','',a),node('strong','','—'));motion.append(cell);axes[a]=cell.querySelector('strong');tip(cell,a+' position, mm','Where the toolhead is, from Klipper\'s motion report. Click for the motion panel: jog, home and Z offset.');}
- // The velocity line that sat under X, Y and Z is now the VELOCITY readout beside them.
+ // WO-19: the velocity line that sat under X, Y and Z is now the VELOCITY readout beside them.
  const homed=node('div','hud-homed','');motion.append(homed);
- // Fill the empty space beside the X, Y, Z readouts with live motion. Readout windows: a label, a
- // rolling number with its unit, a note. Unknown is a dash, never zero.
+ // WO-19 (2026-09-23), the owner: fill the empty space beside the X, Y, Z readouts with live motion.
+ // Readout windows: a label, a rolling number with its unit, a note. Unknown is a dash, never zero.
  function readoutWindow(label,what,does=''){const el=node('div','hud-readout'),v=node('b','','—'),u=node('i'),n=node('small');el.append(node('span','',label),v,u,n);tip(el,what,does);
   return {el,set(x,{digits=0,unit='',note='',state=''}={}){n.textContent=note;u.textContent=known(x)?unit:'';el.dataset.state=state;el.dataset.unknown=known(x)?'':'1';roll(v,x,y=>known(y)?y.toFixed(digits):'—');}};}
  const velocityRead=readoutWindow('VELOCITY','Toolhead speed, mm/s','The speed the toolhead is moving at this instant, from Klipper\'s motion report. The note is the configured maximum.');
  const accelRead=readoutWindow('ACCEL LIMIT','Acceleration limit, mm/s²','The toolhead\'s current max_accel. Slicer SET_VELOCITY_LIMIT changes it during a print.');
- const volumeRead=readoutWindow('VOLUMETRIC','Volumetric flow, mm³/s','Filament speed times the 1.75 mm filament area, against the hotend ceiling you measured for the loaded material.');
+ const volumeRead=readoutWindow('VOLUMETRIC','Volumetric flow, mm³/s','Filament speed times the 1.75 mm filament area, against the hotend ceiling measured for the loaded material (PETG 20, PLA 24 mm³/s).');
  const flowBar=node('div','hud-flowbar');flowBar.append(node('u'));volumeRead.el.append(flowBar);
  const speed=gauge({about:'Speed factor, M220: scales every move the G-code asks for',label:'SPEED',unit:'%',min:50,max:200,segments:30,kind:'speed',settable:{id:'speed_factor',set:async v=>{if(await send('speed_factor',{value:v}))offerFlow(v,known(point()?.extrude_factor)?point().extrude_factor*100:null);},open:()=>openFactor('speed')},presets:[100,110,120,135]});
  const flow=gauge({about:'Flow factor, M221: scales how much filament every extrusion pushes',label:'FLOW',unit:'%',min:50,max:200,segments:30,kind:'speed',settable:{id:'extrude_factor',set:v=>send('extrude_factor',{value:v}),open:()=>openFactor('flow')},presets:[95,100,105]});
@@ -342,18 +346,20 @@ export function mountHUD({getState,getScene,route,diagnose,partsAt,openDetail,ed
  // Arrow glyphs: on a Voron, Y+ is away from you (rear), Z+ raises the head. The letter stays for the label.
  const arrowIcon=(axis,sign)=>{const sv=svg('svg');sv.setAttribute('viewBox','0 0 24 24');sv.classList.add('hud-arrow');const p=svg('path');const d={X:sign>0?'M4 12h13m-5-5 5 5-5 5':'M20 12H7m5-5-5 5 5 5',Y:sign>0?'M12 20V7m-5 5 5-5 5 5':'M12 4v13m-5-5 5 5 5-5',Z:sign>0?'M6 16l6-6 6 6M6 10l6-6 6 6':'M6 8l6 6 6-6M6 14l6 6 6-6'}[axis];p.setAttribute('d',d);sv.append(p);return sv;};
  const axisBtn=(text,axis,sign)=>{const b=button('',async()=>{const p=point();const homed=/x/.test(p?.homed||'')&&/y/.test(p?.homed||'')&&/z/.test(p?.homed||'');
-  if(!homed){openMotion();feedback('The printer is not homed. Home XYZ first.','refused');return;}await send('jog',{axis,value:sign*step});},'hud-jog axis-'+axis.toLowerCase());b.append(node('span','hud-jog-axis',axis),arrowIcon(axis,sign));b.setAttribute('aria-label',text);tip(b,axis==='Y'?(sign>0?'Y+ · toward the back':'Y− · toward you'):axis==='Z'?(sign>0?'Z+ · head up':'Z− · head down'):(sign>0?'X+ · right':'X− · left'),'Moves the toolhead by the chosen step, at once. Needs X, Y and Z homed.','jog');return b;};
+  if(!homed){openMotion();feedback('Stella is not homed. Home XYZ first.','refused');return;}await send('jog',{axis,value:sign*step});},'hud-jog axis-'+axis.toLowerCase());b.append(node('span','hud-jog-axis',axis),arrowIcon(axis,sign));b.setAttribute('aria-label',text);tip(b,axis==='Y'?(sign>0?'Y+ · toward the back':'Y− · toward you'):axis==='Z'?(sign>0?'Z+ · head up':'Z− · head down'):(sign>0?'X+ · right':'X− · left'),'Moves the toolhead by the chosen step, at once. Needs X, Y and Z homed.','jog');return b;};
  jogRow.append(selection,node('span','hud-row-label','MOVE'),stepChips,
   axisBtn('X−','X',-1),axisBtn('X+','X',1),axisBtn('Y−','Y',-1),axisBtn('Y+','Y',1),axisBtn('Z−','Z',-1),axisBtn('Z+','Z',1));
- // They are whole-machine actions, not jog keys, so they lead the actions strip, and that strip
- // now fills the black band that sat under the MOVE row.
+ // 2026-09-21: "HOME, QGL, and JOG are all really weird placed when they could just be above
+ // with Prepare, Files, Console, and More." They are whole-machine actions, not jog keys, so they
+ // lead the actions strip, and that strip now fills the black band that sat under the MOVE row.
  const actions=node('div','hud-actions');
- // Same size as the rest of the strip. hud-machine keeps the teal accent only. The controls a Voron
- // operator reaches for, in groups (machine, heat, move, work, firmware), and an emergency stop that
- // is always on the row. Every one goes through the same send as the rest of the HUD, so the service
- // decides what asks for a review: BED MESH and MOTORS OFF are on the 2026-09-21 no-review list with
- // HOME and QGL, FW RESTART and every macro ask once, heaters are T2 and go straight out, E-STOP is
- // immediate.
+ // Same size as the rest of the strip (2026-09-21 review: HOME/QGL sat taller than the others
+ // because they still carried the jog-key classes). hud-machine keeps the teal accent only.
+ // WO-19 (2026-09-23), the owner: "we could add more there." The controls a Voron operator reaches for, in
+ // groups (machine, heat, move, work, firmware), and an emergency stop that is always on the row.
+ // Every one goes through the same send() as the rest of the HUD, so the service decides what asks
+ // for a review: BED MESH and MOTORS OFF are on our 2026-09-21 no-review list with HOME and QGL,
+ // FW RESTART and every macro ask once, heaters are T2 and go straight out, E-STOP is immediate.
  const act=(label,fn,cls,what,does,cmd='')=>tip(button(label,fn,cls),what,does,cmd),sep=()=>node('i','hud-sep');
  const estop=act('E-STOP',async()=>{estop.disabled=true;await send('emergency_stop');estop.dataset.locked='1';lockControls();},'hud-estop','Emergency stop','Stops Klipper at once through Moonraker\'s emergency-stop call, with no review. Heaters and motors cut out, and the printer then needs a firmware restart.','emergency_stop');
  actions.append(act('HOME',()=>send('home'),'hud-machine','Home X, Y and Z','Sends G28 at once. The toolhead moves to its endstops and the bed is probed for Z.','home'),
@@ -367,22 +373,23 @@ export function mountHUD({getState,getScene,route,diagnose,partsAt,openDetail,ed
   act('Testing',()=>openTesting(),'','Testing','Probe accuracy, bed mesh, resonance and shaper runs, and their recorded results.'),sep(),
   act('FW RESTART',()=>send('firmware_restart'),'hud-caution','Firmware restart','Sends FIRMWARE_RESTART after one review. Klipper and both MCUs restart and the heaters switch off.','firmware_restart'),
   act('More',()=>openMore(),'','More','Filament, tune, presets, histories and the rest.'),estop);
- // The bottom strip: three fans (RPM where a tachometer reports, otherwise the commanded percent
- // labelled "cmd"), the print speed, the flow, the layer and the time left. It sits in the empty
- // right of the MOVE row, so the canvas and the rails keep their size. Anything not reported is a
- // dash, never zero.
+ // WO-19 (2026-09-23), the owner: "I don't see the controller fan anywhere; we could put two things on the
+ // bottom of the screen... extruder fan and current speed, what it's printing at." The bottom strip:
+ // three fans (RPM where a tachometer reports, otherwise the commanded percent labelled "cmd"), the
+ // print speed, the flow, the layer and the time left. It sits in the empty right of the MOVE row,
+ // so the canvas and the rails keep their size. Anything not reported is a dash, never zero.
  const strip=node('div','hud-strip');strip.setAttribute('aria-label','Print and cooling readouts');
  const stripItem=(label,what,does)=>{const r=readoutWindow(label,what,does);r.el.classList.add('hud-strip-item');strip.append(r.el);return r;};
  const stripCtrl=stripItem('CTRL FAN','Controller fan','Cools the electronics bay. Automatic: Klipper runs it with the steppers and heaters. RPM when a tachometer reports, otherwise the commanded percent.');
  const stripHotend=stripItem('HOTEND FAN','Hotend fan','Cools the heatsink above the heat break. Automatic above its trigger temperature. RPM when a tachometer reports, otherwise the commanded percent.');
- const stripPart=stripItem('PART FAN','Part cooling fan','The part cooling blowers. RPM when a tachometer reports, otherwise the commanded percent.');
+ const stripPart=stripItem('PART FAN','Part cooling fan','The two 4010 blowers under the cowl. RPM when a tachometer reports, otherwise the commanded percent.');
  const stripSpeed=stripItem('PRINT SPEED','Print speed, mm/s','The speed the G-code asks for, times the M220 speed factor. The note is the toolhead\'s live speed.');
- const stripFlow=stripItem('FLOW','Volumetric flow, mm³/s','Filament going through the hotend, against the ceiling you measured for the material.');
+ const stripFlow=stripItem('FLOW','Volumetric flow, mm³/s','Filament going through the hotend, against the ceiling measured for the material.');
  const stripLayer=stripItem('LAYER','Layer','The layer being printed, of the total, from the slicer or the drawn toolpath.');
  const stripEta=stripItem('ETA','Time left','Print time left from the progress so far, and the clock time it should finish.');
  jogRow.append(strip);
  bottom.append(motion,speed.el,flow.el,jogRow,actions);
- // The recording transport and the header's static controls (service.html) get their tooltips here.
+ // WO-19: the recording transport and the header's static controls (service.html) get their tooltips here.
  for(const [id,what,does]of [['live','Latest sample','Follows the newest sample. In live mode that is the printer now, and the controls arm.'],['prev','Previous sample','Steps the recording back one sample.'],['play','Play','Plays the recording from the cursor at the chosen speed. The controls stay locked while it plays.'],['next','Next sample','Steps the recording forward one sample.'],
   ['speed','Playback speed','How fast Play runs through the recording.'],['window','History window','How much recorded history the charts and trends show.'],['copy-link','Copy moment link','Copies a link to this exact moment of the recording.'],['cursor','Recording cursor','Drag to rewind to any recorded moment. The controls stay locked until you return to the latest sample.']])tip($(id),what,does);
  tip(document.querySelector('header .brand'),'Stella Scope','Reloads the HUD.');
@@ -396,7 +403,7 @@ export function mountHUD({getState,getScene,route,diagnose,partsAt,openDetail,ed
  const drawer=node('dialog','hud-drawer');drawer.id='hud-drawer';const drawerHead=node('div','hud-drawer-head'),drawerNav=node('div','hud-drawer-nav'),drawerBody=node('div','hud-drawer-body');
  drawer.setAttribute('aria-label','Pages');
  const nav=$('pages');nav.hidden=true;const pageLinks=[...nav.querySelectorAll('a')].filter(a=>a.dataset.page!=='machine');
- // What each page is, for the Pages panel and every tooltip that leads to one.
+ // What each page is, for the Pages panel and every tooltip that leads to one (WO-19).
  const PAGE_NOTES={signals:'Every signal on one table: sensors, commands and cached queries, each with its kind and its history.',assembly:'The CAD assembly: every part, its source file and where it sits.',electronics:'The reporting chain: host, controllers, configured pins and firmware.',parts:'The parts book: what is fitted, its revisions and the catalogue.',diagnostics:'Suspected causes, each with the recorded evidence for and against it.',maintenance:'The service journal: work recorded against each part.',timeline:'Everything the printer said, in order, and searchable.',thermal:'Heaters and fans over time, and the cooling circuits.',leveling:'The recorded bed mesh, the probe points and the gantry levelling runs.'};
  for(const a of pageLinks){const b=button(a.textContent,()=>route(a.dataset.page));b.dataset.page=a.dataset.page;tip(b,a.textContent,PAGE_NOTES[a.dataset.page]||'');drawerNav.append(b);}
  drawerHead.append(drawerNav,tip(button('← HUD',()=>route('machine'),'hud-drawer-close'),'Back to the HUD','Closes this page and returns to the printer.'));
@@ -404,9 +411,10 @@ export function mountHUD({getState,getScene,route,diagnose,partsAt,openDetail,ed
  drawer.append(drawerHead,drawerBody);document.body.append(drawer);
  drawer.addEventListener('cancel',e=>{e.preventDefault();route('machine');});
  closeOnBackdrop(drawer,()=>route('machine'));
- function openDrawer(page){route(page);}
- // ---------- pages ---------- Every page in one glass panel from the left edge. Signals leads and
- // is larger ("the page where everything is laid out on a table"). Service pages open in the
+ // ---------- pages (WO-19) ----------
+ // 2026-09-23: "I thought we were supposed to have a lot more to this application and I just
+ // don't know where to access it." Every page in one glass panel from the left edge. Signals leads
+ // and is larger ("the page where everything is laid out on a table"). Service pages open in the
  // drawer over the HUD and "← HUD" brings you back; the workspace and Investigation are their own
  // pages, and both link back to the HUD.
  const pagesPanel=node('dialog','hud-pages');pagesPanel.id='hud-pages';pagesPanel.setAttribute('aria-label','Pages');document.body.append(pagesPanel);
@@ -452,9 +460,11 @@ export function mountHUD({getState,getScene,route,diagnose,partsAt,openDetail,ed
   for(const g of [{id:'all',name:'Whole printer',color:'#4d6874'},...(getScene()?.colorGroups||[]).filter(g=>g.count)]){const label=node('label','hud-color-row'),input=node('input');input.type='color';input.value=g.color;input.setAttribute('aria-label',g.name+' color');tip(input,g.name+' colour',g.id==='all'?'Opens a colour picker for every part. Saved in this browser only.':'Opens a colour picker for every part in this group. Saved in this browser only.');input.oninput=()=>{try{getScene().setColor(g.id==='all'?'all':'group:'+g.id,input.value);st.textContent='Saved in this browser';}catch(e){st.textContent=e.message;}};label.append(node('span','',g.name),node('small','',g.count?g.count+' parts':''),input);rows.append(label);}
   palette.append(head,node('h2','','Paint the printer'),node('p','hud-muted','Click any part for its own colour. Groups paint everything in them.'),rows,tip(button('Restore source colours',()=>{try{getScene().resetColors();openColors();}catch(e){st.textContent=e.message;}}),'Restore source colours','Puts every part back to the colour of its CAD source.'),st);if(!palette.open)palette.showModal();}
 
- // ---------- control popups ---------- One store, the service's (/api/presets, beside the command
- // audit), read by every preheat list: the PREHEAT menu, the heater dialogs and Filament. Until it
- // is read the lists are empty and say so; there is no second table here to fall back on.
+ // ---------- control popups ----------
+ // WO-20 (2026-09-23), the owner: "Anybody can change their preheat presets, and they should save within
+ // the system." One store, the service's (/api/presets, beside the command audit), read by every
+ // preheat list: the PREHEAT menu, the heater dialogs and Filament. Until it is read the lists are
+ // empty and say so; there is no second table here to fall back on.
  let MATERIALS=[],PRESETS=null,presetsError='Reading the saved presets…';
  async function loadPresets(){try{const r=await fetch('/api/presets');const d=await r.json().catch(()=>({}));if(!r.ok)throw Error(d.error||'The saved presets could not be read.');PRESETS=d;presetsError='';MATERIALS=(Array.isArray(d.materials)?d.materials:[]).map(m=>[m.name,m.nozzle,m.bed]);document.querySelector('.hud-loaded')?.replaceChildren(PRESETS.loaded?.name?PRESETS.loaded.name+' loaded':'');
   // The PREHEAT menu lists the saved presets live; an open editor keeps its own unsaved edits.
@@ -483,8 +493,8 @@ export function mountHUD({getState,getScene,route,diagnose,partsAt,openDetail,ed
    body.append(row(which==='nozzle'?'Nozzle °C':'Bed °C',field,set,tip(button('Cool down',()=>send('set_heater',{target:heater,value:0})),'Cool down','Sets the '+(which==='nozzle'?'nozzle':'bed')+' target to 0 °C.','set_heater')));
    body.append(reasonLine('set_heater'));
   });}
- // The toolbar's PREHEAT. the own profile temperatures; nothing heats until one is picked, and each
- // heater goes out through send like the gauges (T2, no review).
+ // WO-19: the toolbar's PREHEAT. our own profile temperatures; nothing heats until one is picked,
+ // and each heater goes out through send() like the gauges (T2, no review).
  function openPreheat(){modal('preheat','Preheat',(body)=>{
    const p=point();body.append(node('p','hud-modal-note',`nozzle ${number(p?.nozzle?.temperature,' °C')} · bed ${number(p?.bed?.temperature,' °C')} · your saved presets${presetsError?' · '+presetsError:''}`));
    const grid=node('div','hud-material-grid'),heat=(noz,hot)=>async()=>{if(await send('set_heater',{target:'extruder',value:noz}))await send('set_heater',{target:'heater_bed',value:hot});};
@@ -508,10 +518,10 @@ export function mountHUD({getState,getScene,route,diagnose,partsAt,openDetail,ed
    for(const v of (which==='speed'?[80,100,110,120,135,150]:[90,95,100,105,110]))presets.append(tip(button(v+'%',()=>apply(v)),v+'%','Sets '+(which==='speed'?'print speed':'flow')+' to '+v+' percent.',id));
    body.append(presets,reasonLine(id));
   });}
- // A speed increase may need a separately measured flow adjustment; never invent one. K14/L9: the
- // arithmetic behind a speed change, shown, never applied for the operator. Volumetric flow = layer
- // height x line width x print speed x factor. The hotend limit is whatever the user measured (the
- // test printer/docs/10, method A); until he enters one it stays blank and nothing is judged.
+ // A speed increase may need a separately measured flow adjustment; never invent one.
+ // K14/L9: the arithmetic behind a speed change, shown, never applied for the operator.
+ // Volumetric flow = layer height x line width x print speed x factor. The hotend limit is whatever
+ // the owner measured (Stella/docs/10, method A); until he enters one it stays blank and nothing is judged.
  function offerFlow(speedPct,flowPct){
   if(speedPct<=100)return;
   const store=(k,d)=>{try{const v=localStorage.getItem('stella-flow:'+k);return v===null?d:Number(v);}catch{return d;}};
@@ -559,7 +569,7 @@ export function mountHUD({getState,getScene,route,diagnose,partsAt,openDetail,ed
    body.append(node('p','hud-modal-note',`X ${number(p?.position?.[0])} · Y ${number(p?.position?.[1])} · Z ${number(p?.position?.[2])} mm · homed ${p?.homed?.toUpperCase()||'none'}`));
    const steps=node('div','hud-presets');for(const st of [0.1,1,10,50]){const b=tip(button(st+' mm',()=>{step=st;[...steps.children].forEach(x=>x.classList.toggle('on',Number(x.dataset.s)===step));}),st+' mm step','Sets how far each jog button moves.');b.dataset.s=st;b.classList.toggle('on',st===step);steps.append(b);}
    const pad=node('div','hud-jog-pad');const cell=(t,fn,cls='')=>{const b=button(t,fn,cls);if(t==='⌂')tip(b,'Home XYZ','Homes all three axes (G28).','home');else if(t)tip(b,'Jog '+t,'Moves '+t+' by the step chosen above. Needs a homed printer.','jog');pad.append(b);};
-   const move=(axis,sign)=>async()=>{if(!isHomed){feedback('The printer is not homed. Home XYZ first.','refused');return;}await send('jog',{axis,value:sign*step});};
+   const move=(axis,sign)=>async()=>{if(!isHomed){feedback('Stella is not homed. Home XYZ first.','refused');return;}await send('jog',{axis,value:sign*step});};
    cell('');cell('Y+',move('Y',1));cell('');cell('Z+',move('Z',1),'z');
    cell('X−',move('X',-1));cell('⌂',()=>send('home'),'home');cell('X+',move('X',1));cell('');
    cell('');cell('Y−',move('Y',-1));cell('');cell('Z−',move('Z',-1),'z');
@@ -589,8 +599,8 @@ export function mountHUD({getState,getScene,route,diagnose,partsAt,openDetail,ed
    const loadedNote=node('p','hud-modal-note',loaded?`Loaded now: ${loaded}${known(PRESETS?.loaded?.at)&&PRESETS.loaded.at>0?', since '+new Date(PRESETS.loaded.at*1000).toLocaleString():''}. LOAD and UNLOAD heat to its nozzle preset.`:'Nothing recorded as loaded yet. Pick the material and LOAD records it.');
    const remember=async name=>{try{await jsend('/api/presets','PUT',{...(PRESETS||{}),loaded:name?{name,at:Date.now()/1000}:null});await loadPresets();}catch(e){feedback(e.message,'refused');}};
    const loadBtn=button('LOAD_FILAMENT',async()=>{const t=tempFor();if(!t){feedback('Choose the material first.','refused');return;}if(await send('macro',{target:'LOAD_FILAMENT',params:{TEMP:String(Math.round(t))}}))await remember(materialSel.value);},'hud-primary');
-   const unloadBtn=button('UNLOAD_FILAMENT',async()=>{const t=tempFor();if(!t){feedback('Choose the material that is in there first.','refused');return;}if(await send('macro',{target:'UNLOAD_FILAMENT',params:{TEMP:String(Math.round(t))}}))await remember(null);});tip(loadBtn,'LOAD_FILAMENT','Runs the printer\'s LOAD_FILAMENT macro at the material\'s nozzle preset and records it as loaded. Asks once.','macro');tip(unloadBtn,'UNLOAD_FILAMENT','Runs the printer\'s UNLOAD_FILAMENT macro at the material\'s nozzle preset. Asks once.','macro');
-   body.append(node('h3','','Loaded filament'),loadedNote,row('Material',materialSel,loadBtn,unloadBtn),node('p','hud-modal-note','Your printer\'s own LOAD_FILAMENT and UNLOAD_FILAMENT macros run, with TEMP set from the preset.'));
+   const unloadBtn=button('UNLOAD_FILAMENT',async()=>{const t=tempFor();if(!t){feedback('Choose the material that is in there first.','refused');return;}if(await send('macro',{target:'UNLOAD_FILAMENT',params:{TEMP:String(Math.round(t))}}))await remember(null);});tip(loadBtn,'LOAD_FILAMENT','Runs Stella\'s load macro at the material\'s nozzle preset and records it as loaded. Asks once.','macro');tip(unloadBtn,'UNLOAD_FILAMENT','Runs Stella\'s unload macro at the material\'s nozzle preset. Asks once.','macro');
+   body.append(node('h3','','Loaded filament'),loadedNote,row('Material',materialSel,loadBtn,unloadBtn),node('p','hud-modal-note','Stella\'s own macros: park front right, heat to the preset, purge 50 mm or soften the tip and retract 100 mm.'));
    body.append(node('h3','','Move filament'));
    const amount=tip(numberField(50,1,200),'Millimetres','Type how much filament the two buttons beside it move.'),speedField=tip(numberField(5,1,50),'Speed, mm/s','Type the filament speed for these moves.');
    const load=button('Load / extrude',()=>{const value=fieldValue(amount);if(value!==null)send('extrude',{value:Math.abs(value),speed:Number(speedField.value)||5});},'hud-primary');
@@ -637,8 +647,8 @@ export function mountHUD({getState,getScene,route,diagnose,partsAt,openDetail,ed
   },{wide:true});}
 
  async function openMacros(){modal('macros','Macros',async(body)=>{
-   // The list is your gcode_macro sections (the service flags them, read from the printer's config);
-   // every other command Klipper registers is one tick away.
+   // WO-19 (2026-09-23): the list is your gcode_macro sections (the service flags them, read from the
+   // printer's config); every other command Klipper registers is one tick away.
    const intro=node('p','hud-modal-note','Your macros: the gcode_macro sections in the printer\'s config. Every run asks once.');body.append(intro);
    const list=node('div','hud-macro-list');body.append(list);
    try{if(link().lock)throw Error(link().reason);const r=await fetch('/api/macros');const data=await r.json();
@@ -666,8 +676,8 @@ export function mountHUD({getState,getScene,route,diagnose,partsAt,openDetail,ed
    body.append(controls);
     const queue=node('div','hud-queue');body.append(node('h3','','Queue'),queue);
     (noPrinter()?Promise.reject(Error(link().reason)):jget('/api/print/queue')).then(d=>{const jobs=d.jobs||d.queued_jobs||[];if(!jobs.length)return queue.append(node('p','hud-modal-note','Nothing queued.'));for(const j of jobs){const e=node('div','hud-fact');e.append(node('span','',(j.filename||'').split('/').pop()),node('strong','',j.state||''),tip(button('Remove',()=>send('print_queue_remove',{job_id:j.job_id})),'Remove from queue','Takes this job out of the print queue.','print_queue_remove'));queue.append(e);}}).catch(e=>queue.append(node('p','hud-modal-note',e.message)));
-    // Print history, straight from the recorder's own session rows. Click a row to rewind the
-    // recording to the moment that print ended.
+    // WO-13: print history, straight from the recorder's own session rows. Click a row to rewind
+    // the recording to the moment that print ended.
     const history=node('div','hud-history-list');body.append(node('h3','','Print history'),history);
     jget('/api/history/prints').then(d=>{const prints=d.prints||[];if(!prints.length)return history.append(node('p','hud-modal-note','No finished print recorded yet.'));
      for(const p of prints.slice(0,10)){const e=node('div','hud-fact hud-print');e.dataset.result=(p.result||'').toLowerCase();
@@ -679,7 +689,7 @@ export function mountHUD({getState,getScene,route,diagnose,partsAt,openDetail,ed
     const list=node('div','hud-file-list');body.append(list);
     try{if(noPrinter())throw Error(link().reason);const r=await fetch('/api/files');const data=await r.json();if(!r.ok)throw Error(data.error||'file list unavailable');
      for(const f of data.files.slice(0,80)){const b=button('','',null);b.className='hud-file';
-      // The slicer thumbnail for this file, proxied read-only from Moonraker; files sliced
+      // WO-13: the slicer thumbnail for this file, proxied read-only from Moonraker; files sliced
       // without thumbnails just lose the image, nothing else.
       const thumb=node('img','hud-file-thumb');thumb.loading='lazy';thumb.alt='';thumb.decoding='async';
       thumb.src='/api/print/thumbnail?filename='+encodeURIComponent(f.path);thumb.onerror=()=>thumb.remove();
@@ -692,9 +702,9 @@ export function mountHUD({getState,getScene,route,diagnose,partsAt,openDetail,ed
    }catch(e){list.append(node('p','hud-modal-note',e.message));}
   },{wide:true});}
 
- // ---------- bed mesh, drawn here so the numbers can be explained ---------- the same fix as the
- // bed card. When the sample at the cursor carries no mesh, this shows the newest one in the
- // recording, dated, and says so; "none" only when there is none.
+ // ---------- bed mesh, drawn here so the numbers can be explained ----------
+ // WO-18 (2026-09-23): the same fix as the bed card. When the sample at the cursor carries no mesh,
+ // this shows the newest one in the recording, dated, and says so; "none" only when there is none.
  function openMesh(){modal('mesh','Bed mesh',(body)=>{
    const p=detailPoint(),sampled=p?.mesh?.grid?.length?p.mesh:null,s=getState(),to=s.live?Date.now()/1000:(s.cursor??Date.now()/1000);
    if(sampled){drawMesh(body,sampled);return;}const wait=node('p','hud-modal-note','Reading the newest mesh in the recording…');body.append(wait);
@@ -764,7 +774,7 @@ export function mountHUD({getState,getScene,route,diagnose,partsAt,openDetail,ed
   },{wide:true});}
 
 
- // ---------- pass 4 UI (round four) ----------
+ // ---------- pass 4 UI (BOARD-4). Backend contracts live in docs/work-orders/hud-2026-09-19/BOARD-4.md ----------
  const jget=async(url)=>{const r=await fetch(url);const d=await r.json().catch(()=>({}));if(!r.ok)throw Error(d.error||url+' unavailable');return d;};
  const jsend=async(url,method,body)=>{const c=await controls(true);const r=await fetch(url,{method,headers:{'Content-Type':'application/json',...(c.token?{'X-Stella-Control-Token':c.token}:{})},body:body===undefined?undefined:JSON.stringify(body)});const d=await r.json().catch(()=>({}));if(!r.ok)throw Error(d.error||'refused');return d;};
 
@@ -780,11 +790,11 @@ export function mountHUD({getState,getScene,route,diagnose,partsAt,openDetail,ed
    wrap.append(row('Trigger °C',field,preview),diff,apply,status,node('p','hud-modal-note','Klipper quirk: with default options any non-zero nozzle target turns this fan on regardless of the trigger.'));
   }catch(e){wrap.append(node('p','hud-command-status',e.message));}})();return wrap;}
 
- // L5: presets you can edit, stored on the recorder, not in a browser. Add, rename, change and
- // delete freely; nothing is stored until Save, every unsaved row is marked and counted, and Cancel
- // puts the table back to what is saved. The service checks every row (name, nozzle 0 to 290 °C, bed
- // 0 to 120 °C) and a refusal is shown in its own words with nothing stored. Cool down is built in
- // and locked.
+ // L5: presets you can edit, stored on the recorder, not in a browser.
+ // WO-20 (2026-09-23), the owner: "They can save them, press Save." Add, rename, change and delete freely;
+ // nothing is stored until Save, every unsaved row is marked and counted, and Cancel puts the table
+ // back to what is saved. The service checks every row (name, nozzle 0 to 290 °C, bed 0 to 120 °C)
+ // and a refusal is shown in its own words with nothing stored. Cool down is built in and locked.
  function openPresets(){modal('presets','Presets',(body)=>{
   body.append(node('p','hud-modal-note','Your preheat presets, saved in Stella Scope on this computer and used by every preheat list. Nozzle 0 to 290 °C, bed 0 to 120 °C. Nothing is saved until you press Save.'));
   const table=node('div','hud-preset-table'),rows=[],saved=Array.isArray(PRESETS?.materials)?PRESETS.materials:[];
@@ -830,37 +840,42 @@ export function mountHUD({getState,getScene,route,diagnose,partsAt,openDetail,ed
   },{wide:true});}
 
  // L6: real toolpaths on the plate. Parsed in the browser from the file Moonraker holds.
- let gcodeModule=null,toolpathFile=null,toolpathParsed=null;
+ let gcodeModule=null,toolpathFile=null,toolpathParsed=null;let toolpathFollower=null;
  // `say` is where progress is written: the open dialog's status line when a file is clicked in Files,
- // the toast when the HUD loads the printing file by itself.
+ // the toast when the HUD loads the printing file by itself (WO-20).
  async function showToolpath(path,say=feedback){gcodeModule??=await import('./hud-gcode.js');const scene=getScene();if(!scene)return;
   say('Reading '+path.split('/').pop()+'…','pending');
   const r=await fetch('/api/print/gcode?filename='+encodeURIComponent(path));if(!r.ok)throw Error('G-code unavailable from the printer.');const text=await r.text();
    toolpathParsed=gcodeModule.parseGcode(text,{maxSegments:1500000});toolpathFile={path,bytes:toolpathParsed.byteLength||new TextEncoder().encode(text).length};lastLayerText='';
-  // Travels are no longer drawn, so a file with no extruding move has nothing to show. The scene
-  // refuses a toolpath until it knows where the bed is, which is three seconds of CAD after a
-  // cold load — say which of the two it was instead of blaming the file.
+   toolpathFollower=new GcodeFollower();toolpathFollower.loadJob(path,toolpathFile.bytes,text);
+  // Travels are no longer drawn (WO-10), so a file with no extruding move has nothing to show.
+  // The scene refuses a toolpath until it knows where the bed is, which is three seconds of CAD
+  // after a cold load — say which of the two it was instead of blaming the file. (2026-09-21:
+  // opening the HUD in the middle of a print left the plate empty and the toast said the file had
+  // no extruding moves, which was not true.)
   const info=scene.loadToolpath(toolpathParsed,path);if(!info)throw Error(scene.bedCenter?'That file has no extruding moves to draw.':'The printer model is still loading; the toolpath follows.');scene.associateJob(path);
   say(`${info.layers} layers, ${info.segments.toLocaleString()} moves${toolpathParsed.truncated?' (truncated)':''}.`,'reported');}
- // He wants to watch the print, not go and find the file first. When a job is running and its
- // toolpath is not the one on the plate, fetch and draw it once, on its own. Guarded by
- // autoToolpath so a failure (or a file Moonraker will not hand over) is not retried every
- // tick, and so switching files re-arms it exactly once.
+ // 2026-09-21: he wants to watch the print, not go and find the file first. When a job is
+ // running and its toolpath is not the one on the plate, fetch and draw it once, on its own.
+ // Guarded by autoToolpath so a failure (or a file Moonraker will not hand over) is not retried
+ // every tick, and so switching files re-arms it exactly once.
   let autoToolpath=null,notStored=null;
-  // The wait after each failed automatic load, in seconds; the last one repeats.
+  // WO-20: the wait after each failed automatic load, in seconds; the last one repeats.
   const TP_BACKOFF_S=[5,15,60];let tpFail=0,tpNext=0,lastLink=null;
-  // The layer readout in the job strip. progressToLayer already runs for the toolpath, so the
-  // layer is captured here and the strip renders it; no second parse, no new state.
+  // WO-13: the layer readout in the job strip. progressToLayer already runs for the toolpath, so
+  // the layer is captured here and the strip renders it; no second parse, no new state.
   let lastLayerText='',lastLayer=null;
  function toolpathAuto(current,state){
   const name=current?.name||'';if(!name||state!=='printing'&&state!=='paused')return;
   const file=name.split('/').pop();
   if(autoToolpath===file||toolpathFile?.path.split('/').pop()===file)return;
-  // Found this retrying on every tick and writing over open dialogs. Now: no fetch at all while the
-  // printer is off; a failure waits 5 s, then 15 s, then 60 s between tries, is reported once in the
-  // toast and never over a dialog, and the next try comes by itself (at once when the printer is back,
-  // see update). a replay or a rewound view draws only what the recording holds and never asks the
-  // printer for a file. The recording keeps each print's slicer metadata and ten Orca settings
+  // WO-20 (2026-09-23), the owner: "If the G-code is not available because the printer is off, we should be
+  // able to tell that the printer is not on." WO-19 found this retrying on every tick and writing over
+  // open dialogs. Now: no fetch at all while the printer is off; a failure waits 5 s, then 15 s, then
+  // 60 s between tries, is reported once in the toast and never over a dialog, and the next try comes
+  // by itself (at once when the printer is back, see update()).
+  // WO-21 (2026-09-24): a replay or a rewound view draws only what the recording holds and never asks
+  // the printer for a file. The recording keeps each print's slicer metadata and ten Orca settings
   // (print_context), not its G-code, so it says so once per file instead of fetching. Nothing is
   // fetched either while the page cannot reach its own service.
   if(link().state==='replay'||!getState().live){if(notStored!==file){notStored=file;toast(`G-code not stored in the recording: the toolpath of ${file} cannot be drawn here.`);}return;}
@@ -873,30 +888,38 @@ export function mountHUD({getState,getScene,route,diagnose,partsAt,openDetail,ed
   showToolpath(name,(text,state)=>{if(state==='reported')toast(text);}).then(()=>{tpFail=0;tpNext=0;}).catch(e=>{autoToolpath=null;toolpathFile=null;toolpathParsed=null;
    const wait=TP_BACKOFF_S[Math.min(tpFail,TP_BACKOFF_S.length-1)];tpNext=performance.now()+wait*1000;if(++tpFail===1)toast(`${e.message} Trying again in ${wait} s, then less often.`);});
  }
-  function toolpathTick(current){if(!toolpathParsed||!toolpathFile||!gcodeModule)return;const name=current?.name||'';if(name&&name.split('/').pop()!==toolpathFile.path.split('/').pop())return;
-   // Parts of the cube read as finished before the head got there. The byte the printer is
-   // reading drives it now; the progress ratio is only the fallback for a sample that carries no
-   // file position (older recordings).
+  function toolpathTick(current){if(!toolpathParsed||!toolpathFile)return;const name=current?.name||'';if(name&&name.split('/').pop()!==toolpathFile.path.split('/').pop())return;
+   // 2026-09-21: parts of the cube read as finished before the head got there. The byte the
+   // printer is reading drives it now; the progress ratio is only the fallback for a sample that
+   // carries no file position (older recordings).
    const p=point(),progress=known(current?.progress)?clamp(current.progress,0,1):0;
-   const at=known(p?.file_position)?Math.round(p.file_position):Math.round(progress*toolpathFile.bytes);
-   const step=gcodeModule.progressToLayer(toolpathParsed,at);
-   lastLayerText=current?.state==='printing'&&toolpathParsed.totalLayers&&step.layer>=0?`layer ${Math.min(step.layer+1,toolpathParsed.totalLayers)}/${toolpathParsed.totalLayers}`:'';lastLayer=lastLayerText?[Math.min(step.layer+1,toolpathParsed.totalLayers),toolpathParsed.totalLayers]:null;
-   getScene()?.toolpathProgress({...step,filePosition:at,live:p?.position});}
+   const live=p?.position&&p.position.length>=2&&Number.isFinite(p.position[0])&&Number.isFinite(p.position[1]);
+   const signal={};
+   if(Number.isFinite(p?.file_position))signal.byte=p.file_position;
+   else if(Number.isFinite(progress))signal.progress=progress;
+   else if(Number.isFinite(p?.print_stats?.info?.current_layer)){signal.layer=p.print_stats.info.current_layer;signal.layers=p.print_stats.info.total_layer;}
+   else if(Number.isFinite(current?.time_printing)&&Number.isFinite(current?.estimated_time)){signal.elapsed=current.time_printing;signal.estimate=current.estimated_time;}
+   const z=Number.isFinite(p?.position?.[2])?p.position[2]:null;
+   const followed=toolpathFollower.tick({signal,live,z,now:performance.now()});
+   if(!followed)return;
+   const at=Number.isFinite(p?.file_position)?Math.round(p.file_position):Math.round(progress*toolpathFile.bytes);
+   lastLayerText=current?.state==='printing'&&toolpathParsed.totalLayers&&followed.layer>=0?`layer ${Math.min(followed.layer+1,toolpathParsed.totalLayers)}/${toolpathParsed.totalLayers}`:'';lastLayer=lastLayerText?[Math.min(followed.layer+1,toolpathParsed.totalLayers),toolpathParsed.totalLayers]:null;
+   getScene()?.toolpathProgress({layer:followed.layer,fraction:followed.fraction,filePosition:at,live:p?.position});}
 
   // L3: exclude objects while a print runs.
   async function openObjects(){const entry=modal('objects','Exclude objects',async(body)=>{
     body.append(node('p','hud-modal-note','Objects Klipper knows in the running file. Excluding one skips it for the rest of the print. It cannot be undone.'));
-    // Closing the modal drops the plate highlight, so an object never stays marked after the
-    // modal that marked it is gone.
+    // WO-13: closing the modal drops the plate highlight, so an object never stays marked after
+    // the modal that marked it is gone.
     entry.onClose=()=>getScene()?.highlightObject(null);
     try{const d=await jget('/api/print/objects');const list=node('div','hud-macro-list');
      for(const o of d.objects||[]){const row=node('div','hud-object-row');
       const b=button(o.name+(o.excluded?' · excluded':''),()=>send('exclude_object',{name:o.name}),o.excluded?'':'hud-danger');b.disabled=Boolean(o.excluded);tip(b,o.name,o.excluded?'Already excluded from this print.':'Skips this object for the rest of the print. It cannot be undone.','exclude_object');
       row.append(b);
-      // When the drawn toolpath carries this object (slicer labeled it and the file was parsed),
-      // "Show on plate" marks its moves in magenta on the bed — the scene answers which one it
-      // is, not the name. Names match case-insensitively: the parser reports the sliced name,
-      // Klipper the defined one, and they disagree on case for the same object.
+      // WO-13: when the drawn toolpath carries this object (slicer labeled it and the file was
+      // parsed), "Show on plate" marks its moves in magenta on the bed — the scene answers which
+      // one it is, not the name. Names match case-insensitively: the parser reports the sliced
+      // name, Klipper the defined one, and they disagree on case for the same object.
       if(toolpathParsed?.objects?.some(p=>String(p.name).toLowerCase()===String(o.name).toLowerCase()))row.append(tip(button('Show on plate',()=>getScene()?.highlightObject(o.name)),'Show on plate','Marks this object\'s moves in magenta on the bed.'));
       list.append(row);}
      body.append(list.childElementCount?list:node('p','hud-modal-note','No objects reported. The slicer must label objects (Orca: Label objects on).'));}catch(e){body.append(node('p','hud-command-status',e.message));}
@@ -923,9 +946,10 @@ export function mountHUD({getState,getScene,route,diagnose,partsAt,openDetail,ed
    for(const [heater,dr]of Object.entries(d.drift||{})){if(!dr||!known(dr.mean_c_per_s))continue;const e=node('div','hud-fact');e.append(node('span','',heater.replace('heater_','').toUpperCase()+' TREND'),node('strong','',number(dr.latest_c_per_s,' °C/s',3)),node('small','',`mean ${number(dr.mean_c_per_s,' °C/s',3)} over ${dr.sessions} heat-ups${known(dr.latest_vs_mean_pct)?' · latest '+(dr.latest_vs_mean_pct>=0?'+':'')+dr.latest_vs_mean_pct.toFixed(0)+'%':''}`));host.append(e);}
    for(const r of rows.slice(0,10)){const e=node('div','hud-fact');e.append(node('span','',`${(r.heater||'').replace('heater_','').toUpperCase()} ${when(r.ts)}`),node('strong','',number(r.heat_up_c_per_s,' °C/s',3)),node('small','',`${number(r.start_c,'',0)} → ${number(r.target_c,' °C',0)} in ${number(r.seconds_to_target,' s',0)}${known(r.overshoot_c)?' · overshoot '+number(r.overshoot_c,' °C',2):''}`));evidenceLinks(e,r.evidence);host.append(e);}});
   },{wide:true});}
- // One door for every test the machine runs on itself, plus the recorded results. Every run goes
- // through the same send as everywhere else, so the no-review list and the service-side T3 gates
- // apply here unchanged; marker: hud-testing-modal.
+ // 2026-09-21: "there should be another button there at least, like testing, resonance testing,
+ // and so on." One door for every test the machine runs on itself, plus the recorded results. Every
+ // run goes through the same send() as everywhere else, so the no-review list and the service-side
+ // T3 gates apply here unchanged; WO-09 marker: hud-testing-modal.
  function openTesting(){modal('testing','Testing',(body)=>{
    body.append(node('p','hud-modal-note','Each of these moves the printer. Nothing starts by itself.'));
    const acts=node('div','hud-calibrations');
@@ -983,19 +1007,19 @@ export function mountHUD({getState,getScene,route,diagnose,partsAt,openDetail,ed
   const heating=(known(p?.nozzle?.target)&&p.nozzle.target>0&&p.nozzle.temperature<p.nozzle.target-3)||(known(p?.bed?.target)&&p.bed.target>0&&p.bed.temperature<p.bed.target-3);
   const sceneState=jobState==='printing'?'printing':jobState==='paused'?'paused':jobState==='error'?'error':heating?'heating':'idle';
    cockpit.dataset.state=sceneState;cockpit.dataset.mode=mode;
-   // The scene's key light leans with what the machine is doing (heating warms, printing
+   // WO-12: the scene's key light leans with what the machine is doing (heating warms, printing
    // brightens, error washes magenta). Purely a lighting cue; the state pill stays the source of
    // truth in text.
    getScene()?.stage(sceneState);
   statePill.textContent=(mode==='replay'?'RECORDING · ':mode==='rewind'?'REWIND · ':'')+(sceneState==='idle'?activity||'Idle':sceneState).toUpperCase();
-  // The printer's state drives the header, the banner and every control. When it comes back, the
-  // control list is fetched fresh and the printing file is tried at once. The service's command
-  // list is read again whenever the printer can take something new: back to ready, or halted with
-  // the restarts open (reviewer's decision on ).
+  // WO-20: the printer's state drives the header, the banner and every control. When it comes back,
+  // the control list is fetched fresh and the printing file is tried at once.
+  // The service's command list is read again whenever the printer can take something new: back to
+  // ready, or halted with the restarts open (reviewer's decision on WO-20).
   const l=link(),linkKey=l.state+(l.recover?'+recover':'');if(linkKey!==lastLink){const was=lastLink;lastLink=linkKey;if(l.state==='ready'){tpFail=0;tpNext=0;}if(was&&(!l.lock||l.recover))controls(true);}
   lockControls();
   // Live, the age is the newest sample's own time against the clock: the last tick's age froze at
-  // "fresh" when the ticks stopped, which read wrong beside PRINTER OFF.
+  // "fresh" when the ticks stopped, which read wrong beside PRINTER OFF (WO-20).
   const age=mode==='live'&&known(p?.ts)?Math.max(0,Date.now()/1000-p.ts):tick?.age_seconds??s.snapshot?.age_seconds;fresh.textContent=known(age)?(age<5?'fresh':age<120?number(age,' s old',0):number(age/3600,' h old',1)):'';
   paintControls(l);
   loadedChip.textContent=PRESETS?.loaded?.name?PRESETS.loaded.name+' loaded':'';
@@ -1004,7 +1028,7 @@ export function mountHUD({getState,getScene,route,diagnose,partsAt,openDetail,ed
   offline.querySelector('strong').textContent=l.state==='service'?'SERVICE NOT RUNNING':mode==='replay'?'SAVED RECORDING':l.state==='off'?'PRINTER OFF':l.state==='not_ready'?'KLIPPER NOT READY':!s.live?'REWOUND':'CONTROLS OFF';
   offlineText.textContent=l.state==='service'?`Stella Scope service is not running${l.since?' (no answer for '+l.since+')':''}. This view stays as it was; nothing new arrives and no command can go. The page tries again by itself, 1 s, 2 s, 5 s, then every 10 s, and picks up at once when the service answers. The printer itself may be fine.`
    :mode==='replay'?'Saved telemetry. This replay instance cannot send printer commands.'
-   :l.state==='off'?`The printer is not answering${l.since?'; last data '+l.since+' ago':''}. You can look at everything; the controls unlock by themselves once it is on and Klipper is ready.`
+   :l.state==='off'?`Stella is not answering${l.since?'; last data '+l.since+' ago':''}. You can look at everything; the controls unlock by themselves once she is on and Klipper is ready.`
    :l.state==='not_ready'?l.reason+(l.recover?' You can look at everything; the emergency stop, FW RESTART and Klipper restart (More > Restart) still go.':' You can look at everything; only the emergency stop still goes.')
    :!s.live?'Rewound to an earlier moment. Press Live to arm the controls again.'
    :(caps.reason||'Controls are unavailable.');
@@ -1016,7 +1040,7 @@ export function mountHUD({getState,getScene,route,diagnose,partsAt,openDetail,ed
   // gauges
   nozzle.set(p?.nozzle?.temperature,p?.nozzle?.target,'target '+number(p?.nozzle?.target,'°',0)+' · power '+number(known(p?.nozzle?.power)?p.nozzle.power*100:null,'%',0));
   bed.set(p?.bed?.temperature,p?.bed?.target,'target '+number(p?.bed?.target,'°',0)+' · power '+number(known(p?.bed?.power)?p.bed.power*100:null,'%',0));
-  // Glow only on live values, and a heater drawing power breathes. Rewound or replayed: still.
+  // WO-19: glow only on live values, and a heater drawing power breathes. Rewound or replayed: still.
   const liveNow=mode==='live'&&known(age)&&age<5;document.body.dataset.fresh=liveNow?'1':'';
   nozzle.el.dataset.drawing=liveNow&&known(p?.nozzle?.power)&&p.nozzle.power>0?'1':'';bed.el.dataset.drawing=liveNow&&known(p?.bed?.power)&&p.bed.power>0?'1':'';
   const fans=fansAt(p);const part=fans.find(f=>f.object==='fan');partFan.set(known(part?.command)?part.command*100:null,null,part?.rpm==null?'commanded output':number(part.rpm,' RPM',0));partGlyph.set(part?.command);
@@ -1027,7 +1051,7 @@ export function mountHUD({getState,getScene,route,diagnose,partsAt,openDetail,ed
   for(const [i,a]of ['X','Y','Z'].entries())roll(axes[a],p?.position?.[i],v=>number(v,'',1));
   reticleText.textContent=known(p?.position?.[2])?'Z '+number(p.position[2],'',2):'';
   const h=p?.homed||'';homed.textContent=h.length>=3?'HOMED':h?'HOMED '+h.toUpperCase():'NOT HOMED';homed.dataset.ok=h.length>=3?'1':'';
-  // Live motion beside X, Y and Z, and the bottom strip. Unknown is a dash, never zero.
+  // WO-19: live motion beside X, Y and Z, and the bottom strip. Unknown is a dash, never zero.
   velocityRead.set(p?.velocity,{unit:'mm/s',note:known(p?.max_velocity)?'max '+number(p.max_velocity,'',0):''});
   accelRead.set(p?.max_accel,{unit:'mm/s²'});
   const ceiling=flowCeiling(PRESETS?.loaded?.name,PRESETS?.hotend_max_flow),vol=volumetricFlow(p?.extruder_velocity),share=known(vol)&&known(ceiling.max)?vol/ceiling.max:null,flowState=share===null?'':share>1?'over':share>=.8?'near':'ok';
@@ -1051,12 +1075,13 @@ export function mountHUD({getState,getScene,route,diagnose,partsAt,openDetail,ed
   document.body.dataset.hudPage=s.page;
  }
 
- // ---------- part cards ---------- the user, clicking parts in their own window. Every card reads
- // hud-core's PART_WIRING, so a part lists only what is wired to or measured on it. A part with
- // nothing wired gets no card when clicked: the part chip (paint, hide, isolate, zoom) opens
- // instead, and its specifications and source stay one click away under Details. The bed shows the
- // newest mesh in the recording, dated, instead of whatever the sample at the cursor carries. Tabs
- // only appear with something in them. The look is the style decisions in -STOP-REPORT.md.
+ // ---------- part cards ----------
+ // WO-18 (2026-09-23), the owner, clicking parts in his own window. Every card reads hud-core's
+ // PART_WIRING, so a part lists only what is wired to or measured on it. A part with nothing wired
+ // gets no card when clicked: the part chip (paint, hide, isolate, zoom) opens instead, and its
+ // specifications and source stay one click away under Details. The bed shows the newest mesh in
+ // the recording, dated, instead of whatever the sample at the cursor carries. Tabs only appear
+ // with something in them. The look is the style decisions in WO-18-STOP-REPORT.md.
  const card={id:null,wiring:null,widgets:null,tab:'signals',signalsBody:null};
  // Where the part was pressed. pointerdown, because the scene selects on pointerup before any
  // listener here would hear it.
@@ -1066,9 +1091,8 @@ export function mountHUD({getState,getScene,route,diagnose,partsAt,openDetail,ed
  function wiringFor(entry){const scene=getScene(),b=scene.geometryBounds(entry.id);return partWiring(entry,b?[(b.min[0]+b.max[0])/2,(b.min[1]+b.max[1])/2]:null,scene.bedCenter);}
  // The CAD node a part sits in, less its hardware. The LCD panel is nine printed and electronic
  // meshes (plus eleven screws and inserts) over three colour groups, and its card painted only the
- // one mesh clicked, usually the screen: that is why the user could not repaint the panel. The
- // whole assembly is now one tick away. The node is the first place the part's name appears in its
- // path.
+ // one mesh clicked, usually the screen: that is why the owner could not repaint the panel. The whole
+ // assembly is now one tick away. The node is the first place the part's name appears in its path.
  function assemblyOf(entry){const f=(entry.full||'').split(' / '),i=f.indexOf(entry.name);if(i<1)return null;const path=f.slice(0,i).join(' / ')+' / ',members=getScene().entries.filter(e=>(e.full||'').startsWith(path)&&!/shcs|bhcs|fhcs|screw|bolt|nut|washer|insert|magnet/i.test(e.name||''));return members.length>1&&members.length<=60?{name:f[i-1].replace(/:\d+$/,'').replace(/(\s*\(\d+\))+$/,''),members}:null;}
  function paintControl(entry){const scene=getScene(),wrap=node('div','hud-paint'),picker=node('input'),status=node('small'),asm=assemblyOf(entry),whole=asm?node('input'):null;
   picker.type='color';picker.value=scene.color(entry.id)||'#82949c';picker.setAttribute('aria-label','Colour for '+entry.name);tip(picker,'Part colour','Opens a colour picker. The colour is saved in this browser only; nothing goes to the printer.');wrap.append(node('span','','PAINT'),picker);
@@ -1124,7 +1148,7 @@ export function mountHUD({getState,getScene,route,diagnose,partsAt,openDetail,ed
   return {el:box,update};}
  // The bed shows the newest mesh in the recording at or before the cursor, dated, with its probed
  // points as a map. The sample at the cursor alone often carries none (a print clears it), which
- // is why the card said "no probed mesh" after the user had meshed several times.
+ // is why the card said "no probed mesh" after the owner had meshed several times.
  async function recordedMesh(to){const h=await fetch(`/api/history/mesh?to=${to}&limit=1`).then(r=>r.ok?r.json():Promise.reject(Error('HTTP '+r.status)));const m=h?.meshes?.[0];if(!m)return null;
   const w=await fetch(`/api/workspace?ts=${m.ts}`).then(r=>r.ok?r.json():null).catch(()=>null),g=w?.point?.mesh;return {...m,grid:Array.isArray(g?.grid)&&g.grid.length?g.grid:null,min:g?.min,max:g?.max};}
  const since=s=>s>=86400?`${Math.floor(s/86400)} d ${Math.floor(s%86400/3600)} h`:s>=3600?`${Math.floor(s/3600)} h ${Math.floor(s%3600/60)} min`:`${Math.max(0,Math.round(s/60))} min`;

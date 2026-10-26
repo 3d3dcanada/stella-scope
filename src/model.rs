@@ -48,31 +48,42 @@ pub struct CollectorStatus {
     /// SSE and tick requests never replay deltas for every reader. Read-only for the server.
     pub last_tick: Option<Value>,
     pub last_tick_ts: Option<f64>,
-    /// What the printer can do now, read off the link this collector already keeps (no extra poll):
-    /// "ready", "not_ready" (Moonraker answers, Klipper does not) or "unreachable" (Moonraker does
-    /// not answer: the printer is off or off the network). Empty before the first attempt and in
-    /// replay.
+    /// WO-20 (2026-09-23), the owner: "Nothing works without the printer being on." What the printer can
+    /// do now, read off the link this collector already keeps (no extra poll): "ready",
+    /// "not_ready" (Moonraker answers, Klipper does not) or "unreachable" (Moonraker does not
+    /// answer: the printer is off or off the network). Empty before the first attempt and in replay.
     pub printer_state: String,
     pub printer_message: Option<String>,
     /// Klipper's own state word from the newest sample (ready, startup, error, and the halted one),
     /// empty while Moonraker does not answer. With Klipper halted or in error the HUD unlocks the two
-    /// restarts, the way out (reviewer's decision on 2026-09-23).
+    /// restarts, the way out (reviewer's decision on WO-20, 2026-09-23).
     pub klipper_state: String,
 }
 
-/// The printer state from the collector's own link. `error` is the newest failed attempt's error,
-/// kept until a success; `webhooks` is Klipper's own state object from the newest sample.
+/// WO-20: the printer state from the collector's own link. `error` is the newest failed attempt's
+/// error, kept until a success; `webhooks` is Klipper's own state object from the newest sample.
+/// `klipper` (polish WO-06, 2026-10-18, README rule 8): Klipper's words ("Klipper state: ...") only
+/// for a Klipper printer; a demo or any other brand says plainly that it stopped.
 pub fn printer_link(
     connected: bool,
     error: Option<&str>,
     webhooks: &Value,
+    klipper: bool,
 ) -> (&'static str, Option<String>) {
     if !connected {
         return match error {
             // The header needs only what Moonraker said: the collector's "Printer not answering."
             // prefix and the client's advice after the ';' (meant for a wrong URL) are dropped.
-            Some(e) if !e.contains(crate::moonraker::UNREACHABLE) => {
-                let said = e.trim_start_matches("Printer not answering.").split(';').next().unwrap_or(e).trim();
+            Some(e)
+                if !e.contains(crate::moonraker::UNREACHABLE)
+                    && !e.contains(crate::driver::UNREACHABLE_GENERIC) =>
+            {
+                let said = e
+                    .trim_start_matches("Printer not answering.")
+                    .split(';')
+                    .next()
+                    .unwrap_or(e)
+                    .trim();
                 ("not_ready", Some(said.to_owned()))
             }
             other => ("unreachable", other.map(str::to_owned)),
@@ -87,10 +98,16 @@ pub fn printer_link(
                 .as_str()
                 .and_then(|m| m.lines().map(str::trim).find(|l| !l.is_empty()))
                 .map(|l| l.trim_end_matches('.'));
-            ("not_ready", Some(match first {
-                Some(m) => format!("{m} (Klipper state: {state})"),
-                None => format!("Klipper state: {state}"),
-            }))
+            (
+                "not_ready",
+                Some(match (klipper, first) {
+                    (true, Some(m)) => format!("{m} (Klipper state: {state})"),
+                    (true, None) => format!("Klipper state: {state}"),
+                    (false, Some(m)) => m.to_owned(),
+                    (false, None) if state == "shutdown" => "Stopped (emergency stop)".to_owned(),
+                    (false, None) => "Stopped".to_owned(),
+                }),
+            )
         }
         _ => ("ready", None),
     }
@@ -119,6 +136,23 @@ pub fn motor(data: &Value, name: &str) -> Value {
         "cs": field("cs_actual"), "stst": field("stst").map(|v| v != 0),
         "stealth": field("stealth").map(|v| v != 0), "flags": flags,
         "energised": bool_value(&data["stepper_enable"]["steppers"][name])})
+}
+
+/// Driver flags worth raising. On the TMC2209 the open-load bits (ola, olb) only mean something while
+/// the motor moves; at standstill (stst=1) they read 1 spuriously. 2026-09-28: Klipper reported
+/// `drv_status {olb:1, stst:1, cs_actual:25}` with the printer ready and parked and Scope raised
+/// "stepper_x TMC2209 reports OLB" ("We can't have things like this popping up"). Every other flag is
+/// kept as it was. `standstill` unknown (no stst field) keeps the bits: nothing says they are false.
+pub fn reportable_flags(flags: &Value, standstill: Option<bool>) -> Value {
+    let Some(list) = flags.as_array() else {
+        return flags.clone();
+    };
+    Value::Array(
+        list.iter()
+            .filter(|f| !(standstill == Some(true) && matches!(f.as_str(), Some("ola" | "olb"))))
+            .cloned()
+            .collect(),
+    )
 }
 
 pub fn point(ts: f64, data: &Value) -> Value {
@@ -153,7 +187,7 @@ pub fn demo(t: f64, cfg: &crate::config::Config) -> Value {
     let x = cfg.bed_size_mm[0] * (0.5 + 0.38 * (t / 8.0).sin());
     let y = cfg.bed_size_mm[1] * (0.5 + 0.38 * (t / 11.0).cos());
     let z = 2.0 + (t / 180.0).rem_euclid(50.0);
-    // A 9x9 synthetic mesh so the UI is exercised at the real probe count.
+    // A 9x9 synthetic mesh so the UI is exercised at the real probe count (owner's [bed_mesh] is 9x9).
     let mesh_rows = (0..9)
         .map(|yi| {
             (0..9)
@@ -207,48 +241,147 @@ pub fn demo(t: f64, cfg: &crate::config::Config) -> Value {
 }
 
 #[cfg(test)]
+mod driver_flag_tests {
+    use super::{motor, reportable_flags};
+    use serde_json::json;
+
+    /// The exact reading from our report of 2026-09-28: olb set, stst set, cs_actual 25.
+    #[test]
+    fn open_load_at_standstill_is_not_reported_but_other_flags_and_motion_are() {
+        let data = json!({"tmc2209 stepper_x":{"run_current":1.0,"hold_current":0.5,
+            "drv_status":{"olb":1,"stst":1,"cs_actual":25}}});
+        let m = motor(&data, "stepper_x");
+        assert_eq!(m["flags"], json!(["olb"]));
+        assert_eq!(m["stst"], json!(true));
+        assert_eq!(
+            reportable_flags(&m["flags"], m["stst"].as_bool()),
+            json!([])
+        );
+        // The same bit while the motor moves (stst=0) is kept.
+        let moving = json!({"tmc2209 stepper_x":{"drv_status":{"olb":1,"stst":0,"cs_actual":25}}});
+        let m = motor(&moving, "stepper_x");
+        assert_eq!(
+            reportable_flags(&m["flags"], m["stst"].as_bool()),
+            json!(["olb"])
+        );
+        // Overtemperature at standstill is a real flag and stays.
+        let hot = json!({"tmc2209 stepper_x":{"drv_status":{"otpw":1,"olb":1,"ola":1,"stst":1}}});
+        let m = motor(&hot, "stepper_x");
+        assert_eq!(
+            reportable_flags(&m["flags"], m["stst"].as_bool()),
+            json!(["otpw"])
+        );
+        // No stst reading at all: nothing says the bit is false, so it stays.
+        assert_eq!(reportable_flags(&json!(["olb"]), None), json!(["olb"]));
+        // A motor with no driver reading has null flags; that stays null.
+        assert!(reportable_flags(&json!(null), Some(true)).is_null());
+    }
+}
+
+#[cfg(test)]
 mod printer_link_tests {
     use super::printer_link;
     use serde_json::{json, Value};
 
-    /// The three states the header shows, from the link the collector keeps. The error texts are
-    /// the shapes the collector really produces: `Printer not answering.` plus the Moonraker
-    /// client's own message.
+    /// WO-20 (2026-09-23): the three states the header shows, from the link the collector keeps.
+    /// The error texts are the shapes the collector really produces: `Printer not answering.` plus
+    /// the Moonraker client's own message.
     #[test]
     fn printer_state_tells_off_from_klipper_not_ready_from_ready() {
-        let off = "Printer not answering. cannot reach Moonraker at http://192.168.1.50:7125: io: Connection refused; is the printer on, and is this host allowed by Moonraker? For 401/403, set STELLA_MOONRAKER_API_KEY";
-        assert_eq!(printer_link(false, Some(off), &Value::Null), ("unreachable", Some(off.to_owned())));
+        let off = "Printer not answering. cannot reach Moonraker at http://192.168.1.131:7125: io: Connection refused; is the printer on, and is this host allowed by Moonraker? For 401/403, set STELLA_MOONRAKER_API_KEY";
+        assert_eq!(
+            printer_link(false, Some(off), &Value::Null, true),
+            ("unreachable", Some(off.to_owned()))
+        );
         // No error kept yet (a push link gone quiet before its first failed poll) reads as off.
-        assert_eq!(printer_link(false, None, &Value::Null), ("unreachable", None));
+        assert_eq!(
+            printer_link(false, None, &Value::Null, true),
+            ("unreachable", None)
+        );
         // Moonraker answers, but without printer data: Klipper is the one not ready, and the header
         // gets what Moonraker said without the prefix and the wrong-URL advice.
         let klippy = "Printer not answering. Moonraker returned HTTP 503 Service Unavailable; use the direct local HTTP endpoint, not a redirect";
         assert_eq!(
-            printer_link(false, Some(klippy), &Value::Null),
-            ("not_ready", Some("Moonraker returned HTTP 503 Service Unavailable".to_owned()))
+            printer_link(false, Some(klippy), &Value::Null, true),
+            (
+                "not_ready",
+                Some("Moonraker returned HTTP 503 Service Unavailable".to_owned())
+            )
         );
         // Connected, and Klipper reports it has stopped: not ready, in Klipper's own words. The
-        // startup message is the one in the recording (15 samples, 2026-09-16 to 09-22); the
+        // startup message is the one in our recording (15 samples, 2026-09-16 to 09-22); the
         // shutdown one is Klipper's cause line plus its standard FIRMWARE_RESTART advice.
         let startup = json!({"state":"startup","state_message":"\nPrinter is not ready\nThe klippy host software is attempting to connect.  Please\nretry in a few moments.\n"});
         assert_eq!(
-            printer_link(true, None, &startup),
-            ("not_ready", Some("Printer is not ready (Klipper state: startup)".to_owned()))
+            printer_link(true, None, &startup, true),
+            (
+                "not_ready",
+                Some("Printer is not ready (Klipper state: startup)".to_owned())
+            )
         );
         let stopped = json!({"state":"shutdown","state_message":"Lost communication with MCU 'EBBCan'\nOnce the underlying issue is corrected, use the\n\"FIRMWARE_RESTART\" command to reset the firmware, reload the\nconfig, and restart the host software.\nPrinter is shutdown\n"});
         assert_eq!(
-            printer_link(true, None, &stopped),
-            ("not_ready", Some("Lost communication with MCU 'EBBCan' (Klipper state: shutdown)".to_owned()))
+            printer_link(true, None, &stopped, true),
+            (
+                "not_ready",
+                Some("Lost communication with MCU 'EBBCan' (Klipper state: shutdown)".to_owned())
+            )
         );
         assert_eq!(
-            printer_link(true, None, &json!({"state":"startup","state_message":""})).1.as_deref(),
+            printer_link(
+                true,
+                None,
+                &json!({"state":"startup","state_message":""}),
+                true
+            )
+            .1
+            .as_deref(),
             Some("Klipper state: startup")
         );
         assert_eq!(
-            printer_link(true, None, &json!({"state":"ready","state_message":"Printer is ready"})),
+            printer_link(
+                true,
+                None,
+                &json!({"state":"ready","state_message":"Printer is ready"}),
+                true
+            ),
             ("ready", None)
         );
         // A recording without the webhooks object cannot say otherwise, so a live link is ready.
-        assert_eq!(printer_link(true, None, &Value::Null), ("ready", None));
+        assert_eq!(
+            printer_link(true, None, &Value::Null, true),
+            ("ready", None)
+        );
+    }
+
+    /// Polish WO-06 item 8 (2026-10-18, README rule 8): a demo or any non-Klipper printer says it stopped in
+    /// plain words, never in Klipper's own ("Klipper state: shutdown"); a cause line the bridge gave stays.
+    #[test]
+    fn a_printer_that_is_not_klipper_stops_in_plain_words() {
+        let estop = json!({"state":"shutdown"});
+        assert_eq!(
+            printer_link(true, None, &estop, false),
+            ("not_ready", Some("Stopped (emergency stop)".to_owned()))
+        );
+        assert_eq!(
+            printer_link(true, None, &json!({"state":"error"}), false)
+                .1
+                .as_deref(),
+            Some("Stopped")
+        );
+        let bridge = json!({"state":"startup","state_message":"Bridge is starting\nplease wait"});
+        assert_eq!(
+            printer_link(true, None, &bridge, false).1.as_deref(),
+            Some("Bridge is starting")
+        );
+        assert_eq!(
+            printer_link(true, None, &json!({"state":"ready"}), false),
+            ("ready", None)
+        );
+        // the same report on a Klipper printer keeps Klipper's words
+        assert_eq!(
+            printer_link(true, None, &estop, true).1.as_deref(),
+            Some("Klipper state: shutdown")
+        );
     }
 }

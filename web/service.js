@@ -7,7 +7,7 @@ const $=id=>document.getElementById(id),h=new URLSearchParams(location.hash.slic
 const partNames={head:'Toolhead',hotend:'Hotend',probe:'BLTouch',extruder:'Extruder',fan:'Part-cooling fan',hotend_fan:'Hotend cooling fan',controller_fan:'Electronics cooling fan',controller:'Control board',host:'Raspberry Pi host',psu:'DC power supply',ssr:'Bed switching relay',distribution:'Power distribution',inlet:'Mains inlet',frame:'Frame',deck:'Electronics deck',gantry:'Flying gantry',x_rail:'X crossbeam',y_rails:'Y rails',stepper_x:'Rear B / CoreXY motor',stepper_y:'Rear A / CoreXY motor',heater_bed:'Fixed bed',...Object.fromEntries(CORNERS.map(([,name,id])=>[id,`${name} Z drive`]))};
 const initialPage=h.get('page')||location.pathname.split('/').filter(Boolean)[1];
 const state={page:PAGES.some(p=>p[0]===initialPage)?initialPage:'machine',part:h.get('part')||'head',cursor:h.has('ts')?Number(h.get('ts')):null,live:!h.has('ts'),snapshot:null,seq:0,controller:null,busy:false,playing:false,inspector:'signals',book:null,bookKey:null,catalogue:[],signal:null,signalSeq:0,bounds:null,requestError:null,tick:null,prevTick:null,detail:null};
-// The page's own link to the Stella Scope service (serviceLost / serviceBack, below the tick
+// WO-21: the page's own link to the Stella Scope service (serviceLost / serviceBack, below the tick
 // loops). Declared here, before anything can draw. While it is down, state.link holds
 // {printer_state:'service'} so the one state rule (printerLink) says so everywhere.
 const SERVICE_BACKOFF_S=[1,2,5,10],svc={down:false,since:null,fails:0,next:0,link:null};
@@ -22,19 +22,18 @@ function error(e){$('error').hidden=false;$('error').textContent=e.message||Stri
 function toast(s){$('toast').hidden=false;$('toast').textContent=s;clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').hidden=true,4000);}
 function btn(label,action,cls=''){const b=el('button',cls,label);b.type='button';b.addEventListener('click',action);return b;}
 function link(label,url){const a=el('a','',label),safe=safeUrl(url);if(safe){a.href=safe;a.target='_blank';a.rel='noopener noreferrer';a.referrerPolicy='no-referrer';}return a;}
-// The HUD shows one tooltip for every control, saying what it is (title) and what clicking does
-// (data-tip-do). Outside the HUD the title is the browser's own tooltip.
+// WO-19 (2026-09-23): the HUD shows one tooltip for every control, saying what it is (title) and
+// what clicking does (data-tip-do). Outside the HUD the title is the browser's own tooltip.
 function tipped(e,what,does=''){e.title=what;if(does)e.dataset.tipDo=does;return e;}
 function kv(parent,key,val){const d=el('div','kv');d.append(el('span','',key),el('b','',value(val)));parent.append(d);}
-function card(label,val,note=''){const d=el('article','card');d.append(el('span','',label),el('strong','',val),el('small','',note));return d;}
 function table(headers,rows){const t=el('table'),head=el('thead'),hr=el('tr');headers.forEach(x=>hr.append(el('th','',x)));head.append(hr);t.append(head);const body=el('tbody');for(const row of rows){const tr=el('tr');for(const v of row){const td=el('td');v instanceof Node?td.append(v):td.textContent=value(v);tr.append(td);}body.append(tr);}if(!rows.length){const tr=el('tr'),td=el('td','empty','No matching recorded data.');td.colSpan=headers.length;tr.append(td);body.append(tr);}t.append(body);return t;}
 function described(top,bottom){const x=el('div');x.append(el('span','',top),el('small','',bottom));return x;}
 function route(page){if(!PAGES.some(x=>x[0]===page))page='machine';state.page=page;updateUrl();render();}
 function updateUrl(){const p=new URLSearchParams({page:state.page,part:state.part});if(!state.live&&n(state.cursor)!==null)p.set('ts',state.cursor);history.replaceState(null,'','#'+p);}
 function select(id){state.part=id;updateUrl();scene?.set(state.snapshot,id);inspector();if(state.page==='parts')parts();}
 function pause(){state.playing=false;$('play').textContent='Play';}
-// Every request here also tells the page whether its own Stella Scope service is there. One that cannot
-// reach it at all (stopped, restarting) marks it down; any answer marks it back.
+// WO-21 (2026-09-24): every request here also tells the page whether its own Stella Scope service is
+// there. One that cannot reach it at all (stopped, restarting) marks it down; any answer marks it back.
 async function get(url,signal){let r;try{r=await fetch(url,{cache:'no-store',signal});}catch(e){if(e.name!=='AbortError')serviceLost();throw e;}serviceBack();const v=await r.json();if(!r.ok)throw Error(v.error||`HTTP ${r.status}; check the recorder log.`);return v;}
 function loadBook(){const key=(state.snapshot?.recording_origin==='demo'?'stella-demo:':'stella-live:')+'parts:v1:stella-voron-350';if(state.bookKey===key)return;state.bookKey=key;try{const raw=localStorage.getItem(key);state.book=raw?validateBook(JSON.parse(raw)):emptyBook();}catch(e){state.book=null;error(Error('Parts book cannot be loaded. It has not been overwritten: '+e.message));}}
 function storeBook(book,expected=state.book?.version){if(!state.book)throw Error('Existing parts storage is unavailable; do not overwrite it.');const current=localStorage.getItem(state.bookKey),version=current?validateBook(JSON.parse(current)).version:0;if(version!==expected)throw Error('Another tab changed the parts book. Reload before saving; your existing revisions were not overwritten.');const next=validateBook(book);localStorage.setItem(state.bookKey,JSON.stringify(next));state.book=next;return true;}
@@ -99,7 +98,7 @@ function dashStatus(temp,target){const t=n(target);if(t===null||t<=0)return{text
 function dialCard(field,label,canvasClass){const c=el('div','card');c.dataset.field=field;const cv=el('canvas',canvasClass);const wrap=el('div','dial-slot');wrap.append(cv);c.append(el('span','',label),wrap,el('small',''));return[c,cv,c.querySelector('small')];}
 
 function replay(){return state.snapshot?.observer_now?.mode==='replay'||state.tick?.observer?.mode==='replay';}
-function stats(){const s=state.snapshot,p=s?.point,bounds=s?{first:s.first_ts,last:s.last_ts}:state.bounds;const unknown='Unknown';$('origin').textContent=s?.recording_origin==='demo'?'SYNTHETIC DEMONSTRATION':s?.recording_origin==='live'?'RECORDED PRINTER DATA':'RECORDING ORIGIN UNKNOWN';$('capture-status').textContent=p?`${state.live?'Latest capture':'Rewind'} · ${stamp(p.ts)} · ${f(s.age_seconds,2)} s before cursor`:'No usable recorded sample';$('moment-label').textContent=p?`Selected ${stamp(s.cursor)} · captured ${stamp(p.ts)}`:'No usable recorded sample';$('cursor-time').textContent=stamp(state.cursor);$('first-time').textContent=stamp(bounds?.first);$('last-time').textContent=stamp(bounds?.last);$('cursor').min=bounds?.first??0;$('cursor').max=bounds?.last??1;$('cursor').value=state.cursor??1;
+function stats(){const s=state.snapshot,p=s?.point,bounds=s?{first:s.first_ts,last:s.last_ts}:state.bounds;$('origin').textContent=s?.recording_origin==='demo'?'SYNTHETIC DEMONSTRATION':s?.recording_origin==='live'?'RECORDED PRINTER DATA':'RECORDING ORIGIN UNKNOWN';$('capture-status').textContent=p?`${state.live?'Latest capture':'Rewind'} · ${stamp(p.ts)} · ${f(s.age_seconds,2)} s before cursor`:'No usable recorded sample';$('moment-label').textContent=p?`Selected ${stamp(s.cursor)} · captured ${stamp(p.ts)}`:'No usable recorded sample';$('cursor-time').textContent=stamp(state.cursor);$('first-time').textContent=stamp(bounds?.first);$('last-time').textContent=stamp(bounds?.last);$('cursor').min=bounds?.first??0;$('cursor').max=bounds?.last??1;$('cursor').value=state.cursor??1;
 for(const id of ['play','prev','next','copy-link'])$(id).disabled=!p;$('cursor').disabled=n(bounds?.first)===null||n(bounds?.last)===null;$('live').classList.toggle('primary',state.live);
 $('xyz').textContent=p?`X ${f(p.position?.[0])} / Y ${f(p.position?.[1])} / Z ${f(p.position?.[2])} mm`:'POSITION UNKNOWN'; $('pose-note').textContent=!p||!p.position||p.position.every(x=>n(x)===null)?'Position not reported':p.position.some(x=>n(x)===null)?'Holding last reported axes · not all axes reported (probing/homing)':s.age_seconds>2?'OLDER SAMPLE · not a moving physical-printer view':'Klipper requested position · not encoder feedback';
  if(replay()){$('origin').textContent='SAVED RECORDING · READ ONLY';$('live').textContent='Latest sample';$('capture-status').textContent=p?'Recorded '+stamp(p.ts):'No recorded sample';}
@@ -123,7 +122,7 @@ function plot(canvas,series,from,to,unit=''){const r=canvas.getBoundingClientRec
 // refresh it from the live sample, so showSignal() keeps its existing title/detail/history flow.
 function signals(){const t=telemetry(),q=$('signal-search').value.toLowerCase(),kind=$('signal-kind').value,rows=(t.signals||[]).filter(s=>(!q||`${s.object} ${s.field} ${s.kind}`.toLowerCase().includes(q))&&(!kind||s.kind===kind));
  const CHIP={'sensor reading':'k-sensor','command / setting':'k-command','cached query':'k-cached','requested motion':'k-motion','reported statistics':'k-stats'};
- // Reviewer: values print by unit (hud-core formatSignal), never at full precision.
+ // WO-19 (2026-09-23), reviewer: values print by unit (hud-core formatSignal), never at full precision.
  const readout=s=>{const v=$('signal-value');if(!v)return;if(!s){v.replaceChildren('—');return;}const text=formatSignal(s.object,s.field,s.value),u=signalUnit(s.object,s.field)?.unit;if(u&&text.endsWith(' '+u)){v.replaceChildren(text.slice(0,-u.length-1));v.append(el('small','',u));}else v.replaceChildren(text);};
  const list=$('signal-table');list.replaceChildren();
  for(const s of rows){const r=btn('',()=>{list.querySelectorAll('.sig-row.active').forEach(x=>x.classList.remove('active'));r.classList.add('active');readout(s);showSignal(s);},'sig-row'+(state.signal&&state.signal.object===s.object&&state.signal.field===s.field?' active':''));tipped(r,`${s.object} / ${s.field} · ${s.kind}`,`${s.meaning?String(s.meaning).replace(/\.?$/,'. '):''}Clicking shows its reading and history.`);r.append(el('span','sig-name',`${s.object} / ${s.field}`),el('i','sig-chip '+(CHIP[s.kind]||'k-cached'),s.kind),el('b','sig-val',formatSignal(s.object,s.field,s.value)));list.append(r);}
@@ -180,8 +179,8 @@ function events(){const s=state.snapshot,q=$('event-search').value.toLowerCase()
  // tag colours recorded evidence (resonance/shaper teal · warning kinds orange · hard errors
  // magenta · console/gcode kinds muted · job kinds green); unknown kinds fall back to muted.
  // Click-to-seek is unchanged.
-  // Probe_retry (a BLTouch check Klipper is retrying) sits in the orange tier with probe_alarm,
-  // never magenta: it is worth seeing, not a fault.
+  // WO-14 (2026-09-22): probe_retry (a BLTouch check Klipper is retrying) sits in the orange tier
+  // with probe_alarm, never magenta: it is worth seeing, not a fault.
   const tag=k=>/resonance|shaper/.test(k)?'ev-teal':/error|shutdown|offline|lost/.test(k)?'ev-magenta':/warn|fail|degraded|gap|notice|alarm|retry/.test(k)?'ev-orange':/^job/.test(k)?'ev-green':'ev-mute';
  for(const e of all){if(q&&!`${e.kind} ${e.message}`.toLowerCase().includes(q))continue;shown++;
   const b=btn('',()=>seek(e.ts),'event td-chip');tipped(b,`${e.kind} · ${stamp(e.ts)}`,'Moves the shared recording cursor to this moment.');
@@ -192,8 +191,8 @@ function events(){const s=state.snapshot,q=$('event-search').value.toLowerCase()
 const therm={built:false,nozzle:null,bed:null};
 function thermal(){const s=state.snapshot,p=s?.point,t=telemetry();
  if(!therm.built){therm.built=true;$('thermal-cards').replaceChildren();
-  const[nc,ncv,nsm]=dialCard('nozzle','NOZZLE SENSOR · °C','dial-canvas');therm.nozzle=createDial(ncv,{max:300,unit:'°C',label:'NOZZLE',accent:'--orange',targetColor:'--teal',digits:1});$('thermal-cards').append(nc);
-  const[bc,bcv,bsm]=dialCard('bed','BED SENSOR · °C','dial-canvas');therm.bed=createDial(bcv,{max:120,unit:'°C',label:'BED',accent:'--orange',targetColor:'--teal',digits:1});$('thermal-cards').append(bc);}
+  const[nc,ncv]=dialCard('nozzle','NOZZLE SENSOR · °C','dial-canvas');therm.nozzle=createDial(ncv,{max:300,unit:'°C',label:'NOZZLE',accent:'--orange',targetColor:'--teal',digits:1});$('thermal-cards').append(nc);
+  const[bc,bcv]=dialCard('bed','BED SENSOR · °C','dial-canvas');therm.bed=createDial(bcv,{max:120,unit:'°C',label:'BED',accent:'--orange',targetColor:'--teal',digits:1});$('thermal-cards').append(bc);}
  const nt=n(p?.nozzle?.temperature),nT=n(p?.nozzle?.target),bt=n(p?.bed?.temperature),bT=n(p?.bed?.target);
  therm.nozzle.set(nt,nT??null,dashStatus(nt,nT));const nsm=$('thermal-cards').querySelector('[data-field="nozzle"] small');if(nsm)nsm.textContent=`Target ${f(nT,1)} °C · output command ${f(n(p?.nozzle?.power)===null?null:p.nozzle.power*100,0)}%`;
  therm.bed.set(bt,bT??null,dashStatus(bt,bT));const bsm=$('thermal-cards').querySelector('[data-field="bed"] small');if(bsm)bsm.textContent=`Target ${f(bT,1)} °C · output command ${f(n(p?.bed?.power)===null?null:p.bed.power*100,0)}%`;
@@ -253,7 +252,7 @@ async function drawTrends(){const seq=++trendsSeq;let r=state.trends;
  $('print-context').replaceChildren(table(['Print started','File','Slicer · layer','Flow / PA / nozzle'],pcs.length?pcs.map(pc=>{const m2=pc.metadata||{},o=pc.orca||{};const name=(pc.filename||'?').split('/').pop();return [stamp(pc.ts),name,`${m2.slicer??'unknown'} · LH ${f(m2.layer_height,2)} mm`,`${o.filament_flow_ratio??'—'} / ${o.pressure_advance??'—'} / ${o.nozzle_temperature??'—'} °C`];}):[['No prints with captured context in 24 h yet','','','']]));
  const secs=(r.resonance?.hours||[]).reduce((s2,h2)=>s2+(h2.approx_seconds||0),0);
  setText('resonance-note',`${pcs.length} print${pcs.length===1?'':'s'} with context in 24 h · ≈${Math.round(secs)} s recorded in the Y belt-resonance speed band (83–93 mm/s) — the hum in and out. Derived from recorded velocities only.`);}
-function render(){const titles={assembly:'Assembly library',machine:'Printer reference',signals:'Signals',electronics:'Electronics',parts:'Parts & revisions',diagnostics:'Diagnostics',maintenance:'Service history',timeline:'Timeline',thermal:'Thermal',leveling:'Leveling'};$('page-title').textContent=titles[state.page];$('eyebrow').textContent=`PRINTER REFERENCE / ${state.page.toUpperCase()}`;for(const [id]of PAGES){$('page-'+id).hidden=id!==state.page;}document.querySelectorAll('#pages a').forEach(a=>a.classList.toggle('active',a.dataset.page===state.page));stats(); if(!state.live){$('activity-label').textContent='Rewound view';$('activity-detail').textContent='Live activity detection runs in Live mode from recorded console evidence.';$('freshness').textContent='rewind';}
+function render(){const titles={assembly:'Stella · Assembly library',machine:'Stella · Printer reference',signals:'Signals',electronics:'Electronics',parts:'Parts & revisions',diagnostics:'Diagnostics',maintenance:'Service history',timeline:'Timeline',thermal:'Thermal',leveling:'Leveling'};$('page-title').textContent=titles[state.page];$('eyebrow').textContent=`PRINTER REFERENCE / ${state.page.toUpperCase()}`;for(const [id]of PAGES){$('page-'+id).hidden=id!==state.page;}document.querySelectorAll('#pages a').forEach(a=>a.classList.toggle('active',a.dataset.page===state.page));stats(); if(!state.live){$('activity-label').textContent='Rewound view';$('activity-detail').textContent='Live activity detection runs in Live mode from recorded console evidence.';$('freshness').textContent='rewind';}
  // While Live the tick loop owns the model pose; never reset it to the stale workspace sample.
  if(state.page==='assembly')showAssembly();paintLink();hud?.update();
  if(scene){const tp=state.live?lastTick?.point:null;
@@ -285,23 +284,25 @@ $('play').addEventListener('click',()=>{if(state.playing){pause();return;}state.
 // The full workspace snapshot (~147 KB) now loads on seek, page change, or every 5 s while Live;
 // the 250 ms tick loop below keeps motion and readouts moving without rebuilding the page.
 let lastFull=performance.now();
-// While the service is down nothing is asked here; the pill is repainted so its "for how long" keeps counting.
+// While the service is down nothing is asked here; the pill is repainted so its "for how long" keeps counting (WO-21).
 setInterval(()=>{if(document.hidden||state.busy)return;if(svc.down){paintLink();return;}if(state.playing&&state.snapshot){const now=performance.now(),at=state.cursor+(now-lastPlay)/1000*Number($('speed').value);lastPlay=now;const last=state.snapshot.last_ts;if(at>=last)pause();request(Math.min(at,last));}else if(state.live&&performance.now()-lastFull>5000){lastFull=performance.now();request(null);}},500);
 // Live tick: server-sent events push each stored sample the moment it lands (/api/tick/stream);
 // the 250 ms /api/tick poll below is the fallback while the stream is down. Same payload either way.
 let tickBusy=false,lastTick=null,lastSceneDraw=0;const tickBuffer=[];
-// A pose the machine cannot be in never reaches the buffer, because interpolating between it and
-// the last real one manufactures a whole ramp of poses that ARE inside the machine — that ramp is
-// what drew the gantry up the frame during the G28 in their cube print (recorded Z 464.0195 against
-// axis_maximum 310). The readouts still take the tick; only the drawn position is refused.
+// 2026-09-21, second look: "it went to the top again." A pose the machine cannot be in never
+// reaches the buffer, because interpolating between it and the last real one manufactures a whole
+// ramp of poses that ARE inside the machine — that ramp is what drew the gantry up the frame during
+// the G28 in his cube print (recorded Z 464.0195 against axis_maximum 310). The readouts still take
+// the tick; only the drawn position is refused.
 function takeTick(r){if(!r||r.schema!=='stella-scope.tick.v1')return;lastTick=r;
  if(insideTravel(r.point?.position,r.point?.limits)){tickBuffer.push(r);if(tickBuffer.length>12)tickBuffer.shift();}
  applyTick(r);}
-// While the Stella Scope service does not answer, the page asks one probe at a time and waits 1 s,
-// 2 s, 5 s, then 10 s between tries (the cap). Before, the 250 ms fallback poll and the stream's
-// own reconnects asked about four times a second while it was down. The header says "service not
-// running", not PRINTER OFF (the printer may be fine), the last view stays up, and the first answer
-// resumes everything at once: the stream reopens and a full refresh follows within half a second.
+// WO-21 (2026-09-24): while the Stella Scope service does not answer, the page asks one probe at a
+// time and waits 1 s, 2 s, 5 s, then 10 s between tries (the cap). Before, the 250 ms fallback poll
+// and the stream's own reconnects asked about four times a second while it was down. The header
+// says "service not running", not PRINTER OFF (the printer may be fine), the last view stays up,
+// and the first answer resumes everything at once: the stream reopens and a full refresh follows
+// within half a second.
 function serviceLost(){svc.next=performance.now()+SERVICE_BACKOFF_S[Math.min(svc.fails,SERVICE_BACKOFF_S.length-1)]*1000;svc.fails++;if(svc.down)return;svc.down=true;svc.since=Date.now()/1000;svc.link=state.link;state.link={printer_state:'service',last_success:svc.since};sse?.close();sse=null;sseOk=false;render();}
 function serviceBack(){if(!svc.down)return;svc.down=false;svc.fails=0;svc.next=0;state.link=svc.link;lastFull=0;openSse();render();}
 let sse=null,sseOk=false;
@@ -316,12 +317,12 @@ setInterval(async()=>{if(document.hidden||tickBusy)return;if(svc.down?performanc
 // that clock. Monotonic — the head never jumps backward when a newer sample arrives; at most one
 // interval behind; built only from recorded positions (labelled, never extrapolated or invented).
 const TICK_DELAY_S=0.45;
-// The display clock the interpolated pose belongs to. It is what set must be told, not the tick's
+// The display clock the interpolated pose belongs to. It is what set() must be told, not the tick's
 // timestamp: an interpolated position moves every frame while the tick's ts only moves four times a
 // second, so the guard saw dt = 0 between frames, collapsed its reach to the 2 mm floor and refused
 // every frame that advanced faster than 60 mm/s — then let the whole accumulated tick land in one
-// frame. 80 refusals and 14 steps over 3 mm (worst 15.06 mm) in 22 s of the cube print, measured on
-// the installed build. That release-after-hold is the jank.
+// frame. 80 refusals and 14 steps over 3 mm (worst 15.06 mm) in 22 s of our cube print, measured
+// on the installed build. That release-after-hold is the jank. (2026-09-21)
 let interpAt=0;
 function interpolatedNow(){if(!lastTick?.point?.position)return null;const t=interpAt=Date.now()/1000-TICK_DELAY_S;let lo=null,hi=null;
  for(const s of tickBuffer){const ts=n(s?.point?.ts);if(ts===null||!s.point.position)continue;if(ts<=t){if(!lo||ts>lo.ts)lo={ts,position:s.point.position};}else if(!hi||ts<hi.ts)hi={ts,position:s.point.position};}
@@ -335,8 +336,8 @@ function liveSnapshot(position,ts){if(tickSnapSrc!==state.snapshot||!tickSnap){t
  tickSnap.point.position=position;tickSnap.point.ts=ts===undefined?tickSnap.point.ts:ts;
  // Everything the motion guard tests has to come from the tick, not from the snapshot: the full
  // snapshot refreshes on a 5 s timer (and not at all while the tab is hidden), and a G28 changes
- // homed_axes three times inside one of those windows. 's guard was reading a homed_axes and a
- // travel envelope up to 5 s old, which is why it held nothing during the homing.
+ // homed_axes three times inside one of those windows. WO-10's guard was reading a homed_axes and a
+ // travel envelope up to 5 s old, which is why it held nothing during our homing. (2026-09-21)
  for(const k of ['homed','limits','max_velocity','max_z_velocity','velocity','commanded'])
   if(lastTick?.point&&k in lastTick.point)tickSnap.point[k]=lastTick.point[k];
  if(lastTick?.point?.probe_points)tickSnap.point.probe_points=lastTick.point.probe_points;else delete tickSnap.point.probe_points;
@@ -348,9 +349,9 @@ function tickFrame(){tickFramePending=false;if(state.live&&!document.hidden){con
   scheduleTickFrame();}else{lastSceneDraw=0;}}
 scheduleTickFrame();
 window.addEventListener('visibilitychange',()=>{if(!document.hidden)scheduleTickFrame();});
-// The header's printer-state indicator. It reads the newest collector link the page holds
-// (state.link: a tick's observer while samples flow, the snapshot's observer_now every 5 s when they
-// stop), so it says PRINTER OFF within seconds of the test printer going dark, with how long ago her
+// WO-20 (2026-09-23): the header's printer-state indicator. It reads the newest collector link the
+// page holds (state.link: a tick's observer while samples flow, the snapshot's observer_now every 5 s
+// when they stop), so it says PRINTER OFF within seconds of Stella going dark, with how long ago her
 // last data came, and never polls the printer itself. hud.js locks the controls from the same link.
 function paintLink(){const led=$('led-transport');if(!led)return;const o=state.link,l=printerLink(o,{replay:replay(),lastSeen:o?.last_success??state.snapshot?.last_ts}),t=o?.transport;
  led.dataset.state=l.state==='ready'?(t==='push'?'push':t?'poll':'idle'):l.state;
@@ -383,8 +384,8 @@ function detailLive(id){if(hud?.componentLive(id))return;id=scene?.entries.find(
  if(parent==='head'||parent==='gantry'||parent.startsWith('stepper_z')){const hm=(state.live?lastTick?.homed_axes:null)??state.snapshot?.point?.homed??'';kv(c,'X / Y / Z mm',(p.position||[]).map(x=>f(x,1)).join(' / '));kv(c,'Requested speed mm/s',p.velocity);kv(c,'Homed axes',hm||'none');if(!/[xyz]/.test(hm||''))c.append(el('p','hint','No axes homed; displayed position is not physical until homing completes.'));}
  if(parent==='probe'){kv(c,'Cached last query',telemetry().bltouch?.last_query??p.probe?.triggered);c.append(el('p','hint','Deployment state is not reported by this feed; no probe test is sent.'));}
  if(!c.childNodes.length)c.append(el('p','hint',state.live?'No mapped live telemetry for this item. Its identity and condition belong in Parts.':'Rewound view; live readings appear in Live mode.'));}
-// Explicit is a request for the card (Details, the parts list). A click on a part with nothing wired
-// to it opens the part chip instead of a card.
+// WO-18 (2026-09-23): explicit is a request for the card (Details, the parts list). A click on a part
+// with nothing wired to it opens the part chip instead of a card.
 function openDetail(id,explicit=false){state.detail=id;if(scene?.entries.some(e=>e.id===id&&!e.sourceOnly))select(id);if(hud?.detail(id,{explicit})){detailLive(id);return;}const slot=detailSlot(id),parent=slot?.parent||id;
  $('detail-eyebrow').textContent=(slot?slot.location:'MODEL PART').toUpperCase();
  $('detail-title').textContent=slot?`${slot.name} — ${slot.location}`:partNames[id]||id;

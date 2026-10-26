@@ -1,11 +1,23 @@
-use crate::{api::Response, config::Config, moonraker::Moonraker, store::db_error, Result};
+use crate::{
+    api::print::MAX_GCODE_BYTES,
+    api::Response,
+    config::Config,
+    driver::{self, Action, Capabilities, Heater},
+    dry_run,
+    moonraker::Moonraker,
+    store::db_error,
+    Result,
+};
 use rusqlite::{params, Connection};
 use serde::Deserialize;
 use serde_json::{json, Value};
 use std::{
     collections::{BTreeMap, BTreeSet},
     net::IpAddr,
-    sync::atomic::{AtomicBool, Ordering},
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Mutex,
+    },
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
@@ -30,6 +42,12 @@ enum Params {
     Limit,
     /// `value` = pressure advance in seconds
     Advance,
+    /// `target` = extruder | heater_bed, `value` = °C the heater is tuned at (PID_CALIBRATE)
+    Pid,
+    /// `value` = signed millimetres for the manual Z probe (TESTZ), within ±5
+    TestZ,
+    /// `params` start and factor (per mm of height) of a pressure-advance tower (TUNING_TOWER)
+    Tower,
     /// `target` = an exact macro name reported by gcode/help
     Macro,
     /// `script` = whatever the operator typed in the console
@@ -42,6 +60,9 @@ enum Params {
     ObjectName,
     /// `speed` = mm/s of filament; the length is fixed per command
     Filament,
+    /// `value` = nozzle °C. Runs the printer's own LOAD_FILAMENT / UNLOAD_FILAMENT macro with it
+    /// (2026-09-28: the macros park, heat and purge; the raw G1 above is only a hand feed).
+    FilamentMacro,
     /// Handled inside Stella Scope; nothing is sent to the printer
     Local,
     /// `axis` = X | Y | belts. Runs TEST_RESONANCES while this service records the ADXL345
@@ -111,24 +132,26 @@ const JOG_MAX_MM: f64 = 50.0;
 /// faster than any sane hand feed and well under what a Clockwork2 will skip at.
 const FEED_MIN_MMS: f64 = 1.0;
 const FEED_MAX_MMS: f64 = 25.0;
-/// Lengths taken from the test printer's own LOAD_FILAMENT / UNLOAD_FILAMENT macros: purge 50,
-/// retract 100.
+/// Lengths taken from Stella's own LOAD_FILAMENT / UNLOAD_FILAMENT macros: purge 50, retract 100.
 const LOAD_MM: f64 = 50.0;
 const UNLOAD_MM: f64 = 100.0;
+/// Below this no filament moves: Klipper's own min_extrude_temp is 170 by default.
+const FILAMENT_MIN_C: f64 = 150.0;
 const FILENAME_MAX_CHARS: usize = 200;
 const MACRO_PARAMS_MAX: usize = 12;
 
 /// Commands that skip the review modal and go straight out. Their tier is unchanged, so every
 /// safety gate still applies: blocked while printing or paused, `confirm: true` still required on
 /// the wire, preflight still refuses QGL until the axes are homed. The only thing dropped is the
-/// dialog. user rule 2026-09-21, after being asked to confirm a Z jog: "I should not have to do
+/// dialog. Owner rule 2026-09-21, after being asked to confirm a Z jog: "I should not have to do
 /// this on any of it." The emergency stop is always on the header, so a dialog in front of a
-/// named, fixed action buys nothing. What is deliberately NOT here, and why: `console` and `macro`
-/// send free text, so the preview is the only place the exact G-code is ever seen; `cancel` throws
-/// away a running print; `firmware_restart` and `restart` restart Klipper; `z_offset_save`
-/// rewrites printer.cfg. Those five are not "press the button again", they are one-way, so they
-/// still ask once.
-const NO_REVIEW: [&str; 9] = [
+/// named, fixed action buys nothing.
+///
+/// What is deliberately NOT here, and why: `console` and `macro` send free text, so the preview is
+/// the only place the exact G-code is ever seen; `cancel` throws away a running print;
+/// `firmware_restart` and `restart` restart Klipper; `z_offset_save` rewrites printer.cfg. Those
+/// five are not "press the button again", they are one-way, so they still ask once.
+const NO_REVIEW: [&str; 12] = [
     "home",
     "qgl",
     "jog",
@@ -138,7 +161,34 @@ const NO_REVIEW: [&str; 9] = [
     "resonance_x",
     "resonance_y",
     "resonance_capture",
+    "filament_load",
+    "filament_unload",
+    "filament_shake",
 ];
+/// Tuning commands that never wait for a running macro. 2026-09-28: bed heat was refused while a
+/// quad gantry level ran, because the level's own request holds the "one ordinary command" slot until
+/// Klipper finishes the macro (minutes). Klipper takes a heater, fan, speed or flow change at any
+/// time, so these use their own slot: two of them still never overlap, but a long macro cannot
+/// lock them out.
+const LIGHT: [&str; 4] = ["set_heater", "set_fan", "speed_factor", "extrude_factor"];
+/// 2026-10-22 (filament board): after a load the head gives a quick shake to flick the filament tail off the nozzle. Small fast moves along X, in place: +2 -4 +4 -4 +4 -4 +2 is
+/// net zero, relative moves, and the printer's own G-code state (absolute or relative, units) is saved first and put back after.
+const SHAKE_SCRIPT: &str = "SAVE_GCODE_STATE NAME=STELLA_SHAKE\nG91\nG1 X2 F12000\nG1 X-4 F12000\nG1 X4 F12000\nG1 X-4 F12000\nG1 X4 F12000\nG1 X-4 F12000\nG1 X2 F12000\nRESTORE_GCODE_STATE NAME=STELLA_SHAKE";
+/// The shake's moves for a head at `x` on travel `min..max`: SHAKE_SCRIPT when there are 2 mm (and a half) each side, else six 4 mm moves on the side
+/// that has room, still net zero. None when neither side has room.
+fn shake_script(x: f64, min: f64, max: f64) -> Option<String> {
+    let moves: &[i32] = if x - min >= 2.5 && max - x >= 2.5 {
+        &[2, -4, 4, -4, 4, -4, 2]
+    } else if max - x >= 4.5 {
+        &[4, -4, 4, -4, 4, -4]
+    } else if x - min >= 4.5 {
+        &[-4, 4, -4, 4, -4, 4]
+    } else {
+        return None;
+    };
+    let body: String = moves.iter().map(|m| format!("G1 X{m} F12000\n")).collect();
+    Some(format!("SAVE_GCODE_STATE NAME=STELLA_SHAKE\nG91\n{body}RESTORE_GCODE_STATE NAME=STELLA_SHAKE"))
+}
 const COMMANDS: &[Command] = &[
     Command {
         id: "set_heater",
@@ -219,6 +269,73 @@ const COMMANDS: &[Command] = &[
         tier: "T2",
         requires_homed: false,
         params: Params::Advance,
+    },
+    // Calibration (2026-10-26). Each heats or moves for minutes, so each is T3: shown first, never while printing.
+    Command {
+        id: "pid_calibrate",
+        script: None,
+        capability: Some("PID_CALIBRATE"),
+        tier: "T3",
+        requires_homed: false,
+        params: Params::Pid,
+    },
+    Command {
+        id: "probe_calibrate",
+        script: Some("PROBE_CALIBRATE"),
+        capability: Some("PROBE_CALIBRATE"),
+        tier: "T3",
+        requires_homed: true,
+        params: Params::Fixed,
+    },
+    Command {
+        id: "z_endstop_calibrate",
+        script: Some("Z_ENDSTOP_CALIBRATE"),
+        capability: Some("Z_ENDSTOP_CALIBRATE"),
+        tier: "T3",
+        requires_homed: true,
+        params: Params::Fixed,
+    },
+    // the manual probe's own words exist only while a probe session is open, so they are not looked up in gcode/help
+    Command {
+        id: "testz",
+        script: None,
+        capability: None,
+        tier: "T2",
+        requires_homed: false,
+        params: Params::TestZ,
+    },
+    Command {
+        id: "manual_accept",
+        script: Some("ACCEPT"),
+        capability: None,
+        tier: "T2",
+        requires_homed: false,
+        params: Params::Fixed,
+    },
+    Command {
+        id: "manual_abort",
+        script: Some("ABORT"),
+        capability: None,
+        tier: "T2",
+        requires_homed: false,
+        params: Params::Fixed,
+    },
+    Command {
+        id: "tuning_tower",
+        script: None,
+        capability: Some("TUNING_TOWER"),
+        tier: "T3",
+        requires_homed: false,
+        params: Params::Tower,
+    },
+    // writes the results above into printer.cfg and restarts Klipper
+    Command {
+        id: "save_config",
+        script: Some("SAVE_CONFIG"),
+        capability: Some("SAVE_CONFIG"),
+        tier: "T3",
+        requires_homed: false,
+        params: Params::Fixed,
     },
     Command {
         id: "macro",
@@ -365,6 +482,17 @@ const COMMANDS: &[Command] = &[
         requires_homed: false,
         params: Params::Filename,
     },
+    // WO-02: a dry run uploads a no-extrusion copy of the file and starts it, so the printer moves
+    // every move without printing anything. Refused while printing (T3) and on a printer that cannot
+    // start a file (start_print capability).
+    Command {
+        id: "dry_run",
+        script: None,
+        capability: None,
+        tier: "T3",
+        requires_homed: false,
+        params: Params::Filename,
+    },
     Command {
         id: "print_queue_add",
         script: None,
@@ -424,6 +552,35 @@ const COMMANDS: &[Command] = &[
         requires_homed: false,
         params: Params::Filament,
     },
+    // 2026-09-28: Load filament never reached the printer. These are the named, fixed actions
+    // the dock's Load and Unload buttons and the filament page send: LOAD_FILAMENT TEMP=<n>. T3, so
+    // they are refused mid-print, and in NO_REVIEW like Home: the macro name is fixed, the only
+    // operand is a bounded temperature, and a dialog in front of it buys nothing.
+    Command {
+        id: "filament_load",
+        script: None,
+        capability: Some("LOAD_FILAMENT"),
+        tier: "T3",
+        requires_homed: false,
+        params: Params::FilamentMacro,
+    },
+    Command {
+        id: "filament_unload",
+        script: None,
+        capability: Some("UNLOAD_FILAMENT"),
+        tier: "T3",
+        requires_homed: false,
+        params: Params::FilamentMacro,
+    },
+    // The shake after a load. T3 (refused while a print runs or is paused) and homed only (the head must know where it is), no review: fixed moves, no operand.
+    Command {
+        id: "filament_shake",
+        script: Some(SHAKE_SCRIPT),
+        capability: None,
+        tier: "T3",
+        requires_homed: true,
+        params: Params::Fixed,
+    },
     Command {
         id: "resonance_capture",
         script: None,
@@ -466,6 +623,9 @@ struct CommandInput {
     /// A gcode file under Moonraker's gcodes root.
     #[serde(default)]
     filename: Option<String>,
+    /// Heat the printer as normal during the dry run (default off: no M104/M140/M109/M190).
+    #[serde(default)]
+    heat: bool,
     /// A job id from /server/job_queue/status.
     #[serde(default)]
     job_id: Option<String>,
@@ -482,9 +642,9 @@ struct CommandInput {
 fn macro_value_ok(value: &str) -> bool {
     !value.is_empty()
         && value.len() <= 64
-        && value.bytes().all(|b| {
-            b.is_ascii_alphanumeric() || b"._-+:/".contains(&b)
-        })
+        && value
+            .bytes()
+            .all(|b| b.is_ascii_alphanumeric() || b"._-+:/".contains(&b))
 }
 
 /// A gcode filename as Moonraker lists it: a relative path under the gcodes root.
@@ -495,7 +655,72 @@ fn filename_ok(filename: &str) -> bool {
         && !filename.starts_with('/')
         && !filename.contains(['?', '#', '\r', '\n', '\\', '"'])
         && !filename.chars().any(char::is_control)
-        && filename.to_ascii_lowercase().ends_with(".gcode")
+        && (filename.to_ascii_lowercase().ends_with(".gcode")
+            || filename.to_ascii_lowercase().ends_with(".bgcode"))
+}
+
+/// WO-02: the dry-run copy's name shows "dry run" on the printer's screen and in the history so it
+/// is never mistaken for a print. `cube.gcode` becomes `cube (dry run).gcode`.
+///
+/// Finish-2 F07 (2026-10-19): the copy keeps the file's own name, capitals and all. It was lowercased ("voron cube v7 pla stella fast (dry run)")
+/// because the extension was cut from a lowercased copy of the whole name.
+pub(crate) fn dry_run_name(filename: &str) -> String {
+    let cut = |ext: &str| {
+        let at = filename.len().checked_sub(ext.len())?;
+        (filename.is_char_boundary(at) && filename[at..].eq_ignore_ascii_case(ext)).then(|| &filename[..at])
+    };
+    let (stem, ext) = if let Some(rest) = cut(".gcode") {
+        (rest, ".gcode")
+    } else if let Some(rest) = cut(".bgcode") {
+        (rest, ".bgcode")
+    } else {
+        return format!("{filename} (dry run)");
+    };
+    let safe: String = stem
+        .chars()
+        .map(|c| {
+            if c.is_ascii_alphanumeric() || matches!(c, '.' | '-' | '_') {
+                c
+            } else {
+                '_'
+            }
+        })
+        .collect();
+    format!("{safe} (dry run){ext}")
+}
+
+/// The file a dry run's copy was made from, by name: `cube (dry run).gcode` is `cube.gcode`. None for a name that is not a dry run's copy.
+/// A copy has no picture of its own; the page and the farm wall ask for the original's (finish-2 F07, 2026-10-19).
+pub fn dry_run_original(filename: &str) -> Option<String> {
+    let (stem, ext) = filename.rsplit_once('.').unwrap_or((filename, ""));
+    let base = stem.strip_suffix(" (dry run)")?;
+    Some(if ext.is_empty() { base.to_owned() } else { format!("{base}.{ext}") })
+}
+
+/// What the Calibrate page needs of printer.cfg: the values each calibration writes, whether a SAVE_CONFIG is waiting, and which
+/// optional sections exist (a probe, a gantry level, a mesh, an input shaper). Only those values; never the rest of the file.
+fn calibration_view(configfile: &Value) -> Value {
+    let s = &configfile["settings"];
+    let num = |sec: &str, key: &str| s[sec][key].as_f64();
+    let probe = ["probe", "bltouch", "beacon", "cartographer", "scanner", "smart_effector", "eddy_probe"]
+        .iter()
+        .find(|k| s.get(**k).is_some())
+        .copied();
+    json!({
+        "extruder": {"rotation_distance": num("extruder", "rotation_distance"), "gear_ratio": s["extruder"]["gear_ratio"].clone(),
+            "pressure_advance": num("extruder", "pressure_advance"), "control": s["extruder"]["control"].clone(),
+            "pid_kp": num("extruder", "pid_kp"), "pid_ki": num("extruder", "pid_ki"), "pid_kd": num("extruder", "pid_kd"),
+            "nozzle_diameter": num("extruder", "nozzle_diameter")},
+        "heater_bed": {"control": s["heater_bed"]["control"].clone(), "pid_kp": num("heater_bed", "pid_kp"), "pid_ki": num("heater_bed", "pid_ki"), "pid_kd": num("heater_bed", "pid_kd")},
+        "probe": probe.map(|p| json!({"kind": p, "z_offset": num(p, "z_offset")})),
+        "z_endstop": num("stepper_z", "position_endstop"),
+        "quad_gantry_level": s.get("quad_gantry_level").is_some(),
+        "z_tilt": s.get("z_tilt").is_some(),
+        "bed_mesh": s.get("bed_mesh").is_some(),
+        "input_shaper": s.get("input_shaper").map(|i| json!({"x": i["shaper_type_x"], "fx": i["shaper_freq_x"], "y": i["shaper_type_y"], "fy": i["shaper_freq_y"]})),
+        "save_config_pending": configfile["save_config_pending"].as_bool().unwrap_or(false),
+        "pending": configfile["save_config_pending_items"].clone(),
+    })
 }
 
 /// Render the exact script for a command from operator input, refusing anything out of bounds.
@@ -547,13 +772,19 @@ fn render(command: Command, input: &CommandInput) -> Result<Sent> {
             if !(50.0..=200.0).contains(&percent) {
                 return Err(format!("{} must be 50 to 200 percent", command.id));
             }
-            let code = if command.id == "speed_factor" { "M220" } else { "M221" };
+            let code = if command.id == "speed_factor" {
+                "M220"
+            } else {
+                "M221"
+            };
             Sent::Gcode(format!("{code} S{:.0}", percent))
         }
         Params::Extrude => {
             let mm = value()?;
             if mm == 0.0 || mm.abs() > EXTRUDE_MAX_MM {
-                return Err(format!("extrude amount must be non-zero and within ±{EXTRUDE_MAX_MM} mm"));
+                return Err(format!(
+                    "extrude amount must be non-zero and within ±{EXTRUDE_MAX_MM} mm"
+                ));
             }
             // Klipper refuses below min_extrude_temp itself; this only bounds the amount and feed.
             // Without an explicit speed the original amount-derived feeds stand: 3 mm/s, or
@@ -574,10 +805,27 @@ fn render(command: Command, input: &CommandInput) -> Result<Sent> {
             let feed = feed(5.0)?;
             Sent::Gcode(format!("M83\nG1 E{mm:.2} F{feed:.0}"))
         }
+        Params::FilamentMacro => {
+            let celsius = value()?;
+            if !(FILAMENT_MIN_C..=NOZZLE_MAX_C).contains(&celsius) {
+                return Err(format!(
+                    "{} needs a nozzle temperature of {FILAMENT_MIN_C} to {NOZZLE_MAX_C} °C",
+                    command.id
+                ));
+            }
+            let macro_name = if command.id == "filament_load" {
+                "LOAD_FILAMENT"
+            } else {
+                "UNLOAD_FILAMENT"
+            };
+            Sent::Gcode(format!("{macro_name} TEMP={celsius:.0}"))
+        }
         Params::ZOffset => {
             let mm = value()?;
             if mm == 0.0 || mm.abs() > ZOFFSET_STEP_MAX_MM {
-                return Err(format!("z offset step must be non-zero and within ±{ZOFFSET_STEP_MAX_MM} mm"));
+                return Err(format!(
+                    "z offset step must be non-zero and within ±{ZOFFSET_STEP_MAX_MM} mm"
+                ));
             }
             Sent::Gcode(format!("SET_GCODE_OFFSET Z_ADJUST={mm:.3} MOVE=1"))
         }
@@ -602,6 +850,42 @@ fn render(command: Command, input: &CommandInput) -> Result<Sent> {
                 return Err("pressure advance must be 0 to 1 second".into());
             }
             Sent::Gcode(format!("SET_PRESSURE_ADVANCE ADVANCE={v:.4}"))
+        }
+        // Calibration (2026-10-26: "you likely don't even have calibration ... pre-calibration setup").
+        Params::Pid => {
+            let (heater, lo, hi) = match input.target.as_deref() {
+                Some("extruder") => ("extruder", 150.0, NOZZLE_MAX_C),
+                Some("heater_bed") => ("heater_bed", 40.0, BED_MAX_C),
+                _ => return Err("pid_calibrate target must be extruder or heater_bed".into()),
+            };
+            let celsius = value()?;
+            if !(lo..=hi).contains(&celsius) {
+                return Err(format!("{heater} is tuned at {lo:.0} to {hi:.0} °C"));
+            }
+            Sent::Gcode(format!("PID_CALIBRATE HEATER={heater} TARGET={celsius:.0}"))
+        }
+        Params::TestZ => {
+            let mm = value()?;
+            if mm == 0.0 || mm.abs() > 5.0 {
+                return Err("a probe step must be non-zero and within ±5 mm".into());
+            }
+            Sent::Gcode(format!("TESTZ Z={mm:+.3}"))
+        }
+        Params::Tower => {
+            let num = |k: &str| -> Result<f64> {
+                input
+                    .params
+                    .as_ref()
+                    .and_then(|m| m.get(k))
+                    .and_then(|v| v.parse::<f64>().ok())
+                    .filter(|v| v.is_finite())
+                    .ok_or_else(|| format!("tuning_tower needs a numeric {k}"))
+            };
+            let (start, factor) = (num("start")?, num("factor")?);
+            if !(0.0..=0.5).contains(&start) || !(0.0005..=0.05).contains(&factor) {
+                return Err("a pressure advance tower starts at 0 to 0.5 and rises 0.0005 to 0.05 a millimetre".into());
+            }
+            Sent::Gcode(format!("TUNING_TOWER COMMAND=SET_PRESSURE_ADVANCE PARAMETER=ADVANCE START={start:.4} FACTOR={factor:.5}"))
         }
         Params::Macro => {
             let name = input
@@ -671,7 +955,9 @@ fn render(command: Command, input: &CommandInput) -> Result<Sent> {
                 .filter(|l| !l.is_empty())
                 .ok_or("type a G-code line first")?;
             if line.len() > CONSOLE_MAX_CHARS {
-                return Err(format!("console lines are limited to {CONSOLE_MAX_CHARS} characters"));
+                return Err(format!(
+                    "console lines are limited to {CONSOLE_MAX_CHARS} characters"
+                ));
             }
             if line.contains('\n') || line.contains('\r') {
                 return Err("send one line at a time".into());
@@ -758,7 +1044,10 @@ fn render(command: Command, input: &CommandInput) -> Result<Sent> {
                 .map(|(_, script)| *script)
                 .collect::<Vec<_>>()
                 .join("\n");
-            Sent::Resonance { axis: axis.to_owned(), preview }
+            Sent::Resonance {
+                axis: axis.to_owned(),
+                preview,
+            }
         }
         Params::Jog => {
             let axis = match input.axis.as_deref() {
@@ -769,11 +1058,125 @@ fn render(command: Command, input: &CommandInput) -> Result<Sent> {
             };
             let mm = value()?;
             if mm == 0.0 || mm.abs() > JOG_MAX_MM {
-                return Err(format!("jog distance must be non-zero and within ±{JOG_MAX_MM} mm"));
+                return Err(format!(
+                    "jog distance must be non-zero and within ±{JOG_MAX_MM} mm"
+                ));
             }
             let feed = if axis == "Z" { 900 } else { 6000 };
             Sent::Gcode(format!("G91\nG1 {axis}{mm:.2} F{feed}\nG90"))
         }
+    })
+}
+
+/// The driver-neutral action a rendered command means (farm board WO-02). `render` has already
+/// bounded every operand and produced Klipper's own text; this reads that text back, so a printer
+/// of another brand gets exactly the validation Klipper does. `None` is a command with no neutral
+/// meaning: the service then reports that this printer cannot do it.
+
+/// What an action does, in the words the review shows on a printer that is not Klipper (finish-2 F02, CORE One L,
+/// 2026-10-19): Pause, Resume and Cancel showed Klipper's own macros (PAUSE, RESUME, CANCEL_PRINT), which a PrusaLink or a
+/// FlashForge is never sent; it is sent the action.
+/// The "!!" error a macro printed after the last `command` line of the console, if it printed one (see `execute_with`).
+fn klipper_refusal(moonraker: &Moonraker, command: &str) -> Option<String> {
+    let store = moonraker.get("/server/gcode_store?count=30").ok()?;
+    let lines = store["gcode_store"].as_array()?;
+    let start = lines
+        .iter()
+        .rposition(|l| l["type"] == "command" && l["message"].as_str().is_some_and(|m| m.trim().eq_ignore_ascii_case(command)))?;
+    lines[start + 1..].iter().find_map(|l| {
+        let m = l["message"].as_str()?.trim();
+        m.strip_prefix("!!").map(|rest| rest.trim_matches(|c: char| c == '!' || c.is_whitespace()).to_owned())
+    })
+}
+
+/// How long a command may take to answer (see `execute_with`): Klipper's long procedures get half an hour.
+fn command_timeout_ms(id: &str, normal: u64) -> u64 {
+    if matches!(id, "mesh" | "qgl" | "probe_accuracy" | "macro" | "home") {
+        normal.max(30 * 60 * 1000)
+    } else {
+        normal
+    }
+}
+
+fn action_words(a: &Action) -> String {
+    match a {
+        Action::SetTemperature { heater, celsius } => {
+            let what = if matches!(heater, Heater::Nozzle) { "nozzle" } else { "bed" };
+            if *celsius <= 0.0 { format!("Turn the {what} heater off.") } else { format!("Heat the {what} to {celsius:.0} °C.") }
+        }
+        Action::Fan { fraction } => format!("Set the part fan to {:.0} %.", fraction * 100.0),
+        Action::SpeedFactor { percent } => format!("Set the print speed to {percent:.0} %."),
+        Action::FlowFactor { percent } => format!("Set the flow to {percent:.0} %."),
+        Action::Jog { axis, mm } => format!("Move {axis} by {mm:+.1} mm."),
+        Action::Home => "Home every axis.".into(),
+        Action::MotorsOff => "Turn the motors off.".into(),
+        Action::Extrude { mm, .. } => format!("Push {mm:.0} mm of filament through the nozzle."),
+        Action::Pause => "Pause the print.".into(),
+        Action::Resume => "Resume the print.".into(),
+        Action::Cancel => "Cancel the print. It cannot be resumed.".into(),
+        Action::StartPrint { filename } => format!("Start \"{filename}\" on the printer, once."),
+        Action::Gcode(g) => g.clone(),
+    }
+}
+
+fn action_from_sent(command: Command, sent: &Sent, input: &CommandInput) -> Option<Action> {
+    let script = match sent {
+        Sent::Gcode(script) => script.as_str(),
+        Sent::Api { .. } if command.id == "print_start" => {
+            return input.filename.as_deref().map(|f| Action::StartPrint {
+                filename: f.trim().to_owned(),
+            });
+        }
+        _ => return None,
+    };
+    let after = |text: &str, key: &str| -> Option<f64> {
+        text.split_whitespace()
+            .find_map(|t| t.strip_prefix(key))
+            .and_then(|v| v.parse::<f64>().ok())
+    };
+    Some(match command.id {
+        "set_heater" => {
+            let celsius = after(script, "TARGET=")?;
+            let heater = if script.contains("HEATER=extruder") {
+                Heater::Nozzle
+            } else {
+                Heater::Bed
+            };
+            Action::SetTemperature { heater, celsius }
+        }
+        "set_fan" => Action::Fan {
+            fraction: after(script, "S")? / 255.0,
+        },
+        "speed_factor" => Action::SpeedFactor {
+            percent: after(script, "S")?,
+        },
+        "extrude_factor" => Action::FlowFactor {
+            percent: after(script, "S")?,
+        },
+        "jog" => {
+            let line = script.lines().nth(1)?;
+            let token = line
+                .split_whitespace()
+                .find(|t| t.starts_with(['X', 'Y', 'Z']))?;
+            Action::Jog {
+                axis: token.chars().next()?,
+                mm: token[1..].parse().ok()?,
+            }
+        }
+        "home" => Action::Home,
+        "motors_off" => Action::MotorsOff,
+        "extrude" | "load_filament" | "unload_filament" => {
+            let line = script.lines().nth(1)?;
+            Action::Extrude {
+                mm: after(line, "E")?,
+                mm_per_s: after(line, "F")? / 60.0,
+            }
+        }
+        "pause" => Action::Pause,
+        "resume" => Action::Resume,
+        "cancel" => Action::Cancel,
+        "console" => Action::Gcode(script.to_owned()),
+        _ => return None,
     })
 }
 
@@ -784,10 +1187,10 @@ struct FreshState {
     idle_state: String,
 }
 
-/// Reviewer's decision on while Moonraker answers and Klipper is in shutdown or error, RESTART and
-/// FIRMWARE_RESTART still go, after the same one review. They are how a user gets out of "Lost
-/// communication with MCU", and Mainsail and Fluidd offer them in that state. Klipper registers both
-/// before it reads its config, so they work there. Everything else stays refused.
+/// Reviewer's decision on WO-20 (2026-09-23): while Moonraker answers and Klipper is in shutdown or
+/// error, RESTART and FIRMWARE_RESTART still go, after the same one review. They are how a user gets
+/// out of "Lost communication with MCU", and Mainsail and Fluidd offer them in that state. Klipper
+/// registers both before it reads its config, so they work there. Everything else stays refused.
 const RECOVERY: [&str; 2] = ["firmware_restart", "klipper_restart"];
 
 /// What the printer can take right now, read fresh for every decision.
@@ -856,27 +1259,22 @@ impl FreshState {
 
     /// Klipper's `gcode/help` lists only extended and macro commands. Base G-codes such as G28,
     /// M84 and G1 are built into the firmware and never appear there, so checking one against help
-    /// refuses a command that is in fact always available. the user hit this on 2026-09-21: HOME
-    /// opened the review modal, Confirm reported "G28 is not reported by current G-code help" and
-    /// nothing moved. Read off the test printer the same morning: 112 help entries,
-    /// QUAD_GANTRY_LEVEL present, G28 and M84 absent. The tests that passed through this gate fed
-    /// a fake help dict containing G28, which no real Klipper returns.
+    /// refuses a command that is in fact always available. the owner hit this on 2026-09-21: HOME opened
+    /// the review modal, Confirm reported "G28 is not reported by current G-code help" and nothing
+    /// moved. Read off Stella the same morning: 112 help entries, QUAD_GANTRY_LEVEL present, G28
+    /// and M84 absent. The tests that passed through this gate fed a fake help dict containing
+    /// G28, which no real Klipper returns.
     fn is_base_gcode(name: &str) -> bool {
         let bytes = name.as_bytes();
         matches!(bytes.first(), Some(b'G' | b'M'))
             && bytes.len() > 1
-            && bytes[1..]
-                .iter()
-                .all(|b| b.is_ascii_digit() || *b == b'.')
+            && bytes[1..].iter().all(|b| b.is_ascii_digit() || *b == b'.')
     }
 
     fn refusal(&self, command: Command) -> Option<String> {
-        if command
-            .capability
-            .is_some_and(|capability| {
-                !Self::is_base_gcode(capability) && !self.help.contains(capability)
-            })
-        {
+        if command.capability.is_some_and(|capability| {
+            !Self::is_base_gcode(capability) && !self.help.contains(capability)
+        }) {
             return Some(format!(
                 "{} is not reported by current G-code help; command was not sent",
                 command.capability.unwrap_or("command")
@@ -900,14 +1298,19 @@ impl FreshState {
                 self.print_state, self.idle_state
             ));
         }
-        // CANCEL_PRINT only means anything during a print, so it is the one T3 command this block
-        // must not stop (it had made Cancel impossible in both HUDs). It is still T3: it still asks
-        // for review before it goes.
+        // NEXT review 2026-09-24: CANCEL_PRINT only means anything during a print, so it is the one
+        // T3 command this block must not stop (it had made Cancel impossible in both HUDs). It is
+        // still T3: it still asks for review before it goes.
         if command.tier == "T3"
             && command.id != "cancel"
             && (["printing", "paused"].contains(&print_state.as_str())
                 || ["printing", "paused"].contains(&idle_state.as_str()))
         {
+            // Finish-2 F05 (Stella, 2026-10-19): with no print running, Klipper's idle state reads "Printing" only while it is
+            // still carrying out the last command (a move, a heat-up); say that instead of "printing".
+            if !["printing", "paused"].contains(&print_state.as_str()) {
+                return Some("The printer is still busy with the last command. Send this when it has finished.".into());
+            }
             return Some(format!(
                 "printer state is {}/{}; T3 commands are blocked while printing or paused",
                 self.print_state, self.idle_state
@@ -937,11 +1340,14 @@ pub const ROUTES: &[(&str, &[&str])] = &[
     ("/api/command-preview", &["POST"]),
     ("/api/config/heater-fan", &["GET", "POST"]),
     ("/api/config/heater-fan/apply", &["POST"]),
+    ("/api/config/calibration", &["GET"]),
     ("/api/print/queue", &["GET"]),
     ("/api/print/objects", &["GET"]),
     ("/api/presets", &["GET", "PUT"]),
+    ("/api/presets/standard", &["GET"]),
     ("/api/console/help", &["GET"]),
     ("/api/console/history", &["GET", "POST"]),
+    ("/api/filament/guard", &["POST"]),
 ];
 
 pub fn routed(path: &str) -> Option<&'static [&'static str]> {
@@ -956,14 +1362,31 @@ pub struct Service {
     mode: String,
     token: Option<String>,
     busy: AtomicBool,
+    /// The slot for LIGHT commands, apart from `busy` so a running macro cannot lock them out.
+    busy_light: AtomicBool,
+    /// Whether this printer's controls are locked because the farm is past its trial and this printer
+    /// is beyond the free five. Set by the farm from the licence state; a running print is never
+    /// interrupted by it.
+    licence_locked: AtomicBool,
+    /// The plain-words reason shown when locked.
+    licence_reason: Mutex<Option<String>>,
     /// Preview tokens handed out by POST /api/config/heater-fan, each holding the exact bytes
     /// that apply will upload. Apply consumes the token, so the file that was previewed is the
     /// file that is written, and a stale preview cannot be replayed.
     pending_edit: std::sync::Mutex<Option<PendingEdit>>,
-    /// Gcode/help is 112 entries on the test printer and changes only across
-    /// a restart.
+    /// gcode/help is 112 entries on Stella and changes only across a restart.
     help_cache: std::sync::Mutex<Option<(f64, Value)>>,
+    /// What this printer's driver can do, and its brand in words (farm board WO-02). A driver that
+    /// cannot be opened (a brand not built yet) can do nothing rather than fall back to Moonraker.
+    caps: Capabilities,
+    brand: &'static str,
+    /// When the nozzle heater goes off if no page says otherwise (unix seconds). A filament job in a page keeps pushing it on; closing the page
+    /// (or the phone going to sleep) no longer leaves the nozzle hot for ever (Opus review 2026-10-22).
+    heat_guard: Mutex<Option<f64>>,
 }
+
+/// The longest a page may hold the nozzle hot without renewing: the reload wait's own top (600 s) plus a margin.
+const HEAT_GUARD_MAX_S: f64 = 900.0;
 
 struct PendingEdit {
     token: String,
@@ -979,20 +1402,103 @@ const HELP_CACHE_TTL_S: f64 = 300.0;
 
 impl Service {
     pub fn new(cfg: &Config, mode: &str) -> Result<Self> {
-        let eligible = cfg.controls_enabled
-            && mode == "live"
-            && cfg
-                .bind
-                .parse::<IpAddr>()
-                .is_ok_and(|address| address.is_loopback());
+        // A demonstration runs a simulated printer locally, so its controls are on the same
+        // loopback machine and may be used without controls_enabled: demo is always eligible.
+        let eligible = mode == "demo"
+            || (cfg.controls_enabled
+                && mode == "live"
+                && cfg
+                    .bind
+                    .parse::<IpAddr>()
+                    .is_ok_and(|address| address.is_loopback()));
+        let (caps, brand) = match driver::open(cfg) {
+            Ok(d) => (d.capabilities(), d.brand()),
+            Err(_) => (Capabilities::none(), "This printer"),
+        };
         Ok(Self {
+            caps,
+            brand,
             cfg: cfg.clone(),
             mode: mode.to_owned(),
             token: eligible.then(random_token).transpose()?,
             busy: AtomicBool::new(false),
+            busy_light: AtomicBool::new(false),
+            licence_locked: AtomicBool::new(false),
+            licence_reason: Mutex::new(None),
             pending_edit: std::sync::Mutex::new(None),
             help_cache: std::sync::Mutex::new(None),
+            heat_guard: Mutex::new(None),
         })
+    }
+
+    /// POST /api/filament/guard {"off_in_s": n}: the nozzle heater goes off in n seconds unless renewed; 0 takes the guard away.
+    fn set_heat_guard(&self, body: &[u8]) -> Response {
+        let n = serde_json::from_slice::<Value>(body).ok().and_then(|v| v["off_in_s"].as_f64());
+        let Some(n) = n.filter(|n| (0.0..=HEAT_GUARD_MAX_S).contains(n)) else {
+            return failure(400, "off_in_s must be a number of seconds from 0 to 900", "not_sent", None);
+        };
+        let at = (n > 0.0).then(|| now() + n);
+        if let Ok(mut g) = self.heat_guard.lock() {
+            *g = at;
+        }
+        Response::json(200, json!({"result":"ok","off_at":at}))
+    }
+
+    /// Takes the guard if it has run out. The caller turns the heater off.
+    fn heat_guard_due(&self, at: f64) -> bool {
+        let Ok(mut g) = self.heat_guard.lock() else { return false };
+        if g.is_some_and(|deadline| at >= deadline) {
+            *g = None;
+            return true;
+        }
+        false
+    }
+
+    /// One thread per printer: once a second, a guard that has run out turns the nozzle heater off, through the same door as a page.
+    pub fn spawn_heat_guard(service: &std::sync::Arc<Self>, stop: std::sync::Arc<AtomicBool>) {
+        let weak = std::sync::Arc::downgrade(service);
+        let _ = std::thread::Builder::new().name("heat-guard".into()).spawn(move || {
+            while !stop.load(Ordering::Relaxed) {
+                std::thread::sleep(Duration::from_secs(1));
+                let Some(s) = weak.upgrade() else { return };
+                if s.heat_guard_due(now()) {
+                    let off = json!({"id":"set_heater","target":"extruder","value":0});
+                    if let Err(e) = s.run(&off) {
+                        eprintln!("heat guard: the nozzle heater could not be turned off: {e}");
+                    }
+                }
+            }
+        });
+    }
+
+    /// Run a command the service itself decided to send (the farm queue starting a file), through
+    /// exactly the door a page uses: the Host and Origin checks, the control token, the tier rules,
+    /// the fresh-state check and the audit. Nothing about safety is skipped because the caller is
+    /// in-process. Returns the command's JSON reply, or the refusal in words.
+    pub fn run(&self, body: &Value) -> Result<Value> {
+        let token = self.token.clone().ok_or_else(|| self.disabled_reason())?;
+        let host = self.expected_host();
+        let mut headers = BTreeMap::new();
+        headers.insert("host".to_owned(), host.clone());
+        headers.insert("origin".to_owned(), format!("http://{host}"));
+        headers.insert("content-type".to_owned(), "application/json".to_owned());
+        headers.insert("x-stella-control-token".to_owned(), token);
+        let r = self.handle(
+            "POST",
+            "/api/commands",
+            &headers,
+            body.to_string().as_bytes(),
+            IpAddr::from([127, 0, 0, 1]),
+        );
+        let v: Value = serde_json::from_slice(&r.body).unwrap_or(Value::Null);
+        if r.code == 200 {
+            Ok(v)
+        } else {
+            Err(v["error"]
+                .as_str()
+                .unwrap_or("the printer refused the command")
+                .to_owned())
+        }
     }
 
     pub fn handle(
@@ -1029,11 +1535,29 @@ impl Service {
         if method == "GET" {
             return match path {
                 "/api/config/heater-fan" => self.enabled_then(|| {
+                    if !self.caps.klipper {
+                        return Err(format!(
+                            "{} has no printer.cfg to edit from here",
+                            self.brand
+                        ));
+                    }
                     crate::printer_config::read(&Moonraker::new(&self.cfg))
+                }),
+                // the Calibrate page: what printer.cfg holds now for each calibration, read-only (2026-10-26)
+                "/api/config/calibration" => self.enabled_then(|| {
+                    if !self.caps.klipper {
+                        return Err(format!("{} keeps its calibration inside the printer", self.brand));
+                    }
+                    let v = Moonraker::new(&self.cfg).get("/printer/objects/query?configfile=settings,save_config_pending,save_config_pending_items")?;
+                    Ok(calibration_view(&v["result"]["status"]["configfile"]))
                 }),
                 "/api/print/queue" => self.enabled_then(|| self.print_queue()),
                 "/api/print/objects" => self.enabled_then(|| self.print_objects()),
                 "/api/console/help" => self.enabled_then(|| self.console_help()),
+                "/api/presets/standard" => Response::json(
+                    200,
+                    json!({"materials":crate::operator::standard_materials(),"sheets":crate::operator::standard_sheets(),"maintenance":crate::operator::standard_maintenance()}),
+                ),
                 "/api/presets" => match self.operator().presets() {
                     Ok(value) => Response::json(200, value),
                     Err(error) => failure(500, &error, "not_sent", None),
@@ -1065,7 +1589,7 @@ impl Service {
         if self.enabled() && !self.valid_token(headers.get("x-stella-control-token")) {
             return failure(
                 401,
-                "missing or invalid Stella control token",
+                "this page is not allowed to control the printer; reload it and try again",
                 "not_sent",
                 None,
             );
@@ -1075,6 +1599,7 @@ impl Service {
             "/api/config/heater-fan/apply" => return self.heater_fan_apply(body),
             "/api/presets" => return self.put_presets(body),
             "/api/console/history" => return self.push_history(body),
+            "/api/filament/guard" => return self.set_heat_guard(body),
             _ => {}
         }
         let input: CommandInput = match serde_json::from_slice(body) {
@@ -1100,6 +1625,10 @@ impl Service {
                 None,
             );
         };
+        // A printer that cannot do this says so, in words, before anything is rendered or sent.
+        if let Err(reason) = self.caps.allows(command.id, self.brand) {
+            return failure(409, &reason, "refused", None);
+        }
         if preview {
             let sent = if command.id == "emergency_stop" {
                 None
@@ -1117,8 +1646,34 @@ impl Service {
                 .map_or(Value::Null, |script| Value::String(script.into()));
             let action = match &sent {
                 None => Value::String("POST /printer/emergency_stop (no G-code)".into()),
+                // WO-02: say what a dry run really sends, not the queue call its filename renders to.
+                Some(_) if command.id == "dry_run" => {
+                    let file = input.filename.as_deref().unwrap_or("").trim();
+                    Value::String(format!(
+                        "Upload \"{}\": every move of {file} with nothing extruded, {}, Z 30 mm higher. Then start it.",
+                        dry_run_name(file),
+                        if input.heat { "heaters as in the file" } else { "heaters off" }
+                    ))
+                }
                 Some(Sent::Gcode(_)) => Value::Null,
+                // Finish-2 F02 (CORE One L, 2026-10-19): the review showed Klipper's own call ("POST /printer/print/start?
+                // filename=... (no G-code)") on a PrusaLink printer, which is neither what is sent there nor words a person
+                // reads. The audit row keeps the exact call; the person reads what will happen.
+                Some(Sent::Api { .. }) if command.id == "print_start" => Value::String(format!(
+                    "Start \"{}\" on the printer, once.",
+                    input.filename.as_deref().unwrap_or("").trim()
+                )),
                 Some(other) => Value::String(other.describe()),
+            };
+            // Another brand is sent the action, not the Klipper G-code it was rendered from: the review says the action.
+            let other_brand = self.cfg.driver != "moonraker" && command.id != "dry_run";
+            let (script, action) = match sent
+                .as_ref()
+                .filter(|_| other_brand)
+                .and_then(|s| action_from_sent(command, s, &input))
+            {
+                Some(a) => (Value::Null, Value::String(action_words(&a))),
+                None => (script, action),
             };
             return Response::json(
                 200,
@@ -1137,11 +1692,79 @@ impl Service {
         if command.tier == "T3" && !input.confirm && !matches!(command.params, Params::Console) {
             return failure(400, "T3 command requires confirm:true", "not_sent", None);
         }
+        // WO-02: a dry run uploads a no-extrusion copy of the file and starts it, so the printer
+        // runs every move without printing anything. Refused while printing and on a printer that
+        // cannot start a file (both gated above: T3 + start_print capability).
+        if command.id == "dry_run" {
+            let Some(filename) = input.filename.as_deref().filter(|f| filename_ok(f)) else {
+                return failure(
+                    400,
+                    "name a .gcode or .bgcode file from GET /api/files",
+                    "not_sent",
+                    None,
+                );
+            };
+            let fresh = if self.cfg.driver == "moonraker" {
+                FreshState::fetch(&Moonraker::new(&self.cfg))
+            } else {
+                self.fresh_other()
+            };
+            if let Ok(state) = fresh {
+                if let Some(reason) = state.refusal(command) {
+                    return failure(409, &reason, "refused", None);
+                }
+            }
+            let driver = match driver::open(&self.cfg) {
+                Ok(d) => d,
+                Err(error) => return failure(502, &error, "not_sent", None),
+            };
+            let bytes = match driver.file_bytes(filename, MAX_GCODE_BYTES) {
+                Ok(b) => b,
+                Err(error) => return failure(502, &error, "not_sent", None),
+            };
+            if dry_run::is_binary_gcode(&bytes) {
+                return failure(
+                    400,
+                    "This is a binary G-code file (.bgcode). A dry run needs plain G-code: slice it as .gcode to dry-run it.",
+                    "not_sent",
+                    None,
+                );
+            }
+            let text = String::from_utf8_lossy(&bytes);
+            let transformed = match dry_run::transform(
+                &text,
+                &dry_run::Recipe {
+                    heat: input.heat,
+                    ..Default::default()
+                },
+            ) {
+                Ok(t) => t,
+                Err(error) => return failure(400, &error, "not_sent", None),
+            };
+            let dry_name = dry_run_name(filename);
+            if let Err(error) = driver.upload(&dry_name, transformed.as_bytes(), false) {
+                return failure(502, &error, "not_sent", None);
+            }
+            if let Err(error) = driver.act(&Action::StartPrint {
+                filename: dry_name.clone(),
+            }) {
+                return failure(502, &error, "not_sent", None);
+            }
+            return Response::json(
+                200,
+                json!({"result":"ok","dry_run":dry_name,"filename":filename}),
+            );
+        }
         let sent = if command.id == "emergency_stop" {
             Sent::Api {
                 method: "POST",
                 path: "/printer/emergency_stop".into(),
                 body: None,
+            }
+        } else if command.id == "filament_shake" && self.cfg.driver == "moonraker" {
+            match self.shake_here() {
+                Ok(script) => Sent::Gcode(script),
+                Err(error) => return failure(409, &error, "refused", None),
             }
         } else {
             match render(command, &input) {
@@ -1149,7 +1772,26 @@ impl Service {
                 Err(error) => return failure(400, &error, "not_sent", None),
             }
         };
-        self.execute(command, &sent)
+        // Another brand does not take Klipper G-code: the bounded request is carried as a neutral
+        // action. Built from the rendered script, so every driver gets the same validation.
+        let action = (self.cfg.driver != "moonraker")
+            .then(|| action_from_sent(command, &sent, &input))
+            .flatten();
+        self.execute_with(command, &sent, action)
+    }
+
+    /// The shake for where the head is now: centred when there is room both ways, else all on the side away from the end of travel
+    /// (a head parked at X0 shook to X-2 and Klipper refused it "out of range").
+    fn shake_here(&self) -> Result<String> {
+        let v = Moonraker::new(&self.cfg)
+            .get("/printer/objects/query?toolhead=position,axis_minimum,axis_maximum")?;
+        let at = |field: &str| v["status"]["toolhead"][field][0].as_f64();
+        let (Some(x), Some(min), Some(max)) = (at("position"), at("axis_minimum"), at("axis_maximum")) else {
+            return Err("the printer did not report where the head is; the shake was not sent".into());
+        };
+        shake_script(x, min, max).ok_or_else(|| {
+            format!("no room to shake the head at X {x:.1} (travel {min:.0} to {max:.0}); the shake was not sent")
+        })
     }
 
     fn operator(&self) -> crate::operator::Operator {
@@ -1168,6 +1810,11 @@ impl Service {
     }
 
     fn print_queue(&self) -> Result<Value> {
+        if !self.caps.klipper {
+            return Ok(
+                json!({"queued_jobs":[],"queue_state":"unavailable","source":"this printer has no job queue of its own"}),
+            );
+        }
         let status = Moonraker::new(&self.cfg).get("/server/job_queue/status")?;
         let jobs: Vec<Value> = status["queued_jobs"]
             .as_array()
@@ -1190,8 +1837,12 @@ impl Service {
     /// Objects the slicer declared for the running print, with the polygon and centre Klipper
     /// reports, plus which of them have already been excluded.
     fn print_objects(&self) -> Result<Value> {
-        let status =
-            Moonraker::new(&self.cfg).get("/printer/objects/query?exclude_object")?;
+        if !self.caps.klipper {
+            return Ok(
+                json!({"objects":[],"current_object":Value::Null,"excluded":[],"source":"this printer does not report printed objects"}),
+            );
+        }
+        let status = Moonraker::new(&self.cfg).get("/printer/objects/query?exclude_object")?;
         let exclude = &status["status"]["exclude_object"];
         let objects: Vec<Value> = exclude["objects"]
             .as_array()
@@ -1217,6 +1868,9 @@ impl Service {
     }
 
     fn console_help(&self) -> Result<Value> {
+        if !self.caps.klipper {
+            return Ok(json!({"commands":[],"source":"this printer has no G-code help"}));
+        }
         let clock = now();
         if let Ok(cache) = self.help_cache.lock() {
             if let Some((at, value)) = cache.as_ref() {
@@ -1256,7 +1910,12 @@ impl Service {
         let input: Input = match serde_json::from_slice(body) {
             Ok(value) => value,
             Err(error) => {
-                return failure(400, &format!("invalid edit JSON: {error}"), "not_sent", None)
+                return failure(
+                    400,
+                    &format!("invalid edit JSON: {error}"),
+                    "not_sent",
+                    None,
+                )
             }
         };
         if let Some(error) = crate::printer_config::bounds_error(input.heater_temp) {
@@ -1306,7 +1965,12 @@ impl Service {
         let input: Input = match serde_json::from_slice(body) {
             Ok(value) => value,
             Err(error) => {
-                return failure(400, &format!("invalid apply JSON: {error}"), "not_sent", None)
+                return failure(
+                    400,
+                    &format!("invalid apply JSON: {error}"),
+                    "not_sent",
+                    None,
+                )
             }
         };
         let Ok(mut pending) = self.pending_edit.lock() else {
@@ -1373,7 +2037,9 @@ impl Service {
                 if let Err(error) = audit.result(&audit_id, command, "completed", &message) {
                     return failure(
                         500,
-                        &format!("the edit was uploaded but its result could not be saved: {error}"),
+                        &format!(
+                            "the edit was uploaded but its result could not be saved: {error}"
+                        ),
                         "unknown",
                         Some(&audit_id),
                     );
@@ -1446,12 +2112,18 @@ impl Service {
         }
         let moonraker = Moonraker::new(&self.cfg);
         if path == "/api/macros" {
+            // Macros are Klipper's: another brand reports none rather than an error.
+            if !self.caps.macros {
+                return Response::json(200, json!({"macros":[]}));
+            }
             return match moonraker.get("/printer/gcode/help") {
                 Ok(help) => {
                     // The macro bodies live in configfile settings, not in gcode/help. A failure
                     // there costs the parameter lists, not the macro list, so it degrades to an
                     // empty params array rather than a 502.
-                    let settings = Moonraker::new(&self.cfg).fetch_config().unwrap_or(Value::Null);
+                    let settings = Moonraker::new(&self.cfg)
+                        .fetch_config()
+                        .unwrap_or(Value::Null);
                     let mut macros: Vec<Value> = help
                         .as_object()
                         .map(|map| {
@@ -1467,8 +2139,8 @@ impl Service {
                                     let section =
                                         &settings[format!("gcode_macro {}", name.to_ascii_lowercase())];
                                     let body = section["gcode"].as_str().unwrap_or_default();
-                                    // The HUD's Macros list is the gcode_macro sections;
-                                    // gcode/help also lists every registered command.
+                                    // WO-19 (2026-09-23): the HUD's Macros list is the gcode_macro
+                                    // sections; gcode/help also lists every registered command.
                                     json!({"name":name,"help":help,"params":macro_params(body),"macro":section.is_object()})
                                 })
                                 .collect()
@@ -1480,33 +2152,10 @@ impl Service {
                 Err(error) => failure(502, &error, "not_sent", None),
             };
         }
-        match moonraker.get("/server/files/list?root=gcodes") {
-            Ok(list) => {
-                let mut files: Vec<Value> = list["result"]
-                    .as_array()
-                    .or_else(|| list.as_array())
-                    .map(|rows| {
-                        rows.iter()
-                            .filter(|row| {
-                                row["path"]
-                                    .as_str()
-                                    .is_some_and(|p| p.to_ascii_lowercase().ends_with(".gcode"))
-                            })
-                            .map(|row| {
-                                json!({"path":row["path"],"size":row["size"],"modified":row["modified"]})
-                            })
-                            .collect()
-                    })
-                    .unwrap_or_default();
-                files.sort_by(|a, b| {
-                    b["modified"]
-                        .as_f64()
-                        .partial_cmp(&a["modified"].as_f64())
-                        .unwrap_or(std::cmp::Ordering::Equal)
-                });
-                files.truncate(200);
-                Response::json(200, json!({"files":files}))
-            }
+        // The printable files, through the driver: Klipper's list as it always was, another
+        // brand's own.
+        match driver::open(&self.cfg).and_then(|d| d.files()) {
+            Ok(files) => Response::json(200, json!({"files":files})),
             Err(error) => failure(502, &error, "not_sent", None),
         }
     }
@@ -1520,18 +2169,28 @@ impl Service {
                     "enabled": false,
                     "reason": reason,
                     "token": Value::Null,
+                    "driver": self.cfg.driver, "brand": self.brand, "capabilities": self.caps,
                     "commands": COMMANDS.iter().map(|command| json!({
-                        "id": command.id, "allowed": false, "reason": reason, "tier": command.tier, "params": params_name(command.params)
+                        "id": command.id, "allowed": false, "reason": reason, "tier": command.tier, "params": params_name(command.params),
+                        "supported": self.caps.allows(command.id, self.brand).is_ok()
                     })).collect::<Vec<_>>()
                 }),
             );
         }
-        let moonraker = Moonraker::new(&self.cfg);
-        let fresh = FreshState::fetch(&moonraker);
+        let fresh = if self.cfg.driver == "moonraker" {
+            FreshState::fetch(&Moonraker::new(&self.cfg))
+        } else {
+            self.fresh_other()
+        };
         let commands = COMMANDS
             .iter()
             .map(|command| {
-                let refusal = if command.id == "emergency_stop" {
+                // What the printer cannot do at all comes first, in the brand's words; then the fresh
+                // state of what it can. `supported: false` is for the UI to hide, `allowed: false` to lock.
+                let unsupported = self.caps.allows(command.id, self.brand).err();
+                let refusal = if let Some(reason) = unsupported.clone() {
+                    Some(reason)
+                } else if command.id == "emergency_stop" {
                     None
                 } else {
                     fresh
@@ -1543,6 +2202,7 @@ impl Service {
                 json!({
                     "id": command.id,
                     "allowed": refusal.is_none(),
+                    "supported": unsupported.is_none(),
                     "reason": refusal.unwrap_or_else(|| "available from fresh printer state".into()),
                     "tier": command.tier,
                     "params": params_name(command.params)
@@ -1555,18 +2215,27 @@ impl Service {
                 "enabled": true,
                 "reason": "live loopback controls enabled",
                 "token": self.token,
+                "driver": self.cfg.driver,
+                "brand": self.brand,
+                "capabilities": self.caps,
                 "commands": commands
             }),
         )
     }
 
-    fn execute(&self, command: Command, sent: &Sent) -> Response {
+    fn execute_with(&self, command: Command, sent: &Sent, action: Option<Action>) -> Response {
+        let other = self.cfg.driver != "moonraker";
         let script = sent.describe();
         let script = script.as_str();
         let _permit = if command.id == "emergency_stop" {
             None
         } else {
-            match BusyPermit::acquire(&self.busy) {
+            let slot = if LIGHT.contains(&command.id) {
+                &self.busy_light
+            } else {
+                &self.busy
+            };
+            match BusyPermit::acquire(slot) {
                 Some(permit) => Some(permit),
                 None => {
                     return failure(
@@ -1591,9 +2260,18 @@ impl Service {
                 )
             }
         };
-        let moonraker = Moonraker::new(&self.cfg);
+        // Finish-2 F05 (Stella, 2026-10-19): Moonraker answers a G-code script when it is done, and Stella's full bed mesh
+        // (each point probed twice) takes about eight minutes; at the 180 s command limit the page said "did not confirm
+        // an outcome" while the printer meshed normally. Klipper's long procedures get half an hour; a macro may heat-soak.
+        let mut timed = self.cfg.clone();
+        timed.command_timeout_ms = command_timeout_ms(command.id, self.cfg.command_timeout_ms);
+        let moonraker = Moonraker::new(&timed);
         if command.id != "emergency_stop" {
-            let fresh = match FreshState::fetch(&moonraker) {
+            let fresh = match if other {
+                self.fresh_other()
+            } else {
+                FreshState::fetch(&moonraker)
+            } {
                 Ok(state) => state,
                 Err(error) => {
                     return self.finish_failure(
@@ -1625,38 +2303,53 @@ impl Service {
             }
         }
         let started = matches!(sent, Sent::Resonance { .. });
-        let result = match sent {
-            Sent::Gcode(script) => {
-                moonraker.post("/printer/gcode/script", Some(&json!({"script": script})))
-            }
-            Sent::Api {
-                method: "DELETE",
-                path,
-                ..
-            } => moonraker.delete(path),
-            Sent::Api { path, body, .. } => moonraker.post(path, body.as_ref()),
-            // Nothing leaves this process: the websocket source is asked to drop its connection
-            // and its own retry loop brings it back within one 500 ms read tick. In poll mode
-            // there is no such source, and saying "reconnected" there would be a lie.
-            // The capture owns the sweep so the accelerometer is subscribed before the toolhead
-            // moves; it returns a run id and finishes on its own thread (~130 s a leg).
-            Sent::Resonance { axis, .. } => {
-                crate::resonance::start(&self.cfg, axis).map(|run_id| json!({ "run_id": run_id }))
-            }
-            Sent::Local(_) => {
-                if crate::ws_source::request_reconnect() {
-                    Ok(json!({"reconnect":"requested"}))
-                } else {
-                    Err("this recording is not using the websocket push source, so there is no connection to drop; the HTTP poll reconnects on its own each interval".into())
+        let result = if other {
+            self.act_other(command, action.as_ref())
+        } else {
+            match sent {
+                Sent::Gcode(script) => {
+                    moonraker.post("/printer/gcode/script", Some(&json!({"script": script})))
+                }
+                Sent::Api {
+                    method: "DELETE",
+                    path,
+                    ..
+                } => moonraker.delete(path),
+                Sent::Api { path, body, .. } => moonraker.post(path, body.as_ref()),
+                // Nothing leaves this process: the websocket source is asked to drop its connection
+                // and its own retry loop brings it back within one 500 ms read tick. In poll mode
+                // there is no such source, and saying "reconnected" there would be a lie.
+                // The capture owns the sweep so the accelerometer is subscribed before the toolhead
+                // moves; it returns a run id and finishes on its own thread (~130 s a leg).
+                Sent::Resonance { axis, .. } => crate::resonance::start(&self.cfg, axis)
+                    .map(|run_id| json!({ "run_id": run_id })),
+                Sent::Local(_) => {
+                    if crate::ws_source::request_reconnect(&self.cfg.moonraker_url) {
+                        Ok(json!({"reconnect":"requested"}))
+                    } else {
+                        Err("this recording is not using the websocket push source, so there is no connection to drop; the HTTP poll reconnects on its own each interval".into())
+                    }
                 }
             }
         };
+        // Finish-2 F05 (Stella, 2026-10-19): Klipper's RESUME macro answers "ok" even when it aborts ("!! Resume aborted !!!
+        // "extruder" not hot enough", always so after a heaters-off dry run), and the page said the resume was done. The
+        // console after the RESUME line tells: an aborted resume is reported as refused, in the printer's own words.
+        let result = match result {
+            Ok(v) if !other && command.id == "resume" => match klipper_refusal(&moonraker, "RESUME") {
+                Some(why) => Err(format!("Klipper {}: {why}", crate::driver::PRINTER_REFUSED)),
+                None => Ok(v),
+            },
+            r => r,
+        };
+        // Plain words on a printer that is not Klipper (README rule 10): name what answered.
+        let who = if self.cfg.driver == "moonraker" { "Moonraker" } else { self.brand };
         match result {
             Ok(_) if audit_id.is_none() => Response::json(
                 200,
                 json!({
                     "status":"completed",
-                    "message":format!("emergency_stop: Moonraker returned success, but the physical stop was not independently observed; audit was unavailable: {}", audit_error.unwrap_or_else(|| "unknown audit error".into())),
+                    "message":format!("emergency_stop: {who} returned success, but the physical stop was not independently observed; audit was unavailable: {}", audit_error.unwrap_or_else(|| "unknown audit error".into())),
                     "audit_id":Value::Null
                 }),
             ),
@@ -1670,7 +2363,7 @@ impl Service {
                     )
                 } else {
                     format!(
-                        "{}: Moonraker returned success; the physical result was not independently observed",
+                        "{}: {who} returned success; the physical result was not independently observed",
                         command.id
                     )
                 };
@@ -1678,7 +2371,7 @@ impl Service {
                 if let Err(error) = audit.result(audit_id, command, "completed", &message) {
                     return failure(
                         500,
-                        &format!("Moonraker returned success but the reported result could not be saved: {error}"),
+                        &format!("{who} returned success but the reported result could not be saved: {error}"),
                         "unknown",
                         Some(audit_id),
                     );
@@ -1702,6 +2395,8 @@ impl Service {
                 // so it reports "refused" rather than borrowing the transport's "unknown".
                 let (outcome, code) = match sent {
                     Sent::Local(_) => ("refused", 409),
+                    // the printer answered and said no: the command did not happen (a PrusaLink 409)
+                    _ if error.contains(crate::driver::PRINTER_REFUSED) => ("refused", 409),
                     _ => ("unknown", 502),
                 };
                 self.finish_failure(
@@ -1714,6 +2409,56 @@ impl Service {
                 )
             }
         }
+    }
+
+    /// The fresh-state read for a printer that is not Klipper: the driver's own snapshot in the same
+    /// shape. Klipper's `help` is the list of extended commands a printer reports; here every named
+    /// capability counts as reported, because `Capabilities::allows` has already refused what the
+    /// printer cannot do.
+    fn fresh_other(&self) -> Result<Fresh> {
+        let snapshot = driver::open(&self.cfg)?.snapshot()?;
+        if snapshot.state != "ready" {
+            return if ["error", "faulted"].contains(&snapshot.state.as_str()) {
+                Ok(Fresh::Halted(snapshot.state))
+            } else {
+                Err(format!(
+                    "Printer state is {}, not ready; command was not sent",
+                    snapshot.state
+                ))
+            };
+        }
+        Ok(Fresh::Ready(FreshState {
+            // What the driver reports (nothing, for these brands today) plus every capability it was allowed.
+            help: snapshot
+                .help
+                .into_iter()
+                .chain(
+                    COMMANDS
+                        .iter()
+                        .filter_map(|c| c.capability)
+                        .map(str::to_owned),
+                )
+                .collect(),
+            homed_axes: snapshot.homed_axes,
+            print_state: snapshot.print_state,
+            idle_state: snapshot.idle_state,
+        }))
+    }
+
+    /// Carry out a command on a printer that is not Klipper.
+    fn act_other(&self, command: Command, action: Option<&Action>) -> Result<Value> {
+        let driver = driver::open(&self.cfg)?;
+        if command.id == "emergency_stop" {
+            return driver.emergency_stop();
+        }
+        let action = action.ok_or_else(|| {
+            format!(
+                "{} cannot do {} from here",
+                self.brand,
+                command.id.replace('_', " ")
+            )
+        })?;
+        driver.act(action)
     }
 
     fn finish_failure(
@@ -1739,17 +2484,36 @@ impl Service {
     }
 
     fn enabled(&self) -> bool {
-        self.token.is_some()
+        self.token.is_some() && !self.licence_locked.load(Ordering::Relaxed)
     }
 
     fn disabled_reason(&self) -> String {
+        if self.licence_locked.load(Ordering::Relaxed) {
+            return self
+                .licence_reason
+                .lock()
+                .unwrap_or_else(|e| e.into_inner())
+                .clone()
+                .unwrap_or_else(|| "this printer is locked by the farm licence".into());
+        }
         if !self.cfg.controls_enabled {
             "controls_enabled is false".into()
         } else if self.mode != "live" {
             format!("controls are disabled in {} mode", self.mode)
         } else {
-            "controls require a loopback bind".into()
+            "controls only work when Stella Scope listens on this computer alone (127.0.0.1)".into()
         }
+    }
+
+    /// Set by the farm: whether this printer's controls are locked by the farm licence (past trial,
+    /// beyond the free five) and the plain-words reason. A running print is never interrupted.
+    pub fn set_licence_locked(&self, locked: bool, reason: String) {
+        self.licence_locked.store(locked, Ordering::Relaxed);
+        let mut r = self
+            .licence_reason
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
+        *r = Some(reason);
     }
 
     fn expected_host(&self) -> String {
@@ -1763,18 +2527,23 @@ impl Service {
         require_origin: bool,
     ) -> Result<()> {
         if !peer.is_loopback() {
-            return Err("control routes require a loopback peer".into());
+            return Err("printer controls only work from the computer Stella Scope runs on, or a paired phone".into());
         }
         let host = self.expected_host();
         if headers.get("host") != Some(&host) {
-            return Err("Host does not exactly match the configured loopback listener".into());
+            return Err("printer controls were refused: this page was opened at a different address than the one Stella Scope listens on".into());
         }
         let origin = format!("http://{host}");
         match headers.get("origin") {
             Some(value) if value == &origin => Ok(()),
             None if !require_origin => Ok(()),
-            _ => Err("Origin does not exactly match the configured loopback listener".into()),
+            _ => Err("printer controls were refused: this page was opened at a different address than the one Stella Scope listens on".into()),
         }
+    }
+
+    /// Whether `supplied` is this printer's control token (the queue's plate and start routes carry it).
+    pub fn token_ok(&self, supplied: Option<&String>) -> bool {
+        self.valid_token(supplied)
     }
 
     fn valid_token(&self, supplied: Option<&String>) -> bool {
@@ -1871,9 +2640,10 @@ impl Audit {
 
 /// Parameters a macro reads, taken from its own Jinja body: every `params.NAME`, with the literal
 /// from `|default(...)` when there is one. Hand-scanned rather than regexed — there is no regex
-/// crate here, and the grammar is two tokens wide. the test printer's `pause` macro, for example,
-/// contains `params.RESTORE|default(1)|int`, which reads as `{"name":"RESTORE","default":"1"}`. A
-/// bare `params.EXTRUDE` reads as a null default.
+/// crate here, and the grammar is two tokens wide.
+///
+/// Stella's `pause` macro, for example, contains `params.RESTORE|default(1)|int`, which reads as
+/// `{"name":"RESTORE","default":"1"}`. A bare `params.EXTRUDE` reads as a null default.
 fn macro_params(gcode: &str) -> Vec<Value> {
     let bytes = gcode.as_bytes();
     let mut out: Vec<Value> = Vec::new();
@@ -1940,6 +2710,9 @@ fn params_name(params: Params) -> &'static str {
         Params::ZOffset => "zoffset",
         Params::Limit => "limit",
         Params::Advance => "advance",
+        Params::Pid => "pid",
+        Params::TestZ => "testz",
+        Params::Tower => "tower",
         Params::Macro => "macro",
         Params::Console => "console",
         Params::Factor => "factor",
@@ -1948,6 +2721,7 @@ fn params_name(params: Params) -> &'static str {
         Params::JobId => "job_id",
         Params::ObjectName => "object_name",
         Params::Filament => "filament",
+        Params::FilamentMacro => "filament_macro",
         Params::Local => "local",
         Params::Resonance => "resonance",
     }
@@ -1956,7 +2730,8 @@ fn params_name(params: Params) -> &'static str {
 fn random_token() -> Result<String> {
     let mut bytes = [0_u8; 32];
     // The operating system's random source on every platform (it was /dev/urandom, Linux only).
-    getrandom::fill(&mut bytes).map_err(|error| format!("cannot create local control token: {error}"))?;
+    getrandom::fill(&mut bytes)
+        .map_err(|error| format!("cannot create local control token: {error}"))?;
     Ok(bytes.iter().map(|byte| format!("{byte:02x}")).collect())
 }
 
@@ -2112,7 +2887,11 @@ mod tests {
             "BED_MESH_CALIBRATE":"", "PROBE_ACCURACY":"", "TEST_RESONANCES":"",
             "SHAPER_CALIBRATE":"", "SET_HEATER_TEMPERATURE":"", "SET_VELOCITY_LIMIT":"",
             "SET_PRESSURE_ADVANCE":"", "Z_OFFSET_APPLY_PROBE":"", "PAUSE":"", "RESUME":"",
-            "CANCEL_PRINT":"", "FIRMWARE_RESTART":"", "RESTART":"", "EXCLUDE_OBJECT":""
+            "CANCEL_PRINT":"", "FIRMWARE_RESTART":"", "RESTART":"", "EXCLUDE_OBJECT":"",
+            // Stella's own macros (2026-09-28); filament_load / filament_unload are gated on them.
+            "LOAD_FILAMENT":"", "UNLOAD_FILAMENT":"",
+            // the calibrations Klipper offers (2026-10-26)
+            "PID_CALIBRATE":"", "PROBE_CALIBRATE":"", "Z_ENDSTOP_CALIBRATE":"", "TUNING_TOWER":"", "SAVE_CONFIG":""
         }})
     }
     fn service(url: String, database: String, mode: &str) -> Service {
@@ -2144,6 +2923,12 @@ mod tests {
     fn fixed_allowlist_and_payload_are_exact_and_audited() {
         let expected = [
             ("z_offset_save", "Z_OFFSET_APPLY_PROBE\nSAVE_CONFIG"),
+            // calibration (2026-10-26): the probe and endstop paper tests, their accept and abort, and the save
+            ("probe_calibrate", "PROBE_CALIBRATE"),
+            ("z_endstop_calibrate", "Z_ENDSTOP_CALIBRATE"),
+            ("manual_accept", "ACCEPT"),
+            ("manual_abort", "ABORT"),
+            ("save_config", "SAVE_CONFIG"),
             ("pause", "PAUSE"),
             ("resume", "RESUME"),
             ("cancel", "CANCEL_PRINT"),
@@ -2160,6 +2945,8 @@ mod tests {
             ("shaper_x", "SHAPER_CALIBRATE AXIS=X"),
             ("shaper_y", "SHAPER_CALIBRATE AXIS=Y"),
             ("klipper_restart", "RESTART"),
+            // filament board 2026-10-22: the shake after a load, a new fixed command (exactly this text; the allowlist test names every fixed script)
+            ("filament_shake", SHAKE_SCRIPT),
         ];
         assert_eq!(
             COMMANDS
@@ -2213,10 +3000,13 @@ mod tests {
     }
 
     /// Klipper reports only extended commands in gcode/help, so a base G-code must not be checked
-    /// against it. Home was refused on the test printer for exactly this reason on 2026-09-21.
+    /// against it. Home was refused on Stella for exactly this reason on 2026-09-21.
     #[test]
     fn base_gcodes_are_not_checked_against_gcode_help() {
-        let home = *COMMANDS.iter().find(|command| command.id == "home").unwrap();
+        let home = *COMMANDS
+            .iter()
+            .find(|command| command.id == "home")
+            .unwrap();
         let qgl = *COMMANDS.iter().find(|command| command.id == "qgl").unwrap();
         // Real shape: QUAD_GANTRY_LEVEL is reported, G28 is not.
         let state = FreshState {
@@ -2603,6 +3393,14 @@ mod tests {
             (r#"{"id":"qgl"}"#, "QUAD_GANTRY_LEVEL"),
             (r#"{"id":"resonance_capture","axis":"X"}"#, "TEST_RESONANCES AXIS=X OUTPUT=raw_data"),
             (r#"{"id":"resonance_capture","axis":"belts"}"#, "TEST_RESONANCES AXIS=1,1 OUTPUT=raw_data\nTEST_RESONANCES AXIS=1,-1 OUTPUT=raw_data"),
+            // calibration (2026-10-26)
+            (r#"{"id":"pid_calibrate","target":"extruder","value":245}"#, "PID_CALIBRATE HEATER=extruder TARGET=245"),
+            (r#"{"id":"pid_calibrate","target":"heater_bed","value":100}"#, "PID_CALIBRATE HEATER=heater_bed TARGET=100"),
+            (r#"{"id":"probe_calibrate"}"#, "PROBE_CALIBRATE"),
+            (r#"{"id":"testz","value":-0.025}"#, "TESTZ Z=-0.025"),
+            (r#"{"id":"manual_accept"}"#, "ACCEPT"),
+            (r#"{"id":"tuning_tower","params":{"start":"0","factor":"0.005"}}"#, "TUNING_TOWER COMMAND=SET_PRESSURE_ADVANCE PARAMETER=ADVANCE START=0.0000 FACTOR=0.00500"),
+            (r#"{"id":"save_config"}"#, "SAVE_CONFIG"),
         ] {
             let response = service.handle(
                 "POST",
@@ -2619,6 +3417,22 @@ mod tests {
         }
         assert!(listener.accept().is_err());
         assert!(!std::path::Path::new(&format!("{database}.commands.sqlite3")).exists());
+    }
+
+    #[test]
+    fn calibration_commands_refuse_out_of_range_values() {
+        let cmd = |id: &str| COMMANDS.iter().copied().find(|c| c.id == id).unwrap();
+        let inp = |j: &str| serde_json::from_str::<CommandInput>(j).unwrap();
+        assert!(render(cmd("pid_calibrate"), &inp(r#"{"id":"pid_calibrate","target":"extruder","value":320}"#)).is_err(), "over the nozzle limit");
+        assert!(render(cmd("pid_calibrate"), &inp(r#"{"id":"pid_calibrate","target":"heater_bed","value":20}"#)).is_err(), "a bed below 40");
+        assert!(render(cmd("pid_calibrate"), &inp(r#"{"id":"pid_calibrate","target":"chamber","value":60}"#)).is_err(), "only the two heaters");
+        assert!(render(cmd("testz"), &inp(r#"{"id":"testz","value":6}"#)).is_err(), "a probe step over 5 mm");
+        assert!(render(cmd("testz"), &inp(r#"{"id":"testz","value":0}"#)).is_err(), "a zero step");
+        assert!(render(cmd("tuning_tower"), &inp(r#"{"id":"tuning_tower","params":{"start":"0","factor":"0.2"}}"#)).is_err(), "a factor too steep");
+        assert!(render(cmd("tuning_tower"), &inp(r#"{"id":"tuning_tower","params":{"start":"x","factor":"0.005"}}"#)).is_err(), "a start that is not a number");
+        for id in ["pid_calibrate", "probe_calibrate", "z_endstop_calibrate", "tuning_tower", "save_config"] {
+            assert_eq!(cmd(id).tier, "T3", "{id} is shown first and never runs during a print");
+        }
     }
 
     #[test]
@@ -2700,7 +3514,10 @@ mod tests {
         // Missing confirm, and an axis the printer does not have, both refused before any I/O.
         for (request, code) in [
             (r#"{"id":"resonance_capture","axis":"X"}"#, 400),
-            (r#"{"id":"resonance_capture","axis":"Z","confirm":true}"#, 400),
+            (
+                r#"{"id":"resonance_capture","axis":"Z","confirm":true}"#,
+                400,
+            ),
             (r#"{"id":"resonance_capture","confirm":true}"#, 400),
         ] {
             let response = service.handle(
@@ -2851,6 +3668,7 @@ mod tests {
         let cfg = Config {
             controls_enabled: true,
             bind: "0.0.0.0".into(),
+            moonraker_url: "http://192.168.1.131:7125".into(),
             ..Config::default()
         };
         assert!(cfg.validate().unwrap_err().contains("loopback"));
@@ -2867,7 +3685,7 @@ mod tests {
     const LOOPBACK: IpAddr = IpAddr::V4(std::net::Ipv4Addr::new(127, 0, 0, 1));
 
     /// The live section, an unrelated section that also has a heater_temp, and the commented-out
-    /// reference copy — the exact shape of the test printer's printer.cfg.
+    /// reference copy — the exact shape of Stella's printer.cfg.
     const CFG: &str = "[heater_fan hotend_fan]\npin: EBBCan: PA1\nheater: extruder\nheater_temp: 50.0    # 2026-09-15: was 30.0\n\n[controller_fan controller_fan]\nheater_temp: 45.0\n\n#[heater_fan hotend_fan]\n#heater_temp: 50.0\n";
 
     // ---- L3 read endpoints ------------------------------------------------------------------
@@ -2989,14 +3807,14 @@ mod tests {
                 database.clone(),
                 "live",
             );
-            let response =
-                service.handle("POST", "/api/commands", &headers(&service), request, LOOPBACK);
-            assert_eq!(
-                response.code,
-                400,
-                "{}",
-                String::from_utf8_lossy(request)
+            let response = service.handle(
+                "POST",
+                "/api/commands",
+                &headers(&service),
+                request,
+                LOOPBACK,
             );
+            assert_eq!(response.code, 400, "{}", String::from_utf8_lossy(request));
             assert_eq!(body(&response)["status"], "not_sent");
             // Nothing was dialled: the bound is checked before any socket is opened.
             assert!(listener.accept().is_err());
@@ -3040,10 +3858,10 @@ mod tests {
     #[test]
     fn heater_fan_edit_previews_a_one_line_diff_then_backs_up_before_uploading() {
         let (url, worker) = fake_text(vec![
-            Some(CFG.to_owned()),                                   // GET printer.cfg
+            Some(CFG.to_owned()),                                         // GET printer.cfg
             Some(json!({"result":{"action":"create_file"}}).to_string()), // upload backup
             Some(json!({"result":{"action":"create_file"}}).to_string()), // upload printer.cfg
-            Some(json!({"result":"ok"}).to_string()),               // FIRMWARE_RESTART
+            Some(json!({"result":"ok"}).to_string()),                     // FIRMWARE_RESTART
         ]);
         let database = path("heater-fan");
         let service = service(url, database.clone(), "live");
@@ -3091,7 +3909,10 @@ mod tests {
             .as_str()
             .unwrap()
             .starts_with("printer.cfg.before-"));
-        assert!(value["firmware_restart"].as_str().unwrap().contains("FIRMWARE_RESTART"));
+        assert!(value["firmware_restart"]
+            .as_str()
+            .unwrap()
+            .contains("FIRMWARE_RESTART"));
 
         let requests = worker.join().unwrap();
         assert_eq!(requests.len(), 4);
@@ -3099,10 +3920,16 @@ mod tests {
         // Order is the whole point: the backup is written before the file it backs up is replaced.
         assert!(requests[1].starts_with("POST /server/files/upload "));
         assert!(requests[1].contains("name=\"path\"\r\n\r\nprinter.cfg.before-"));
-        assert!(requests[1].contains("heater_temp: 50.0"), "backup holds the ORIGINAL");
+        assert!(
+            requests[1].contains("heater_temp: 50.0"),
+            "backup holds the ORIGINAL"
+        );
         assert!(requests[2].starts_with("POST /server/files/upload "));
         assert!(requests[2].contains("name=\"path\"\r\n\r\nprinter.cfg\r\n"));
-        assert!(requests[2].contains("heater_temp: 45.0"), "upload holds the EDIT");
+        assert!(
+            requests[2].contains("heater_temp: 45.0"),
+            "upload holds the EDIT"
+        );
         assert!(requests[2].contains("name=\"root\"\r\n\r\nconfig"));
         // The commented reference copy rode along untouched in the uploaded bytes.
         assert!(requests[2].contains("#heater_temp: 50.0"));
@@ -3175,8 +4002,13 @@ mod tests {
         let (url, worker) = fake_text(vec![Some(CFG.to_owned())]);
         let database = path("heater-read");
         let service = service(url, database.clone(), "live");
-        let response =
-            service.handle("GET", "/api/config/heater-fan", &get_headers(), &[], LOOPBACK);
+        let response = service.handle(
+            "GET",
+            "/api/config/heater-fan",
+            &get_headers(),
+            &[],
+            LOOPBACK,
+        );
         assert_eq!(response.code, 200, "{:?}", body(&response));
         let value = body(&response);
         assert_eq!(value["heater_temp"], 50.0);
@@ -3203,7 +4035,7 @@ mod tests {
         );
 
         let seeded = body(&service.handle("GET", "/api/presets", &get_headers(), &[], LOOPBACK));
-        assert_eq!(seeded["materials"], json!([]));
+        assert_eq!(seeded["materials"], crate::operator::standard_materials());
         assert_eq!(seeded["steps"], json!([0.1, 1, 10, 50]));
 
         let put = service.handle(
@@ -3236,20 +4068,16 @@ mod tests {
         }
         // The refusal left the stored presets alone.
         assert_eq!(
-            body(&service.handle("GET", "/api/presets", &get_headers(), &[], LOOPBACK))["materials"]
+            body(&service.handle("GET", "/api/presets", &get_headers(), &[], LOOPBACK))
+                ["materials"]
                 .as_array()
                 .unwrap()
                 .len(),
             1
         );
 
-        let history = body(&service.handle(
-            "GET",
-            "/api/console/history",
-            &get_headers(),
-            &[],
-            LOOPBACK,
-        ));
+        let history =
+            body(&service.handle("GET", "/api/console/history", &get_headers(), &[], LOOPBACK));
         assert_eq!(history["history"].as_array().unwrap().len(), 0);
         assert_eq!(history["limit"], 200);
         let pushed = service.handle(
@@ -3279,9 +4107,10 @@ mod tests {
         cleanup(&database);
     }
 
-    /// Through the route: no assumed temperatures on first read, a saved list read back by a new service on
-    /// the same database (a restart), and every bad list refused in plain words with nothing stored. None of
-    /// it reaches the printer.
+    /// WO-20 (2026-09-23), the owner: "Anybody can change their preheat presets, and they should save
+    /// within the system." Through the route: no assumed temperatures on first read, a saved list read back by
+    /// a new service on the same database (a restart), and every bad list refused in plain words
+    /// with nothing stored. None of it reaches the printer.
     #[test]
     fn presets_route_saves_reloads_and_refuses_in_plain_words() {
         let listener = TcpListener::bind("127.0.0.1:0").unwrap();
@@ -3290,24 +4119,51 @@ mod tests {
         let database = path("presets-route");
         let service = service(url.clone(), database.clone(), "live");
         let first = body(&service.handle("GET", "/api/presets", &get_headers(), &[], LOOPBACK));
-        assert_eq!(first["materials"], json!([]));
+        assert_eq!(first["materials"], crate::operator::standard_materials());
         let saved = br#"{"materials":[{"name":"PLA","nozzle":215,"bed":60},{"name":"PETG Sunlu","nozzle":245,"bed":85},{"name":"ASA","nozzle":260,"bed":100}],"steps":[0.1,1,10,50],"fan":[0,25,50,75,100]}"#;
         let put = service.handle("PUT", "/api/presets", &headers(&service), saved, LOOPBACK);
         assert_eq!(put.code, 200, "{:?}", body(&put));
         drop(service);
         let restarted = super::tests::service(url, database.clone(), "live");
         let read = body(&restarted.handle("GET", "/api/presets", &get_headers(), &[], LOOPBACK));
-        assert_eq!(read["materials"][1], json!({"name":"PETG Sunlu","nozzle":245.0,"bed":85.0}));
+        assert_eq!(
+            read["materials"][1],
+            json!({"name":"PETG Sunlu","nozzle":245.0,"bed":85.0})
+        );
         assert_eq!(read["materials"].as_array().unwrap().len(), 3);
         for (bad, says) in [
-            (r#"{"materials":[{"name":"","nozzle":218,"bed":60}],"steps":[1],"fan":[0]}"#, "needs a name"),
-            (r#"{"materials":[{"name":"PLA","nozzle":291,"bed":60}],"steps":[1],"fan":[0]}"#, "PLA nozzle must be 0 to 290 °C"),
-            (r#"{"materials":[{"name":"PLA","nozzle":218,"bed":121}],"steps":[1],"fan":[0]}"#, "PLA bed must be 0 to 120 °C"),
-            (r#"{"materials":[{"name":"PLA","nozzle":218,"bed":60},{"name":"PLA","nozzle":210,"bed":55}],"steps":[1],"fan":[0]}"#, "two presets are named PLA"),
-            (r#"{"materials":[{"name":"cool down","nozzle":0,"bed":0}],"steps":[1],"fan":[0]}"#, "Cool down is built in"),
-            (r#"{"materials":[{"name":"PLA","nozzle":"hot","bed":60}],"steps":[1],"fan":[0]}"#, "needs a numeric nozzle"),
+            (
+                r#"{"materials":[{"name":"","nozzle":218,"bed":60}],"steps":[1],"fan":[0]}"#,
+                "needs a name",
+            ),
+            (
+                r#"{"materials":[{"name":"PLA","nozzle":291,"bed":60}],"steps":[1],"fan":[0]}"#,
+                "PLA nozzle must be 0 to 290 °C",
+            ),
+            (
+                r#"{"materials":[{"name":"PLA","nozzle":218,"bed":121}],"steps":[1],"fan":[0]}"#,
+                "PLA bed must be 0 to 120 °C",
+            ),
+            (
+                r#"{"materials":[{"name":"PLA","nozzle":218,"bed":60},{"name":"PLA","nozzle":210,"bed":55}],"steps":[1],"fan":[0]}"#,
+                "two presets are named PLA",
+            ),
+            (
+                r#"{"materials":[{"name":"cool down","nozzle":0,"bed":0}],"steps":[1],"fan":[0]}"#,
+                "Cool down is built in",
+            ),
+            (
+                r#"{"materials":[{"name":"PLA","nozzle":"hot","bed":60}],"steps":[1],"fan":[0]}"#,
+                "needs a numeric nozzle",
+            ),
         ] {
-            let response = restarted.handle("PUT", "/api/presets", &headers(&restarted), bad.as_bytes(), LOOPBACK);
+            let response = restarted.handle(
+                "PUT",
+                "/api/presets",
+                &headers(&restarted),
+                bad.as_bytes(),
+                LOOPBACK,
+            );
             assert_eq!(response.code, 400, "{bad}");
             let error = body(&response)["error"].as_str().unwrap().to_owned();
             assert!(error.contains(says), "{bad}: {error}");
@@ -3320,19 +4176,25 @@ mod tests {
         cleanup(&database);
     }
 
-    /// Reviewer's decision on the service gate for the two restarts. With Klipper in shutdown or
-    /// error they are listed as allowed and go out after their review, with no other printer
-    /// request than the state read; every other command keeps its refusal. With Klipper ready the
-    /// ordinary rules apply, and with Moonraker silent or Klipper starting up nothing goes. The
-    /// state messages are Klipper's own shapes.
+    /// Reviewer's decision on WO-20 (2026-09-23): the service gate for the two restarts. With
+    /// Klipper in shutdown or error they are listed as allowed and go out after their review, with
+    /// no other printer request than the state read; every other command keeps its refusal. With
+    /// Klipper ready the ordinary rules apply, and with Moonraker silent or Klipper starting up
+    /// nothing goes. The state messages are Klipper's own shapes.
     #[test]
     fn restarts_recover_a_halted_klipper_and_nothing_else_goes() {
         // Klipper's own shapes: the cause line, its FIRMWARE_RESTART advice, and the closing line.
         let halted = |state: &str| {
             let (cause, last) = if state == "error" {
-                ("mcu 'EBBCan': Unable to connect", "Error configuring printer")
+                (
+                    "mcu 'EBBCan': Unable to connect",
+                    "Error configuring printer",
+                )
             } else {
-                ("Lost communication with MCU 'EBBCan'", "Printer is shutdown")
+                (
+                    "Lost communication with MCU 'EBBCan'",
+                    "Printer is shutdown",
+                )
             };
             json!({"result":{"state":state,"state_message":format!("{cause}\nOnce the underlying issue is corrected, use the\n\"FIRMWARE_RESTART\" command to reset the firmware, reload the\nconfig, and restart the host software.\n{last}\n")}})
         };
@@ -3344,7 +4206,8 @@ mod tests {
         let (url, worker) = fake(vec![Some(halted("shutdown"))]);
         let database = path("recover-controls");
         let caps_service = service(url, database.clone(), "live");
-        let caps = body(&caps_service.handle("GET", "/api/controls", &get_headers(), &[], LOOPBACK));
+        let caps =
+            body(&caps_service.handle("GET", "/api/controls", &get_headers(), &[], LOOPBACK));
         let allowed = |id: &str| {
             caps["commands"]
                 .as_array()
@@ -3376,8 +4239,14 @@ mod tests {
             let database = path("recover-send");
             let sender = service(url, database.clone(), "live");
             let unconfirmed = post(&sender, format!(r#"{{"id":"{id}"}}"#).as_bytes());
-            assert_eq!(unconfirmed.code, 400, "{state} {id}: the review is still required");
-            let response = post(&sender, format!(r#"{{"id":"{id}","confirm":true}}"#).as_bytes());
+            assert_eq!(
+                unconfirmed.code, 400,
+                "{state} {id}: the review is still required"
+            );
+            let response = post(
+                &sender,
+                format!(r#"{{"id":"{id}","confirm":true}}"#).as_bytes(),
+            );
             assert_eq!(response.code, 200, "{state} {id}: {:?}", body(&response));
             let requests = worker.join().unwrap();
             assert_eq!(requests.len(), 2, "{state} {id}");
@@ -3394,30 +4263,57 @@ mod tests {
         let response = post(&home_service, br#"{"id":"home","confirm":true}"#);
         assert_eq!(response.code, 503);
         assert_eq!(body(&response)["status"], "not_sent");
-        assert!(body(&response)["error"].as_str().unwrap().contains("Klippy state is shutdown"));
+        assert!(body(&response)["error"]
+            .as_str()
+            .unwrap()
+            .contains("Klippy state is shutdown"));
         assert_eq!(worker.join().unwrap().len(), 1);
         cleanup(&database);
 
         // Ready: the ordinary rules still decide, so a restart during a print is refused.
-        let (url, worker) = fake(vec![Some(info()), Some(status("printing", "printing", "xyz")), Some(help())]);
+        let (url, worker) = fake(vec![
+            Some(info()),
+            Some(status("printing", "printing", "xyz")),
+            Some(help()),
+        ]);
         let database = path("recover-ready");
         let ready_service = service(url, database.clone(), "live");
-        let response = post(&ready_service, br#"{"id":"firmware_restart","confirm":true}"#);
+        let response = post(
+            &ready_service,
+            br#"{"id":"firmware_restart","confirm":true}"#,
+        );
         assert_eq!(response.code, 409);
-        assert!(body(&response)["error"].as_str().unwrap().contains("T3 commands are blocked while printing"));
+        assert!(body(&response)["error"]
+            .as_str()
+            .unwrap()
+            .contains("T3 commands are blocked while printing"));
         assert_eq!(worker.join().unwrap().len(), 3);
         cleanup(&database);
 
-        // CANCEL_PRINT is the one T3 command a print does not block, in both printing and
-        // paused, and it goes out as exactly CANCEL_PRINT.
+        // NEXT review 2026-09-24: CANCEL_PRINT is the one T3 command a print does not block, in
+        // both printing and paused, and it goes out as exactly CANCEL_PRINT.
         for print in ["printing", "paused"] {
-            let (url, worker) = fake(vec![Some(info()), Some(status(print, "printing", "xyz")), Some(help()), Some(json!({"result":"ok"}))]);
+            let (url, worker) = fake(vec![
+                Some(info()),
+                Some(status(print, "printing", "xyz")),
+                Some(help()),
+                Some(json!({"result":"ok"})),
+            ]);
             let database = path(&format!("cancel-{print}"));
             let cancel_service = service(url, database.clone(), "live");
             let response = post(&cancel_service, br#"{"id":"cancel","confirm":true}"#);
-            assert_eq!(response.code, 200, "cancel while {print}: {:?}", body(&response));
+            assert_eq!(
+                response.code,
+                200,
+                "cancel while {print}: {:?}",
+                body(&response)
+            );
             let requests = worker.join().unwrap();
-            assert!(requests[3].ends_with(r#"{"script":"CANCEL_PRINT"}"#), "{:?}", requests[3]);
+            assert!(
+                requests[3].ends_with(r#"{"script":"CANCEL_PRINT"}"#),
+                "{:?}",
+                requests[3]
+            );
             cleanup(&database);
         }
 
@@ -3428,10 +4324,15 @@ mod tests {
         assert_eq!(response.code, 503);
         assert_eq!(body(&response)["status"], "not_sent");
         cleanup(&database);
-        let (url, worker) = fake(vec![Some(json!({"result":{"state":"startup","state_message":"\nPrinter is not ready\nThe klippy host software is attempting to connect.  Please\nretry in a few moments.\n"}}))]);
+        let (url, worker) = fake(vec![Some(
+            json!({"result":{"state":"startup","state_message":"\nPrinter is not ready\nThe klippy host software is attempting to connect.  Please\nretry in a few moments.\n"}}),
+        )]);
         let database = path("recover-startup");
         let startup_service = service(url, database.clone(), "live");
-        let response = post(&startup_service, br#"{"id":"klipper_restart","confirm":true}"#);
+        let response = post(
+            &startup_service,
+            br#"{"id":"klipper_restart","confirm":true}"#,
+        );
         assert_eq!(response.code, 503);
         assert_eq!(body(&response)["status"], "not_sent");
         assert_eq!(worker.join().unwrap().len(), 1);
@@ -3466,7 +4367,9 @@ mod tests {
     #[test]
     fn macros_carry_the_parameters_read_from_their_own_bodies() {
         let (url, worker) = fake(vec![
-            Some(json!({"result":{"LOAD_FILAMENT":"Park front right, heat, purge 50 mm","G28":"Home"}})),
+            Some(
+                json!({"result":{"LOAD_FILAMENT":"Park front right, heat, purge 50 mm","G28":"Home"}}),
+            ),
             Some(json!({"result":{"status":{"configfile":{"settings":{
                 "gcode_macro load_filament":{"gcode":"{% set temp = params.TEMP|default(220)|int %}\nG1 E50 F300"}
             }}}}})),
@@ -3489,14 +4392,16 @@ mod tests {
         cleanup(&database);
     }
 
-    /// The HUD's Macros list is the printer's gcode_macro sections, so the service flags which
-    /// gcode/help entries have one. The fixture is the shape Klipper returns: gcode/help lists
-    /// registered commands and macros alike (never base G-codes such as G1), and macro bodies sit
-    /// under lowercased `gcode_macro <name>` sections in configfile settings.
+    /// WO-19 (2026-09-23): the HUD's Macros list is the printer's gcode_macro sections, so the
+    /// service flags which gcode/help entries have one. The fixture is the shape Klipper returns:
+    /// gcode/help lists registered commands and macros alike (never base G-codes such as G1), and
+    /// macro bodies sit under lowercased `gcode_macro <name>` sections in configfile settings.
     #[test]
     fn macros_are_flagged_from_their_gcode_macro_sections() {
         let (url, worker) = fake(vec![
-            Some(json!({"result":{"LOAD_FILAMENT":"Park front right, heat, purge 50 mm","BED_MESH_CALIBRATE":"Perform Mesh Bed Leveling"}})),
+            Some(
+                json!({"result":{"LOAD_FILAMENT":"Park front right, heat, purge 50 mm","BED_MESH_CALIBRATE":"Perform Mesh Bed Leveling"}}),
+            ),
             Some(json!({"result":{"status":{"configfile":{"settings":{
                 "gcode_macro load_filament":{"gcode":"G1 E50 F300"}
             }}}}})),
@@ -3562,6 +4467,534 @@ mod tests {
         );
         worker.join().unwrap();
     }
+
+    // ---- farm board WO-01 (2026-10-12): our 2026-09-28 list, items 1-3 and 11 --------------------
+    // These run against the fake Moonraker in src/fakes.rs, which records every request it gets, so
+    // each assertion is on the exact bytes that left the service.
+
+    fn fake_service(label: &str) -> (crate::fakes::FakeMoonraker, std::sync::Arc<Service>, String) {
+        let fake = crate::fakes::FakeMoonraker::start(0);
+        let database = path(label);
+        let service = std::sync::Arc::new(service(fake.url(), database.clone(), "live"));
+        (fake, service, database)
+    }
+    fn post(service: &Service, route: &str, payload: &str) -> Response {
+        service.handle(
+            "POST",
+            route,
+            &headers(service),
+            payload.as_bytes(),
+            IpAddr::from([127, 0, 0, 1]),
+        )
+    }
+
+    // WO-04: when the farm is past its trial and this printer is beyond the free five, controls are
+    // refused with a plain reason; a running print is never interrupted.
+    #[test]
+    fn locked_controls_are_refused_with_a_plain_reason() {
+        let (fake, service, database) = fake_service("licence-lock");
+        fake.state.lock().unwrap().load_secs = 0.2;
+        // Unlocked: a control is accepted (it reaches the fake).
+        let r = post(
+            &service,
+            "/api/commands",
+            r#"{"id":"set_heater","target":"heater_bed","value":60,"confirm":true}"#,
+        );
+        assert_eq!(r.code, 200, "unlocked: {}", body(&r));
+        assert!(service.enabled());
+        // Lock it.
+        service.set_licence_locked(
+            true,
+            "The trial has ended. A farm licence turns printers beyond the free five back on."
+                .into(),
+        );
+        assert!(!service.enabled());
+        assert!(service
+            .disabled_reason()
+            .contains("farm licence turns printers beyond the free five back on"));
+        let r = post(
+            &service,
+            "/api/commands",
+            r#"{"id":"set_heater","target":"heater_bed","value":60,"confirm":true}"#,
+        );
+        assert_eq!(r.code, 503, "locked: {}", body(&r));
+        assert_eq!(body(&r)["status"], "not_sent");
+        cleanup(&database);
+    }
+
+    /// 2026-10-22 (filament board): the shake after a load is a named command with fixed moves. It goes out only when the printer is homed and not printing or paused, with no
+    /// review dialog; it is net zero (+2 -4 +4 -4 +4 -4 +2 mm along X), and the printer's own G-code state is saved and put back around it.
+    #[test]
+    fn the_filament_shake_is_homed_only_never_mid_print_and_leaves_the_head_where_it_was() {
+        let (fake, service, database) = fake_service("filament-shake");
+        let go = |s: &Service| post(s, "/api/commands", r#"{"id":"filament_shake","confirm":true}"#);
+        let preview = body(&post(&service, "/api/command-preview", r#"{"id":"filament_shake"}"#));
+        assert_eq!(preview["tier"], "T3");
+        assert_eq!(preview["review"], false, "a fixed action: no dialog in front of it");
+        // not homed: refused, nothing sent
+        fake.state.lock().unwrap().homed = "".into();
+        let r = go(&service);
+        assert_ne!(r.code, 200, "{:?}", body(&r));
+        assert!(fake.scripts().is_empty(), "{:?}", fake.scripts());
+        // printing or paused: refused, nothing sent
+        for state in ["printing", "paused"] {
+            {
+                let mut f = fake.state.lock().unwrap();
+                f.homed = "xyz".into();
+                f.print_state = state.into();
+            }
+            let r = go(&service);
+            assert_ne!(r.code, 200, "shake while {state}: {:?}", body(&r));
+        }
+        assert!(fake.scripts().is_empty(), "{:?}", fake.scripts());
+        // homed and idle: it goes, exactly this, and the head is where it was
+        {
+            let mut f = fake.state.lock().unwrap();
+            f.print_state = "standby".into();
+            f.pos = [175.0, 175.0, 10.0];
+        }
+        let r = go(&service);
+        assert_eq!(r.code, 200, "{:?}", body(&r));
+        let sent = fake.scripts();
+        assert_eq!(sent.len(), 1);
+        assert_eq!(sent[0], SHAKE_SCRIPT);
+        assert!(sent[0].starts_with("SAVE_GCODE_STATE") && sent[0].ends_with("RESTORE_GCODE_STATE NAME=STELLA_SHAKE"));
+        let net: f64 = sent[0]
+            .lines()
+            .filter_map(|l| l.strip_prefix("G1 X"))
+            .filter_map(|l| l.split_whitespace().next()?.parse::<f64>().ok())
+            .sum();
+        assert_eq!(net, 0.0, "the moves cancel out");
+        assert_eq!(fake.state.lock().unwrap().pos, [175.0, 175.0, 10.0]);
+        // A head at the end of travel (the fake's X is 0..350) shakes only on the side that has room, still net zero.
+        let sum = |s: &str| s.lines().filter_map(|l| l.strip_prefix("G1 X")?.split_whitespace().next()?.parse::<f64>().ok()).sum::<f64>();
+        for (x, first) in [(0.5, "G1 X4 F12000"), (349.0, "G1 X-4 F12000")] {
+            fake.state.lock().unwrap().pos = [x, 175.0, 10.0];
+            let r = go(&service);
+            assert_eq!(r.code, 200, "{:?}", body(&r));
+            let last = fake.scripts().last().cloned().unwrap();
+            assert_eq!(last.lines().nth(2), Some(first), "at X {x}: {last}");
+            assert_eq!(sum(&last), 0.0);
+        }
+        assert!(shake_script(1.0, 0.0, 3.0).is_none(), "no room either way: not sent");
+        assert_eq!(shake_script(175.0, 0.0, 350.0).as_deref(), Some(SHAKE_SCRIPT));
+        cleanup(&database);
+    }
+
+    /// Opus review 2026-10-22: a filament job's timers ran in the page, so closing the page in the reload wait left the nozzle hot for ever. The page now holds a guard in
+    /// the service; if it is not renewed the service turns the nozzle heater off by itself. Taken away (0), nothing is sent.
+    #[test]
+    fn a_heat_guard_that_runs_out_turns_the_nozzle_off_and_a_cleared_one_sends_nothing() {
+        let (fake, service, database) = fake_service("heat-guard");
+        let stop = std::sync::Arc::new(AtomicBool::new(false));
+        Service::spawn_heat_guard(&service, stop.clone());
+        let r = post(&service, "/api/filament/guard", r#"{"off_in_s":901}"#);
+        assert_eq!(r.code, 400, "past the top is refused");
+        let r = post(&service, "/api/filament/guard", r#"{"off_in_s":30}"#);
+        assert_eq!(r.code, 200, "{:?}", body(&r));
+        let r = post(&service, "/api/filament/guard", r#"{"off_in_s":0}"#);
+        assert_eq!(r.code, 200);
+        std::thread::sleep(Duration::from_millis(1500));
+        assert!(fake.scripts().is_empty(), "cleared: {:?}", fake.scripts());
+        let r = post(&service, "/api/filament/guard", r#"{"off_in_s":1}"#);
+        assert_eq!(r.code, 200);
+        let t0 = std::time::Instant::now();
+        while fake.scripts().is_empty() && t0.elapsed() < Duration::from_secs(6) {
+            std::thread::sleep(Duration::from_millis(100));
+        }
+        let sent = fake.scripts();
+        assert_eq!(sent.len(), 1, "{sent:?}");
+        assert!(sent[0].contains("SET_HEATER_TEMPERATURE HEATER=extruder TARGET=0"), "{sent:?}");
+        std::thread::sleep(Duration::from_millis(1500));
+        assert_eq!(fake.scripts().len(), 1, "once, not every second");
+        stop.store(true, Ordering::Relaxed);
+        cleanup(&database);
+    }
+
+
+    /// 2026-10-22 (Stella): CANCEL in the paused bar sent nothing, so Klipper got PAUSE and never CANCEL_PRINT. The page's completed hold posts exactly this, and it reaches the
+    /// printer as CANCEL_PRINT, which (as Mainsail's macro on Stella) cancels the print and turns both heaters off. Without confirm it is refused and nothing is sent.
+    #[test]
+    fn a_confirmed_cancel_while_paused_reaches_klipper_as_cancel_print_and_the_heaters_go_off() {
+        let (fake, service, database) = fake_service("cancel-paused");
+        {
+            let mut s = fake.state.lock().unwrap();
+            s.print_state = "paused".into();
+            s.filename = "ring.gcode".into();
+            s.nozzle_target = 250.0;
+            s.nozzle = 250.0;
+            s.bed_target = 60.0;
+            s.bed = 60.0;
+        }
+        let unconfirmed = post(&service, "/api/commands", r#"{"id":"cancel"}"#);
+        assert_ne!(unconfirmed.code, 200, "a cancel without confirm is not sent");
+        assert!(fake.scripts().is_empty(), "nothing reached the printer: {:?}", fake.scripts());
+        let r = post(&service, "/api/commands", r#"{"id":"cancel","confirm":true}"#);
+        assert_eq!(r.code, 200, "{:?}", body(&r));
+        assert_eq!(fake.scripts(), vec!["CANCEL_PRINT"]);
+        let s = fake.state.lock().unwrap();
+        assert_eq!(s.print_state, "cancelled");
+        assert_eq!((s.nozzle_target, s.bed_target), (0.0, 0.0), "both heaters off");
+        drop(s);
+        cleanup(&database);
+    }
+
+    /// Item 1-3: Load and Unload send the printer's own macro with the chosen temperature, in one
+    /// press (no review), and are refused while a print runs. Before this the wizard sent `macro`,
+    /// a T3 free-text command that stopped at a review dialog nobody could see, and nothing reached
+    /// Klipper (gcode_store held no LOAD_FILAMENT).
+    #[test]
+    fn load_and_unload_send_the_named_macro_with_the_nozzle_temperature() {
+        let (fake, service, database) = fake_service("filament-macro");
+        fake.state.lock().unwrap().load_secs = 0.2;
+        let preview = post(
+            &service,
+            "/api/command-preview",
+            r#"{"id":"filament_load","value":250}"#,
+        );
+        let preview = body(&preview);
+        assert_eq!(preview["script"], "LOAD_FILAMENT TEMP=250");
+        assert_eq!(preview["tier"], "T3");
+        assert_eq!(
+            preview["review"], false,
+            "one press: no dialog in front of a named action"
+        );
+        assert_eq!(
+            post(
+                &service,
+                "/api/commands",
+                r#"{"id":"filament_load","value":250,"confirm":true}"#
+            )
+            .code,
+            200
+        );
+        assert_eq!(
+            post(
+                &service,
+                "/api/commands",
+                r#"{"id":"filament_unload","value":240,"confirm":true}"#
+            )
+            .code,
+            200
+        );
+        assert_eq!(
+            fake.scripts(),
+            vec!["LOAD_FILAMENT TEMP=250", "UNLOAD_FILAMENT TEMP=240"]
+        );
+        // Out-of-range or missing temperatures never reach the printer.
+        for bad in [
+            r#"{"id":"filament_load","value":100,"confirm":true}"#,
+            r#"{"id":"filament_load","value":400,"confirm":true}"#,
+            r#"{"id":"filament_load","confirm":true}"#,
+        ] {
+            assert_eq!(post(&service, "/api/commands", bad).code, 400, "{bad}");
+        }
+        assert_eq!(fake.scripts().len(), 2);
+        // T3: refused while printing, nothing sent.
+        fake.state.lock().unwrap().print_state = "printing".into();
+        let refused = post(
+            &service,
+            "/api/commands",
+            r#"{"id":"filament_load","value":250,"confirm":true}"#,
+        );
+        assert_eq!(refused.code, 409);
+        assert_eq!(fake.scripts().len(), 2);
+        cleanup(&database);
+    }
+
+    /// Item 11: a quad gantry level holds the "one ordinary command" slot for its whole run, and bed
+    /// heat was refused for that time. Heater, fan, speed and flow have their own slot now.
+    #[test]
+    fn heat_is_accepted_while_a_gantry_level_is_running() {
+        let (fake, service, database) = fake_service("heat-during-qgl");
+        fake.state.lock().unwrap().qgl_secs = 2.5;
+        let level = {
+            let service = service.clone();
+            thread::spawn(move || {
+                post(&service, "/api/commands", r#"{"id":"qgl","confirm":true}"#).code
+            })
+        };
+        // Wait until the macro is really running on the printer.
+        let started = std::time::Instant::now();
+        while !fake.scripts().iter().any(|s| s == "QUAD_GANTRY_LEVEL") {
+            assert!(
+                started.elapsed() < Duration::from_secs(3),
+                "the level never started"
+            );
+            thread::sleep(Duration::from_millis(20));
+        }
+        let bed = post(
+            &service,
+            "/api/commands",
+            r#"{"id":"set_heater","target":"heater_bed","value":55,"confirm":false}"#,
+        );
+        assert_eq!(bed.code, 200, "{}", String::from_utf8_lossy(&bed.body));
+        let nozzle = post(
+            &service,
+            "/api/commands",
+            r#"{"id":"set_heater","target":"extruder","value":250,"confirm":false}"#,
+        );
+        assert_eq!(nozzle.code, 200);
+        assert!(
+            !level.is_finished(),
+            "the heat went out while the level was still running"
+        );
+        // Another heavy command still waits its turn, as before.
+        let home = post(&service, "/api/commands", r#"{"id":"home","confirm":true}"#);
+        assert_eq!(home.code, 409);
+        assert_eq!(level.join().unwrap(), 200);
+        let scripts = fake.scripts();
+        assert!(
+            scripts.contains(&"SET_HEATER_TEMPERATURE HEATER=heater_bed TARGET=55".to_string()),
+            "{scripts:?}"
+        );
+        assert!(scripts.contains(&"SET_HEATER_TEMPERATURE HEATER=extruder TARGET=250".to_string()));
+        assert!(!scripts.contains(&"G28".to_string()));
+        cleanup(&database);
+    }
+
+    // ---- farm board WO-02 (2026-10-12): the driver seam -------------------------------------------
+
+    fn other_service(label: &str) -> (Service, String) {
+        let database = path(label);
+        let cfg = Config {
+            driver: "testbrand".into(),
+            database: database.clone(),
+            controls_enabled: true,
+            request_timeout_ms: 500,
+            ..Config::default()
+        };
+        (Service::new(&cfg, "live").unwrap(), database)
+    }
+    fn get(service: &Service, route: &str) -> Response {
+        service.handle(
+            "GET",
+            route,
+            &BTreeMap::from([("host".into(), "127.0.0.1:7420".into())]),
+            &[],
+            IpAddr::from([127, 0, 0, 1]),
+        )
+    }
+
+    /// The WO's case: a printer with no move capability. What it cannot do is reported as
+    /// `supported:false` with the brand's own words (the page hides it), the request is refused before
+    /// anything is rendered, and nothing reaches the driver. What it can do arrives as a neutral action.
+    #[test]
+    fn a_printer_that_cannot_move_says_so_and_nothing_reaches_it() {
+        let (service, database) = other_service("testbrand");
+        let value = body(&get(&service, "/api/controls"));
+        assert_eq!(value["driver"], "testbrand");
+        assert_eq!(value["brand"], "Testbrand");
+        assert_eq!(value["capabilities"]["jog"], false);
+        assert_eq!(value["capabilities"]["heat"], true);
+        let command = |id: &str| {
+            value["commands"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .find(|c| c["id"] == id)
+                .unwrap()
+                .clone()
+        };
+        let jog = command("jog");
+        assert_eq!(jog["supported"], false);
+        assert_eq!(jog["allowed"], false);
+        assert_eq!(jog["reason"], "Testbrand cannot move the head by hand");
+        for id in [
+            "home",
+            "macro",
+            "console",
+            "qgl",
+            "mesh",
+            "filament_load",
+            "set_fan",
+        ] {
+            assert_eq!(command(id)["supported"], false, "{id}");
+        }
+        let heat = command("set_heater");
+        assert_eq!(
+            (heat["supported"].clone(), heat["allowed"].clone()),
+            (json!(true), json!(true))
+        );
+
+        // Refused before it is rendered or sent, in the brand's words.
+        let refused = post(
+            &service,
+            "/api/commands",
+            r#"{"id":"jog","axis":"X","value":5,"confirm":true}"#,
+        );
+        assert_eq!(refused.code, 409);
+        assert!(body(&refused)["error"]
+            .as_str()
+            .unwrap()
+            .contains("Testbrand cannot move the head by hand"));
+        assert_eq!(
+            post(&service, "/api/command-preview", r#"{"id":"home"}"#).code,
+            409
+        );
+        assert!(crate::drivers::testing::asked(&database).is_empty());
+
+        // What it can do reaches it as the neutral action, validated exactly as for Klipper.
+        assert_eq!(
+            post(
+                &service,
+                "/api/commands",
+                r#"{"id":"set_heater","target":"extruder","value":210}"#
+            )
+            .code,
+            200
+        );
+        assert_eq!(
+            post(
+                &service,
+                "/api/commands",
+                r#"{"id":"set_heater","target":"extruder","value":999}"#
+            )
+            .code,
+            400
+        );
+        assert_eq!(
+            post(
+                &service,
+                "/api/commands",
+                r#"{"id":"print_start","filename":"plate.gcode","confirm":true}"#
+            )
+            .code,
+            200
+        );
+        assert_eq!(
+            post(&service, "/api/commands", r#"{"id":"pause"}"#).code,
+            200
+        );
+        assert_eq!(
+            post(&service, "/api/commands", r#"{"id":"emergency_stop"}"#).code,
+            200
+        );
+        assert_eq!(
+            crate::drivers::testing::asked(&database),
+            vec![
+                "SetTemperature { heater: Nozzle, celsius: 210.0 }".to_string(),
+                "StartPrint { filename: \"plate.gcode\" }".into(),
+                "Pause".into(),
+                "emergency_stop".into(),
+            ]
+        );
+        // Files come from the driver; Klipper-only reads answer empty, not with an error.
+        assert_eq!(
+            body(&get(&service, "/api/files"))["files"][0]["path"],
+            "plate.gcode"
+        );
+        assert_eq!(body(&get(&service, "/api/macros"))["macros"], json!([]));
+        assert_eq!(
+            body(&get(&service, "/api/print/queue"))["queue_state"],
+            "unavailable"
+        );
+        cleanup(&database);
+    }
+
+    /// A brand that is configured but not built answers plainly and does nothing: it is never quietly
+    /// treated as Moonraker.
+    #[test]
+    fn a_brand_that_is_not_built_is_refused_not_treated_as_moonraker() {
+        let database = path("unbuilt");
+        let cfg = Config {
+            driver: "nonesuch".into(),
+            database: database.clone(),
+            controls_enabled: true,
+            ..Config::default()
+        };
+        assert!(crate::driver::open(&cfg).is_err());
+        let service = Service::new(&cfg, "live").unwrap();
+        let refused = post(
+            &service,
+            "/api/commands",
+            r#"{"id":"set_heater","target":"extruder","value":210}"#,
+        );
+        assert_eq!(refused.code, 409);
+        assert!(body(&refused)["error"].as_str().unwrap().contains("cannot"));
+        cleanup(&database);
+    }
+
+    /// The neutral action is read back from the rendered Klipper text, so a request is bounded once.
+    /// For every command with a neutral meaning, render -> action -> script is the text rendered.
+    #[test]
+    fn the_neutral_action_round_trips_through_the_rendered_script() {
+        let cases = [
+            r#"{"id":"set_heater","target":"extruder","value":210}"#,
+            r#"{"id":"set_heater","target":"heater_bed","value":60}"#,
+            r#"{"id":"set_fan","value":0.5}"#,
+            r#"{"id":"speed_factor","value":120}"#,
+            r#"{"id":"extrude_factor","value":95}"#,
+            r#"{"id":"jog","axis":"X","value":10}"#,
+            r#"{"id":"jog","axis":"Z","value":-0.5}"#,
+            r#"{"id":"home"}"#,
+            r#"{"id":"motors_off"}"#,
+            r#"{"id":"extrude","value":5}"#,
+            r#"{"id":"extrude","value":30}"#,
+            r#"{"id":"load_filament"}"#,
+            r#"{"id":"unload_filament","speed":8}"#,
+            r#"{"id":"pause"}"#,
+            r#"{"id":"resume"}"#,
+            r#"{"id":"cancel"}"#,
+            r#"{"id":"console","script":"M115"}"#,
+        ];
+        for case in cases {
+            let input: CommandInput = serde_json::from_str(case).unwrap();
+            let command = *COMMANDS.iter().find(|c| c.id == input.id).unwrap();
+            let sent = render(command, &input).unwrap();
+            let action = action_from_sent(command, &sent, &input)
+                .unwrap_or_else(|| panic!("no action for {case}"));
+            assert_eq!(
+                crate::driver::MoonrakerDriver::script_for(&action).as_deref(),
+                sent.script(),
+                "{case}"
+            );
+        }
+        // No neutral meaning: Klipper-only commands give None, and the printer is told so.
+        for case in [
+            r#"{"id":"qgl"}"#,
+            r#"{"id":"mesh"}"#,
+            r#"{"id":"macro","target":"PRINT_START"}"#,
+        ] {
+            let input: CommandInput = serde_json::from_str(case).unwrap();
+            let command = *COMMANDS.iter().find(|c| c.id == input.id).unwrap();
+            let sent = render(command, &input).unwrap();
+            assert!(action_from_sent(command, &sent, &input).is_none(), "{case}");
+        }
+    }
+
+    /// The driver's own snapshot of a Klipper printer is the read FreshState::fetch has always made.
+    #[test]
+    fn the_moonraker_driver_snapshot_is_the_fresh_state_commands_read() {
+        let fake = crate::fakes::FakeMoonraker::start(0);
+        let cfg = Config {
+            moonraker_url: fake.url(),
+            request_timeout_ms: 800,
+            ..Config::default()
+        };
+        use crate::driver::Driver as _;
+        let snap = crate::driver::MoonrakerDriver::new(&cfg)
+            .snapshot()
+            .unwrap();
+        let Fresh::Ready(fresh) = FreshState::fetch(&Moonraker::new(&cfg)).unwrap() else {
+            panic!("not ready")
+        };
+        assert_eq!(snap.state, "ready");
+        assert_eq!(
+            (
+                snap.homed_axes,
+                snap.print_state,
+                snap.idle_state,
+                snap.help
+            ),
+            (
+                fresh.homed_axes,
+                fresh.print_state,
+                fresh.idle_state,
+                fresh.help
+            )
+        );
+    }
 }
 
 #[cfg(test)]
@@ -3578,12 +5011,18 @@ mod render_tests {
             script: None,
             speed: None,
             filename: None,
+            heat: false,
             job_id: None,
             name: None,
             params: None,
         }
     }
-    fn input(id: &str, target: Option<&str>, value: Option<f64>, axis: Option<&str>) -> CommandInput {
+    fn input(
+        id: &str,
+        target: Option<&str>,
+        value: Option<f64>,
+        axis: Option<&str>,
+    ) -> CommandInput {
         CommandInput {
             target: target.map(str::to_owned),
             value,
@@ -3606,13 +5045,27 @@ mod render_tests {
     fn parametric_scripts_are_exact_and_bounded() {
         let ok = |id, t, v, a| render(command(id), &input(id, t, v, a)).unwrap().describe();
         let refused = |id, t, v, a| render(command(id), &input(id, t, v, a)).is_err();
-        assert_eq!(ok("set_heater", Some("extruder"), Some(215.0), None), "SET_HEATER_TEMPERATURE HEATER=extruder TARGET=215");
-        assert_eq!(ok("set_heater", Some("heater_bed"), Some(0.0), None), "SET_HEATER_TEMPERATURE HEATER=heater_bed TARGET=0");
-        assert_eq!(ok("set_heater", Some("extruder"), Some(290.0), None), "SET_HEATER_TEMPERATURE HEATER=extruder TARGET=290");
+        assert_eq!(
+            ok("set_heater", Some("extruder"), Some(215.0), None),
+            "SET_HEATER_TEMPERATURE HEATER=extruder TARGET=215"
+        );
+        assert_eq!(
+            ok("set_heater", Some("heater_bed"), Some(0.0), None),
+            "SET_HEATER_TEMPERATURE HEATER=heater_bed TARGET=0"
+        );
+        assert_eq!(
+            ok("set_heater", Some("extruder"), Some(290.0), None),
+            "SET_HEATER_TEMPERATURE HEATER=extruder TARGET=290"
+        );
         assert!(refused("set_heater", Some("extruder"), Some(290.1), None));
         assert!(refused("set_heater", Some("heater_bed"), Some(121.0), None));
         assert!(refused("set_heater", Some("chamber"), Some(40.0), None));
-        assert!(refused("set_heater", Some("extruder"), Some(f64::NAN), None));
+        assert!(refused(
+            "set_heater",
+            Some("extruder"),
+            Some(f64::NAN),
+            None
+        ));
         assert_eq!(ok("set_fan", None, Some(0.5), None), "M106 S128");
         assert_eq!(ok("set_fan", None, Some(1.0), None), "M106 S255");
         assert!(refused("set_fan", None, Some(1.5), None));
@@ -3620,14 +5073,22 @@ mod render_tests {
         assert_eq!(ok("extrude_factor", None, Some(95.0), None), "M221 S95");
         assert!(refused("speed_factor", None, Some(49.0), None));
         assert!(refused("extrude_factor", None, Some(201.0), None));
-        assert_eq!(ok("jog", None, Some(-10.0), Some("X")), "G91\nG1 X-10.00 F6000\nG90");
-        assert_eq!(ok("jog", None, Some(0.1), Some("Z")), "G91\nG1 Z0.10 F900\nG90");
+        assert_eq!(
+            ok("jog", None, Some(-10.0), Some("X")),
+            "G91\nG1 X-10.00 F6000\nG90"
+        );
+        assert_eq!(
+            ok("jog", None, Some(0.1), Some("Z")),
+            "G91\nG1 Z0.10 F900\nG90"
+        );
         assert!(refused("jog", None, Some(0.0), Some("X")));
         assert!(refused("jog", None, Some(51.0), Some("Y")));
         assert!(refused("jog", None, Some(5.0), Some("E")));
         assert_eq!(ok("motors_off", None, None, None), "M84");
         assert!(command("jog").requires_homed && command("jog").tier == "T3");
-        assert!(["set_heater", "set_fan", "speed_factor", "extrude_factor"].iter().all(|id| command(id).tier == "T2"));
+        assert!(["set_heater", "set_fan", "speed_factor", "extrude_factor"]
+            .iter()
+            .all(|id| command(id).tier == "T2"));
     }
 
     #[test]
@@ -3635,27 +5096,49 @@ mod render_tests {
         let ok = |id, t, v, a| render(command(id), &input(id, t, v, a)).unwrap().describe();
         let refused = |id, t, v, a| render(command(id), &input(id, t, v, a)).is_err();
         assert_eq!(ok("extrude", None, Some(5.0), None), "M83\nG1 E5.00 F180");
-        assert_eq!(ok("extrude", None, Some(-50.0), None), "M83\nG1 E-50.00 F300");
+        assert_eq!(
+            ok("extrude", None, Some(-50.0), None),
+            "M83\nG1 E-50.00 F300"
+        );
         assert!(refused("extrude", None, Some(0.0), None));
         assert!(refused("extrude", None, Some(201.0), None));
-        assert_eq!(ok("z_offset", None, Some(-0.025), None), "SET_GCODE_OFFSET Z_ADJUST=-0.025 MOVE=1");
+        assert_eq!(
+            ok("z_offset", None, Some(-0.025), None),
+            "SET_GCODE_OFFSET Z_ADJUST=-0.025 MOVE=1"
+        );
         assert!(refused("z_offset", None, Some(1.5), None));
-        assert_eq!(ok("limit", Some("velocity"), Some(300.0), None), "SET_VELOCITY_LIMIT VELOCITY=300");
-        assert_eq!(ok("limit", Some("accel"), Some(4000.0), None), "SET_VELOCITY_LIMIT ACCEL=4000");
-        assert_eq!(ok("limit", Some("scv"), Some(5.0), None), "SET_VELOCITY_LIMIT SQUARE_CORNER_VELOCITY=5.0");
+        assert_eq!(
+            ok("limit", Some("velocity"), Some(300.0), None),
+            "SET_VELOCITY_LIMIT VELOCITY=300"
+        );
+        assert_eq!(
+            ok("limit", Some("accel"), Some(4000.0), None),
+            "SET_VELOCITY_LIMIT ACCEL=4000"
+        );
+        assert_eq!(
+            ok("limit", Some("scv"), Some(5.0), None),
+            "SET_VELOCITY_LIMIT SQUARE_CORNER_VELOCITY=5.0"
+        );
         assert!(refused("limit", Some("jerk"), Some(5.0), None));
         assert!(refused("limit", Some("accel"), Some(99.0), None));
-        assert_eq!(ok("pressure_advance", None, Some(0.0425), None), "SET_PRESSURE_ADVANCE ADVANCE=0.0425");
+        assert_eq!(
+            ok("pressure_advance", None, Some(0.0425), None),
+            "SET_PRESSURE_ADVANCE ADVANCE=0.0425"
+        );
         assert!(refused("pressure_advance", None, Some(1.5), None));
 
         let m = |t, a| render(command("macro"), &typed("macro", Some(t), a)).map(|s| s.describe());
         assert_eq!(m("PRINT_START", None).unwrap(), "PRINT_START");
-        assert_eq!(m("PURGE_LINE", Some("EXTRUDE=5")).unwrap(), "PURGE_LINE EXTRUDE=5");
+        assert_eq!(
+            m("PURGE_LINE", Some("EXTRUDE=5")).unwrap(),
+            "PURGE_LINE EXTRUDE=5"
+        );
         assert!(m("rm -rf /", None).is_err());
         assert!(m("PRINT_START", Some("A=1\nB=2")).is_err());
 
-        let c =
-            |line| render(command("console"), &typed("console", None, Some(line))).map(|s| s.describe());
+        let c = |line| {
+            render(command("console"), &typed("console", None, Some(line))).map(|s| s.describe())
+        };
         assert_eq!(c("QUERY_ENDSTOPS").unwrap(), "QUERY_ENDSTOPS");
         assert_eq!(c("  M115  ").unwrap(), "M115");
         assert!(c("").is_err());
@@ -3768,7 +5251,14 @@ mod render_tests {
             exclude("tray r8.stl id 2").unwrap(),
             "EXCLUDE_OBJECT NAME=tray r8.stl id 2"
         );
-        for bad in ["", "   ", "a\nEMERGENCY", "a\rb", "say\"hi\"", &"x".repeat(129)] {
+        for bad in [
+            "",
+            "   ",
+            "a\nEMERGENCY",
+            "a\rb",
+            "say\"hi\"",
+            &"x".repeat(129),
+        ] {
             assert!(exclude(bad).is_err(), "{bad:?} should be refused");
         }
         // Tier matters: exclude_object must be T2 or the printing gate would block it.
@@ -3783,18 +5273,13 @@ mod render_tests {
     #[test]
     fn filament_and_extrude_speed_are_exact_and_bounded() {
         let filament = |id: &str, speed: Option<f64>| {
-            render(
-                command(id),
-                &CommandInput {
-                    speed,
-                    ..blank(id)
-                },
-            )
-            .map(|s| s.describe())
+            render(command(id), &CommandInput { speed, ..blank(id) }).map(|s| s.describe())
         };
-        // Default 5 mm/s -> F300, the feed the test printer's own LOAD_FILAMENT
-        // macro uses.
-        assert_eq!(filament("load_filament", None).unwrap(), "M83\nG1 E50.00 F300");
+        // Default 5 mm/s -> F300, the feed Stella's own LOAD_FILAMENT macro uses.
+        assert_eq!(
+            filament("load_filament", None).unwrap(),
+            "M83\nG1 E50.00 F300"
+        );
         assert_eq!(
             filament("unload_filament", None).unwrap(),
             "M83\nG1 E-100.00 F300"
@@ -3867,7 +5352,11 @@ mod render_tests {
         );
         // BTreeMap ordering makes the rendered line deterministic whatever order they arrive in.
         assert_eq!(
-            call("PRINT_START", &[("TOOL", "0"), ("BED", "60"), ("EXTRUDER", "215")]).unwrap(),
+            call(
+                "PRINT_START",
+                &[("TOOL", "0"), ("BED", "60"), ("EXTRUDER", "215")]
+            )
+            .unwrap(),
             "PRINT_START BED=60 EXTRUDER=215 TOOL=0"
         );
         assert_eq!(
@@ -3897,9 +5386,8 @@ mod render_tests {
             }
         )
         .is_err());
-        let many: Vec<(String, String)> = (0..13)
-            .map(|i| (format!("K{i}"), i.to_string()))
-            .collect();
+        let many: Vec<(String, String)> =
+            (0..13).map(|i| (format!("K{i}"), i.to_string())).collect();
         assert!(render(
             command("macro"),
             &CommandInput {
@@ -3941,14 +5429,13 @@ mod render_tests {
 
     #[test]
     fn macro_parameters_are_read_out_of_the_macro_body() {
-        // The test printer's real `pause` macro body, trimmed to the
-        // parameter line.
+        // Stella's real `pause` macro body, trimmed to the parameter line.
         let pause = "{% set restore = False if printer.toolhead.extruder == ''\n  else True if params.RESTORE|default(1)|int == 1 else False %}";
         assert_eq!(
             macro_params(pause),
             vec![json!({"name":"RESTORE","default":"1"})]
         );
-        // The test printer's real `load_filament` body.
+        // Stella's real `load_filament` body.
         assert_eq!(
             macro_params("{% set temp = params.TEMP|default(220)|int %}\nG1 E50 F300"),
             vec![json!({"name":"TEMP","default":"220"})]
@@ -3968,5 +5455,78 @@ mod render_tests {
         // A body full of parameters is capped, not unbounded.
         let huge: String = (0..40).map(|i| format!("params.P{i} ")).collect();
         assert_eq!(macro_params(&huge).len(), MACRO_PARAMS_MAX);
+    }
+
+    // WO-02: the dry-run copy's name shows "dry run" on the printer's screen and in the history.
+    #[test]
+    fn dry_run_name_shows_dry_run() {
+        assert_eq!(super::dry_run_name("cube.gcode"), "cube (dry run).gcode");
+        assert_eq!(
+            super::dry_run_name("plate one.bgcode"),
+            "plate_one (dry run).bgcode"
+        );
+        assert_eq!(
+            super::dry_run_name("weird__x.gcode"),
+            "weird__x (dry run).gcode"
+        );
+        assert_eq!(super::dry_run_name("noextension"), "noextension (dry run)");
+    }
+
+    // Finish-2 F07 (2026-10-19): the copy keeps the file's own name. It was shown lowercased.
+    #[test]
+    fn the_dry_run_copy_keeps_the_files_own_name() {
+        assert_eq!(
+            super::dry_run_name("Voron_Cube_v7_PLA_Stella_fast.gcode"),
+            "Voron_Cube_v7_PLA_Stella_fast (dry run).gcode"
+        );
+        assert_eq!(
+            super::dry_run_name("Plate One.BGCODE"),
+            "Plate_One (dry run).bgcode",
+            "the extension is normalised, the name is not"
+        );
+        assert_eq!(super::dry_run_name("Ünï.gcode"), "_n_ (dry run).gcode", "a name that is not plain ASCII is still made safe");
+        // and the original is found again from the copy
+        assert_eq!(
+            super::dry_run_original("Voron_Cube_v7 (dry run).gcode").as_deref(),
+            Some("Voron_Cube_v7.gcode")
+        );
+        assert_eq!(super::dry_run_original("sub/cube (dry run).bgcode").as_deref(), Some("sub/cube.bgcode"));
+        assert_eq!(super::dry_run_original("cube.gcode"), None);
+        assert_eq!(super::dry_run_original("a (dry run)").as_deref(), Some("a"));
+    }
+
+    // WO-02: dry run is a T3, start_print-gated command — refused while printing, refused on a
+    // printer that cannot start a file.
+    #[test]
+    fn dry_run_is_t3_and_start_print_gated() {
+        let all = super::Capabilities::klipper();
+        assert_eq!(all.allows("dry_run", "Klipper"), Ok(()));
+        let none = super::Capabilities::none();
+        assert!(none.allows("dry_run", "X").is_err());
+        // T3 requires confirm.
+        let command = *super::COMMANDS.iter().find(|c| c.id == "dry_run").unwrap();
+        assert_eq!(command.tier, "T3");
+    }
+}
+
+#[cfg(test)]
+mod timeout_tests {
+    /// Finish-2 F05: with no print running, a busy Klipper (idle state "Printing") is said to be busy, not printing.
+    #[test]
+    fn a_busy_printer_with_no_print_says_busy() {
+        let busy = super::FreshState { help: Default::default(), homed_axes: "xyz".into(), print_state: "cancelled".into(), idle_state: "Printing".into() };
+        let console = *super::COMMANDS.iter().find(|c| c.id == "console").unwrap();
+        assert!(busy.refusal(console).unwrap().contains("still busy with the last command"));
+        let printing = super::FreshState { print_state: "printing".into(), ..busy };
+        assert!(printing.refusal(console).unwrap().contains("blocked while printing"));
+    }
+    /// Finish-2 F05: a full bed mesh on Stella takes about eight minutes; the long procedures may run half an hour.
+    #[test]
+    fn long_klipper_procedures_have_half_an_hour_and_the_rest_keep_the_normal_limit() {
+        for id in ["mesh", "qgl", "probe_accuracy", "macro", "home"] {
+            assert_eq!(super::command_timeout_ms(id, 180_000), 1_800_000, "{id}");
+        }
+        assert_eq!(super::command_timeout_ms("pause", 180_000), 180_000);
+        assert_eq!(super::command_timeout_ms("mesh", 3_600_000), 3_600_000, "a longer configured limit stays");
     }
 }

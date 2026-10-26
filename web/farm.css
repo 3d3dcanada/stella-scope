@@ -1,0 +1,353 @@
+/* U04 (2026-10-20): one tile size; a press grows a tile in place; the gauges, the keys and the LED figures are the control kit (next-control.css). The S, M and L rules are gone.
+   Farm wall (farm board WO-07; rebuilt as a scrolling wall in polish WO-04, 2026-10-18). Tokens, glass and buttons come from next.css.
+   Colour means something (BLUEPRINT section 4): a tile's state colour is one of the four neons and appears only as an edge, a chip, a bar
+   and a number, never as a flood and never as a gradient. The printer's own accent is the dot beside its name and nothing else. Every
+   state also has its own icon and word, so it reads without colour. */
+/* only the page scrolls: a body that is itself a scroll container (overflow:auto) is what a sticky header would stick to, and it never scrolls */
+body.fm{overflow:visible;height:auto;min-height:100%}
+html:has(body.fm){overflow:auto;height:auto;scroll-padding-top:var(--fm-sticky-h,150px)}
+.fm-root{position:relative;z-index:2;max-width:2400px;margin:0 auto;display:flex;flex-direction:column;gap:14px;
+ padding:calc(var(--safe-t) + 12px) calc(var(--safe-r) + 16px) calc(var(--safe-b) + 28px) calc(var(--safe-l) + 16px)}
+
+/* ---- the header and the tools: the header stays on top while the wall scrolls ---- */
+.fm-sticky{display:contents}
+.fm-nextline{display:none}
+.fm-top,.fm-tools{background:rgba(11,15,21,.97)}
+/* a floor under the bar: tiles scrolling up must not show in the gap above the header, or round its corners, when the header sticks alone */
+.fm-top{box-shadow:0 0 0 9px var(--bg-0)}
+.fm-top{position:sticky;top:calc(var(--safe-t) + 8px);z-index:4;display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"id actions" "summary summary";align-items:center;gap:8px 16px;padding:10px 14px;border-radius:var(--r-l)}
+.fm-id{grid-area:id;display:flex;align-items:center;gap:12px;color:var(--ink-1);text-decoration:none;min-height:44px;min-width:0}
+.fm-id img{width:34px;height:34px;flex:none}
+.fm-id b{display:block;font:700 15px/1 var(--sans);letter-spacing:.3em}
+.fm-id small{display:block;margin-top:5px;font:500 11px/1 var(--mono);letter-spacing:.1em;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fm-id>span{min-width:0}
+.fm-summary{grid-area:summary;min-width:0;display:flex;gap:8px;flex-wrap:wrap}
+.fm-actions{grid-area:actions;display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+@media (min-width:1100px){.fm-top{grid-template-columns:auto minmax(0,1fr) auto;grid-template-areas:"id summary actions";gap:8px 18px}}
+/* the header's keys are icons (with their names on hover and for screen readers) until there is room for their words. They are the kit's square keys; the bell is the
+   shared alerts button, drawn as the same key here. */
+.fm-actions .nxkey[hidden]{display:none}
+@media (max-width:1499px){.fm-actions .nx-lbl{display:none}.fm-actions .nxkey,.fm-actions .fl-bell{padding:0;width:44px}}
+.fm-actions .fl-bell{border-radius:0;border:1px solid var(--glass-line);background:linear-gradient(180deg,rgba(255,255,255,.11),rgba(255,255,255,.035));box-shadow:inset 0 1px 0 rgba(255,255,255,.09),0 3px 0 rgba(0,0,0,.38),0 6px 12px rgba(0,0,0,.3)}
+.fm-actions .fl-bell .nx-lbl{text-transform:none;letter-spacing:normal;font:inherit;color:var(--ink-2)}
+.fm-actions .fl-bell:active{transform:translateY(3px);box-shadow:inset 0 2px 6px rgba(0,0,0,.45)}
+.fm-root .nxkey[data-tone=primary]{color:var(--accent-ink);background:linear-gradient(180deg,var(--accent-hi),var(--accent));border-color:transparent}
+.fm-root .nxkey[data-tone=primary] .nx-lbl{color:var(--accent-ink)}
+.fm-root .nxkey[data-tone=danger]{border-color:rgba(255,45,146,.55);background:linear-gradient(180deg,rgba(255,45,146,.2),rgba(255,45,146,.06))}
+.fm-root .nxkey[data-tone=danger] .nx-lbl,.fm-root .nxkey[data-tone=danger] svg{color:#FF86C0}
+/* with room to spare the header and the tools stick together; on smaller windows only the header does (the wall needs the height) */
+@media (min-width:1100px) and (min-height:700px){
+ /* the two rows stick as one band with a floor under it (above, between and below), so nothing scrolls through a gap */
+ .fm-sticky{display:flex;flex-direction:column;gap:8px;position:sticky;top:0;z-index:4;background:var(--bg-0);padding:calc(var(--safe-t) + 8px) 0 10px;margin-top:calc(-1 * (var(--safe-t) + 12px));box-shadow:0 8px 14px -6px var(--bg-0)}
+ .fm-top{position:static}
+ .fm-top{box-shadow:none}
+}
+/* the counts: a square key with an LED figure, lit in the state's neon over a ghost of unlit digits (the kit's panel language) */
+.fm-stat{--lc:var(--ink-1);gap:10px;padding:0 14px 0 8px;min-height:44px;white-space:nowrap}
+.fm-stat .nx-lbl{font:700 11px/1 var(--sans);letter-spacing:.12em;text-transform:uppercase}
+.fm-led{position:relative;isolation:isolate;display:inline-block;padding:7px 8px 6px;background:#07090c;box-shadow:inset 0 1px 4px rgba(0,0,0,.85),0 0 0 1px rgba(255,255,255,.07);
+ font:500 22px/1 var(--mono);letter-spacing:.02em;font-variant-numeric:tabular-nums;text-align:right;color:var(--lc);text-shadow:0 0 9px var(--lc),0 0 2px var(--lc)}
+.fm-led::before{content:attr(data-ghost);position:absolute;right:8px;top:7px;z-index:-1;color:rgba(255,255,255,.05);text-shadow:none}
+.fm-stat[data-tone=work]{--lc:var(--accent)}
+.fm-stat[data-tone=attn]{--lc:var(--heat)}
+.fm-stat[data-tone=idle]{--lc:var(--ink-1)}
+.fm-stat[data-tone=off]{--lc:var(--ink-3)}
+.nxkey.fm-stat[aria-pressed=true]{color:var(--ink-1);background:linear-gradient(180deg,rgba(var(--accent-rgb),.22),rgba(var(--accent-rgb),.06));border-color:rgba(var(--accent-rgb),.7);box-shadow:inset 0 -3px 0 var(--accent),0 3px 0 rgba(0,0,0,.38)}
+.nxkey.fm-stat[aria-pressed=true] .nx-lbl{color:var(--ink-1)}
+.fm-stat--next{display:flex;align-items:center;gap:10px;min-height:44px;padding:0 12px 0 8px;border:1px solid var(--glass-line);background:rgba(255,255,255,.03);white-space:nowrap}
+.fm-stat--next>span{font:700 11px/1 var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-2)}
+.fm-stat--next .fm-led{font-size:18px;color:var(--ink-1);text-shadow:0 0 8px rgba(255,255,255,.35)}
+.fm-stat--next .fm-led::before{display:none}
+.fm-stat--next .fm-next-name{letter-spacing:.06em}
+/* below 1500 px the counts and the clock share the header with the keys: the printer's name steps aside (the phone shows it on the line under the header) */
+@media (max-width:1499px){.fm-stat--next .fm-next-name{display:none}.fm-nextline .fm-next-name{display:inline}}
+.fm-tools{display:flex;align-items:center;gap:8px 12px;flex-wrap:wrap;padding:8px 10px;border-radius:var(--r-l)}
+.fm-search{position:relative;flex:1 1 240px;min-width:0;max-width:440px;display:flex;align-items:center}
+.fm-search svg.nx-ico{position:absolute;left:13px;width:20px;height:20px;color:var(--ink-3);pointer-events:none}
+.fm-search input{width:100%;height:44px;padding:0 12px 0 42px;border-radius:14px;border:1px solid var(--glass-line);background:rgba(0,0,0,.3);color:var(--ink-1);font:500 15px var(--sans)}
+.fm-search input::placeholder{color:var(--ink-3)}
+.fm-search input:focus-visible{outline:2px solid var(--accent);outline-offset:0}
+.fm-pick{display:flex;align-items:center;gap:8px;min-width:0}
+.fm-pick span{font:600 11px/1 var(--sans);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3)}
+.fm-pick select{height:44px;width:auto;min-width:0;max-width:240px;padding:0 10px;font:500 14px var(--sans);border-radius:14px;border:1px solid var(--glass-line);background:rgba(0,0,0,.3);color:var(--ink-1)}
+.fm-pick select:focus-visible{outline:2px solid var(--accent);outline-offset:0}
+.fm-pick option{background:#10151c;color:var(--ink-1)}
+.fm-licence{display:flex;align-items:center;gap:12px 18px;flex-wrap:wrap;padding:10px 14px;border-radius:var(--r-m);border-color:rgba(var(--accent-rgb),.28)}
+.fm-licence-text{flex:1 1 280px;margin:0;font:500 14px/1.4 var(--sans);color:var(--ink-1)}
+.fm-licence-act{display:flex;gap:8px;flex-wrap:wrap}
+.fm-banner{margin:0;padding:12px 16px;border-radius:var(--r-m);font:500 14px/1.4 var(--sans);color:var(--ink-1);border-color:rgba(255,45,146,.45)}
+.fm-empty{display:flex;flex-direction:column;align-items:center;gap:14px;padding:28px 18px;border-radius:var(--r-l);text-align:center}
+.fm-empty p{margin:0;font:500 15px/1.4 var(--sans);color:var(--ink-2)}
+.fm-totop .nx-lbl,.fm-totop[hidden]{display:none}
+.fm-totop{padding:0;width:44px;position:fixed;right:calc(var(--safe-r) + 16px);bottom:calc(var(--safe-b) + 16px);z-index:3;background:var(--glass-2)}
+body[data-sheet] .fm-totop{display:none}
+
+/* the demo farm's card (class fm-democard: fm-demo is the DEMO tag on a tile, WO-04), in the grid beside a farm that has no printer yet (polish WO-02) */
+.fm-democard{order:-1;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;gap:14px;padding:clamp(20px,3vw,40px);border-radius:var(--r-l);border-color:rgba(var(--accent-rgb),.28)}
+.fm-democard b{font:600 clamp(18px,2vw,24px)/1.2 var(--sans);color:var(--ink-1)}
+.fm-democard p{margin:0;max-width:44ch;font:500 15px/1.5 var(--sans);color:var(--ink-2)}
+
+/* ---- the wall: one tile size, as many as fit, filling the window; it scrolls ---- */
+.fm-grid{display:grid;gap:14px;align-items:stretch;grid-auto-flow:row dense;grid-template-columns:repeat(auto-fill,minmax(300px,1fr))}
+/* two columns of tiles up to a phone (and a little past it): the grown tile takes both */
+@media (max-width:659px){.fm-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}}
+/* the wall screen is the one layout that fills the screen: a few tiles, each as big as the screen allows */
+body.fm-tv .fm-grid[data-fill="1"]{flex:1;min-height:0;grid-template-columns:repeat(var(--cols,1),minmax(0,1fr));grid-template-rows:repeat(var(--rows,1),minmax(0,1fr))}
+.fm-root:has(.fm-grid[data-fill="1"]){height:100dvh;min-height:0}
+/* ---- a tile ---- */
+.fm-tile{--st:var(--ink-3);--stb:var(--glass-line);position:relative;display:flex;flex-direction:column;min-width:0;border-radius:20px;overflow:hidden;cursor:pointer;
+ background:rgba(15,20,28,.94);border:1px solid var(--stb);box-shadow:0 10px 26px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.06);
+ container-type:inline-size;content-visibility:auto;contain-intrinsic-size:auto 420px;transition:border-color var(--t-hover),opacity var(--t-hover)}
+@media (hover:hover){.fm-tile:hover{border-color:rgba(255,255,255,.24)}}
+.fm-tile::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--st);z-index:5}
+body.fm-tv .fm-grid[data-fill="1"]>.fm-tile{min-height:0;content-visibility:visible}
+/* what it is doing: one neon each, plus a border for the states that want a person */
+.fm-tile[data-look=printing]{--st:var(--accent)}
+.fm-tile[data-look=heating]{--st:var(--heat)}
+.fm-tile[data-look=paused]{--st:var(--heat);--stb:rgba(255,106,0,.7)}
+.fm-tile[data-look=clear]{--st:var(--ok);--stb:rgba(24,227,107,.6)}
+.fm-tile[data-look=done]{--st:var(--ok)}
+.fm-tile[data-look=error]{--st:var(--alarm);--stb:rgba(255,45,146,.7)}
+.fm-tile[data-look=idle]{--st:rgba(255,255,255,.24)}
+/* a print that was stopped is not a print that finished: orange, not green */
+.fm-tile[data-cancelled]{--st:var(--heat);--stb:rgba(255,106,0,.6)}
+.fm-tile[data-look=offline]{--st:var(--ink-3);opacity:.85}   /* polish WO-06: was .7, which put the tile's small text at 3.5:1; .85 keeps it above 4.5:1 and the picture is dimmed on its own below */
+
+/* F04 (2026-10-19): the name has the tile's whole width (beside the state chip it had room for 14 letters at 300 px: "Adventurer 5M (…"), and the machine line and the chip share the line under it */
+.fm-head:focus-visible{outline:2px solid var(--accent);outline-offset:-2px;border-radius:18px}
+.fm-head{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;grid-template-areas:"dot name name name" ". sub sub chip" ". bank bank bank" "line line line line";column-gap:10px;row-gap:3px;align-items:center;padding:12px 8px 8px 16px}
+.fm-dot{grid-area:dot;width:11px;height:11px;border-radius:50%;background:var(--c);box-shadow:0 0 0 3px color-mix(in srgb,var(--c) 22%,transparent)}
+.fm-name{display:contents}
+.fm-link{grid-area:name;min-width:0;font:650 18px/1.15 var(--sans);letter-spacing:-.01em;color:var(--ink-1);text-decoration:none;overflow:hidden;overflow-wrap:anywhere;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2}   /* F04: a name takes two lines before it is cut, on every tile ("Core One L (PrusaLink)" beside the dots of a phone's tile) */
+@media (hover:hover){.fm-link:hover{text-decoration:underline;text-underline-offset:3px}}
+.fm-link:focus-visible{outline-offset:3px;border-radius:4px}
+.fm-bank{grid-area:bank;font:600 10.5px/1.25 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--heat-warm)}
+.fm-bank:empty{display:none}
+.fm-sub{grid-area:sub;min-width:0;font:500 11px/1.25 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);overflow-wrap:anywhere;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}   /* F04: a long machine line wraps (two lines at most) beside the chip instead of being cut: "FLASHFORGE · ADVENTUR…" */
+.fm-line{grid-area:line;display:none;padding-right:8px;font:500 12px/1.3 var(--mono);color:var(--ink-2);overflow:hidden;text-overflow:ellipsis}
+.fm-chip{grid-area:chip;justify-self:end;--cc:var(--ink-2);display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 11px 0 8px;border-radius:14px;border:1px solid color-mix(in srgb,var(--cc) 62%,transparent);color:var(--cc);font:600 11px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;white-space:nowrap}
+.fm-chip svg.nx-ico{width:15px;height:15px}
+.fm-chip[data-look=printing]{--cc:var(--accent)}
+.fm-chip[data-look=heating],.fm-chip[data-look=paused]{--cc:var(--heat)}
+.fm-chip[data-look=clear],.fm-chip[data-look=done]{--cc:var(--ok)}
+.fm-chip[data-look=error]{--cc:var(--alarm)}
+.fm-chip[data-look=offline]{--cc:var(--ink-3)}
+.fm-chip[data-cancelled]{--cc:var(--heat)}
+/* filled when somebody has to do something */
+.fm-chip[data-look=paused],.fm-chip[data-look=clear],.fm-chip[data-look=error]{background:var(--cc);border-color:var(--cc);color:#0A0D10}
+.fm-chip[data-look=heating] svg.nx-ico{animation:fm-pulse 1.6s ease-in-out infinite}
+@keyframes fm-pulse{50%{opacity:.35}}
+
+/* ---- the picture: the camera when there is one, the machine's own model when real CAD is bound, else a ring with the numbers ---- */
+.fm-media{position:relative;margin:0 12px;aspect-ratio:16/10;border-radius:14px;overflow:hidden;background:#090d12;border:1px solid rgba(255,255,255,.07)}
+.fm-media::before{content:"";position:absolute;inset:0;z-index:2;pointer-events:none;box-shadow:inset 0 0 50px rgba(0,0,0,.5);border-radius:inherit}
+.fm-tile[data-cam=on] .fm-media{cursor:pointer}
+.fm-media:focus-visible{outline-offset:-3px}
+.fm-cam{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+.fm-tile:not([data-cam=on]) .fm-cam{display:none}
+.fm-3d,.fm-still{position:absolute;inset:0;z-index:1}
+/* the machine on a tile is a picture, not a control: its orbit controls would take the wheel and every touch, and the wall could not be scrolled over it */
+.fm-3d,.fm-3d *,.fm-still{pointer-events:none}
+.fm-still{width:100%;height:100%;object-fit:contain}
+.fm-3d-canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+/* an offline printer keeps its model, dimmed, at the last known pose (WO-14 item 2) */
+.fm-3d[data-offline],.fm-tile[data-look=offline] .fm-still{opacity:.5;filter:grayscale(.35) brightness(.75)}
+/* a view still being made keeps its size (so it can be drawn) and is not seen; the still or the ring shows meanwhile */
+.fm-3d[data-loading]{opacity:0}
+.fm-nocam{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:22px;padding:14px;min-height:0;overflow:hidden}
+.fm-tile[data-cam=on] .fm-nocam{display:none}
+.fm-media:has(>.fm-3d:not([hidden]):not([data-loading]),>.fm-still:not([hidden])) .fm-nocam{display:none}
+.fm-ring{position:relative;width:clamp(88px,32%,170px);aspect-ratio:1;flex:none}
+.fm-ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.fm-ring circle{fill:none;stroke-width:7;stroke-linecap:round}
+.fm-ring .t{stroke:var(--neutral-arc)}
+.fm-ring .v{stroke:var(--st);transition:stroke-dashoffset .8s var(--ease)}
+.fm-ring span{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;font:600 clamp(16px,7cqw,34px)/1 var(--mono);font-variant-numeric:tabular-nums}
+.fm-ring b{font-weight:600}
+.fm-ring small{font:600 10px/1 var(--sans);letter-spacing:.12em;color:var(--ink-3);margin-top:4px}
+.fm-nocam-text{display:flex;flex-direction:column;gap:6px;min-width:0;max-width:56%}
+.fm-nocam-text b{font:650 16px/1.25 var(--sans)}
+.fm-nocam-text small{font:500 13px/1.4 var(--sans);color:var(--ink-2);display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
+.fm-demo{position:absolute;left:10px;top:10px;z-index:4;padding:4px 8px;border-radius:8px;border:1px dashed rgba(255,255,255,.4);background:rgba(7,9,12,.72);font:700 11px/1 var(--mono);letter-spacing:.14em;color:var(--ink-2);pointer-events:none}
+.fm-over{position:absolute;left:10px;right:10px;bottom:10px;z-index:4;display:flex;justify-content:space-between;align-items:flex-end;gap:8px;min-width:0;pointer-events:none}
+.fm-over>span{min-width:0;max-width:100%;padding:6px 10px;border-radius:10px;background:rgba(7,9,12,.74);border:1px solid rgba(255,255,255,.1);font:600 12px/1.1 var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fm-over b{font-weight:600}
+.fm-over>span:first-child{flex:none}
+.fm-over>span:last-child:not(:first-child){white-space:normal;text-align:right;overflow-wrap:anywhere;line-height:1.25}   /* F04: "Last heard a moment ago" takes a second line on a narrow tile instead of being clipped by two pixels */   /* F04 (2026-10-19): the left pill (the state or the percentage) keeps its word whole; the right one (time, last heard) is the one that gives way */
+.fm-over i{font-style:normal;color:var(--ink-2)}
+.fm-tile:not([data-cam=on]) .fm-media:not(:has(>.fm-3d:not([hidden]):not([data-loading]),>.fm-still:not([hidden]))) .fm-over{display:none}
+.fm-tile[data-live] .fm-over>span:first-child::before{content:"";display:inline-block;width:7px;height:7px;margin-right:7px;border-radius:50%;background:var(--st);vertical-align:1px}
+/* a camera and a model share the picture, side by side, when the tile is wide enough for two */
+/* F04 (2026-10-19): the machine is drawn in the middle of the whole picture (it sat in the right half, beside the camera, which read as "off centre"); the camera is a small
+   frame in the top right corner of the picture, and a click anywhere on the picture still opens it large. Below 430 px of tile the camera frame is left out, as before. */
+.fm-tile[data-cam=on] .fm-duo .fm-cam{inset:10px 10px auto auto;width:34%;height:auto;aspect-ratio:16/9;z-index:3;border-radius:10px;border:1px solid rgba(255,255,255,.28);box-shadow:0 4px 16px rgba(0,0,0,.55);background:#000}
+@container (max-width:430px){.fm-tile[data-cam=on] .fm-duo .fm-cam{display:none}}
+/* the time pill gives up its clock before anything is cut */
+@container (max-width:400px){.fm-clk{display:none}}
+
+/* ---- the gauges, the job and the keys ---- */
+.fm-inst{display:flex;flex-direction:column;gap:10px;flex:1;padding:8px 16px 14px 18px}
+.fm-inst-main{min-width:0;display:flex;flex-direction:column;gap:8px}
+/* U04: the nozzle, the bed and the progress are the kit's LED gauges at a rest size that follows the tile. At rest they only read, a press on one grows the tile;
+   the kit's own label is too small to read on a tile, so the caption under each gauge is the wall's own. */
+.fm-heat{display:flex;justify-content:center;gap:clamp(4px,2.4cqw,14px)}
+.fm-heat[hidden],.fm-g[hidden]{display:none}
+.fm-g{--gs:clamp(58px,30cqw,108px);display:flex;flex-direction:column;align-items:center;gap:0;min-width:0}
+.fm-g small{margin-top:calc(var(--gs)*-.05);font:700 10px/1 var(--sans);letter-spacing:.16em;color:var(--ink-3);text-transform:uppercase}
+.fm-g .nxctl{--nxctl-size:var(--gs);pointer-events:none;cursor:default}
+.fm-g .nxctl .nxc-l{display:none}
+.fm-g .nxctl .nxc-read .nxc-n{display:none}   /* review 2026-10-20: the NOW line was unreadable at rest size; the lit dot on the ring is the reading, the grown tile shows the words */
+.fm-tile[data-open] .fm-g .nxctl .nxc-read .nxc-n{display:block;font-size:max(9px,calc(var(--nxctl-size)*.09));letter-spacing:.04em;white-space:nowrap}
+.fm-g .nxctl .nxc-read{gap:3px}
+.fm-job{display:flex;flex-direction:column;gap:6px}
+.fm-jobtop{display:flex;align-items:center;gap:10px;min-width:0}
+.fm-jobtop:not(:has(.fm-thumb:not([hidden]))):not(:has(.fm-jobtext b:not(:empty))){display:none}
+.fm-thumb{display:none;width:36px;height:36px;border-radius:9px;object-fit:cover;background:var(--bg-2);flex:none;border:1px solid var(--glass-line)}
+.fm-tile[data-open] .fm-thumb:not([hidden]){display:block}
+.fm-jobtext{min-width:0;display:flex;flex-direction:column;gap:3px}
+.fm-jobtext b{font:600 14px/1.25 var(--sans);overflow:hidden;overflow-wrap:anywhere;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2}   /* F04 (2026-10-19): the file's name may take two lines before it is cut */
+.fm-jobtext b:empty{display:none}
+.fm-jobtext small{font:500 12px/1.3 var(--mono);color:var(--ink-2);font-variant-numeric:tabular-nums}
+.fm-jobtext small:empty{display:none}
+.fm-big{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:center;gap:2px 10px;min-width:0}
+/* the percentage is the progress gauge's now; the big word (CLEAR PLATE, DONE, READY) shows on the grown tile only */
+.fm-pct{display:none;font:600 22px/1 var(--mono);font-variant-numeric:tabular-nums;letter-spacing:.08em;color:var(--ink-1);white-space:nowrap}
+.fm-tile[data-open] .fm-job:not([data-look=printing]):not([data-look=paused]):not([data-look=heating]) .fm-pct{display:block;font-size:clamp(17px,4.4cqw,26px);letter-spacing:.05em}
+.fm-job[data-look=clear] .fm-pct,.fm-job[data-look=done] .fm-pct{color:var(--ok)}
+.fm-job[data-look=error] .fm-pct{color:var(--alarm)}
+.fm-job[data-cancelled] .fm-pct{color:var(--heat)}
+.fm-job[data-look=idle] .fm-pct{color:var(--ink-2)}
+.fm-job[data-look=offline] .fm-pct{color:var(--ink-3)}
+.fm-eta{font:500 12px/1.2 var(--mono);color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;text-align:center}
+.fm-etc{font-style:normal}
+.fm-bar{display:none;height:6px;border-radius:3px;background:rgba(255,255,255,.08);overflow:hidden}
+.fm-tile[data-open] .fm-bar{display:block}
+.fm-bar i{display:block;height:100%;width:0;border-radius:3px;background:var(--st);transition:width .8s var(--ease)}
+.fm-temps{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:6px 14px;font:500 12px/1.2 var(--mono);color:var(--ink-2);font-variant-numeric:tabular-nums}
+.fm-temps:not(:has(>:not([hidden]))){display:none}
+.fm-temps>span{white-space:nowrap}
+.fm-watts,.fm-spool{padding:5px 10px;border-radius:10px;border:1px solid var(--glass-line);background:rgba(0,0,0,.22);font:500 11.5px/1 var(--mono)}
+.fm-watts{display:inline-flex;align-items:center;gap:6px;color:var(--ink-1)}
+.fm-watts::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--ok)}
+.fm-watts[data-off]{color:var(--ink-3)}.fm-watts[data-off]::before{background:var(--ink-3)}
+/* the keys: square, on the grown tile only */
+.fm-act{display:none;flex-wrap:wrap;gap:10px;margin-top:auto;padding-top:4px}
+.fm-act .nxkey[hidden]{display:none}
+.fm-act .nxkey{flex:1 1 auto;min-width:max-content;white-space:nowrap}
+.fm-act .nxkey .nx-lbl{white-space:nowrap}
+
+/* ---- a press grows the tile in place: the room of four (two columns, two rows), the others flow around it ---- */
+.fm-tile[data-open]{grid-column:span 2;grid-row:span 2;content-visibility:visible;border-color:rgba(255,255,255,.2)}
+.fm-tile[data-open] .fm-media{flex:1;min-height:150px;aspect-ratio:auto}
+/* on a window too short for two rows of tiles the grown tile is no taller than what is left under the header, so its gauges and keys are on screen without scrolling (the picture gives way) */
+@media (min-width:601px){.fm-tile[data-open]{max-height:calc(100dvh - var(--fm-sticky-h,150px) - 4px)}}
+.fm-tile[data-open] .fm-inst{flex:0 0 auto;padding:12px 18px 18px 20px;gap:14px}
+.fm-tile[data-open] .fm-act{display:flex}
+.fm-tile[data-open] .fm-g{--gs:clamp(84px,17cqw,150px)}
+.fm-tile[data-open] .fm-g .nxctl{pointer-events:auto;cursor:grab}
+.fm-tile[data-open] .fm-g[data-g=progress] .nxctl{pointer-events:none;cursor:default}
+.fm-tile[data-open] .fm-g small{font-size:11px}
+.fm-tile[data-open] .fm-link{font-size:22px}
+.fm-tile[data-open] .fm-heat{gap:clamp(10px,3cqw,28px)}
+.fm-tile[data-open] .fm-jobtext b{font-size:16px}
+.fm-tile[data-open] .fm-eta{font-size:13px}
+/* a gauge being held grows past its tile: the tile lets it out, rises above the dim the kit lays over the page, and the page's own layer steps aside for a moment */
+.fm-tile:has(.nxctl.live){overflow:visible;content-visibility:visible;z-index:41}
+.fm-tile:has(.nxctl.live)::before{top:14px;bottom:14px}
+body.fm:has(.nxctl.live) .fm-root{z-index:auto}
+
+/* a tile of two to a phone's row: the name and the state on one line, the picture, two or three small gauges */
+@container (max-width:249px){
+ .fm-head{grid-template-columns:auto minmax(0,1fr) auto;grid-template-areas:"dot name chip" ". line line";padding:10px 8px 6px 12px;column-gap:8px}
+ .fm-link{font-size:14.5px}
+ .fm-sub,.fm-bank,.fm-chip b{display:none}
+ .fm-chip{width:28px;padding:0;justify-content:center}
+ .fm-line{display:none}
+ .fm-media{margin:0 8px;aspect-ratio:4/3}
+ .fm-inst{padding:8px 8px 12px 12px;gap:8px}
+ .fm-heat{gap:4px}
+ .fm-g{--gs:clamp(52px,29cqw,72px)}
+ .fm-g .nxctl .nxc-read .nxc-n{display:none}
+ .fm-g small{font-size:8.5px;letter-spacing:.08em}
+ .fm-etc{display:none}
+ .fm-jobtext b{font-size:12.5px}
+ .fm-eta{font-size:11px;white-space:normal;text-align:center}
+ .fm-media:has(>.fm-mdl:not([hidden])){aspect-ratio:auto;min-height:152px}
+ .fm-mdl{left:6px;right:6px;gap:4px 8px;padding:6px 7px}
+ .fm-mdl-t{flex-basis:100%;font-size:11px}
+ .fm-over{left:6px;right:6px;bottom:6px}
+ .fm-over>span{font-size:10.5px;padding:5px 7px}
+ .fm-demo{left:6px;top:6px;padding:3px 6px}
+ .fm-nocam{flex-direction:column;gap:6px;padding:8px}
+ .fm-nocam-text{display:none}
+ .fm-ring{width:auto;height:min(88%,120px)}
+}
+/* few large tiles fill the window: the picture takes the height that is left (the wall screen only) */
+body.fm-tv .fm-grid[data-fill="1"] .fm-media{flex:1;min-height:0;aspect-ratio:auto}
+body.fm-tv .fm-grid[data-fill="1"] .fm-inst{flex:0 0 auto}
+body.fm-tv .fm-grid[data-fill="1"] .fm-ring{width:auto;height:min(72%,200px)}
+
+/* ---- a phone: two columns of tiles; a press grows the tile to the full width ---- */
+@media (max-width:600px){
+ .fm-root{gap:10px;padding-left:calc(var(--safe-l) + 12px);padding-right:calc(var(--safe-r) + 12px)}
+ .fm-top{padding:8px 10px;gap:6px;border-radius:var(--r-m)}
+ .fm-id{min-height:44px}
+ .fm-id img{width:30px;height:30px}
+ .fm-actions{flex-wrap:nowrap}
+ .fm-actions .nx-lbl{display:none}
+ .fm-actions [data-fm-act=cameras],.fm-actions [data-fm-act=queue]{display:none}   /* F04 (2026-10-19): Add a printer stays in the phone's header as its icon (F01 found a farm at 360 px with no way to add one but the menu) */
+ .fm-summary{flex-wrap:nowrap;gap:6px}
+ .fm-stat{flex:1 1 0;min-width:0;flex-direction:column;align-items:stretch;gap:5px;padding:5px 4px 6px;min-height:56px;white-space:normal}
+ .fm-stat .fm-led{align-self:center;font-size:19px;padding:6px 7px 5px}
+ .fm-stat .fm-led::before{right:7px;top:6px}
+ .fm-stat .nx-lbl{display:block;text-align:center;font-size:10px;letter-spacing:.05em;line-height:1.1}
+ .fm-stat--q{display:none}
+ .fm-nextline:not([hidden]){display:flex}
+ .fm-nextline .fm-stat--next{flex:1 1 auto;min-width:0;flex-direction:row;flex-wrap:wrap;justify-content:center;align-items:center;gap:2px 8px;min-height:40px;padding:5px 8px;white-space:normal}   /* F04: the printer's name goes under the time rather than past the edge at 360 px */
+ .fm-tools{padding:8px;gap:8px}
+ .fm-search{order:0;flex:1 1 150px;max-width:none}
+ /* F04 (2026-10-19): below 400 px the box is too narrow for its own placeholder ("Search printer"): it takes a row of its own */
+ @media (max-width:399px){.fm-search{flex-basis:100%}}
+ .fm-pick{order:2;flex:1 1 130px}
+ .fm-pick span{display:none}
+ .fm-pick select{width:100%;max-width:none;font-size:14px}
+ .fm-tile[data-open]{grid-column:1/-1;grid-row:auto}
+ .fm-tile[data-open] .fm-media{flex:none;min-height:0;aspect-ratio:4/3}
+ .fm-tile[data-open] .fm-link{font-size:19px}
+ .fm-tile[data-open] .fm-heat{gap:8px}
+ .fm-tile[data-open] .fm-g{--gs:clamp(78px,calc((100vw - 120px)/3),110px)}
+ .fm-act .nxkey{flex:1 1 calc(50% - 5px)}
+ .fm-tile[data-cam=on] .fm-duo .fm-cam{display:none}
+}
+
+/* WO-15 (2026-10-13): /farm?tv=1 is a wall screen for the workshop: no edit controls, the counts stay, and tiles are laid out to fill the screen (U04: the gauges
+   step up with the tile). */
+body.fm-tv .fm-actions,body.fm-tv .fm-licence,body.fm-tv .fm-banner,body.fm-tv .fm-tools,body.fm-tv .fm-act,body.fm-tv .fm-totop{display:none!important}
+body.fm-tv .fm-top{position:static;padding:6px 10px}
+body.fm-tv .fm-sticky{position:static}
+body.fm-tv .fm-id small{font-size:12px}
+body.fm-tv .fm-grid{padding-bottom:calc(var(--safe-b) + 8px)}
+body.fm-tv .fm-tile{cursor:default}
+body.fm-tv .fm-g{--gs:clamp(54px,22cqw,170px)}
+body.fm-tv .fm-job{min-height:64px}   /* (the gauges of tiles in one row sit on one line, whatever their job text says) */
+body.fm-tv .fm-g small{font-size:clamp(10px,2.2cqw,15px)}
+body.fm-tv .fm-link{font-size:clamp(18px,3.4cqw,30px)}
+/* F06 (2026-10-19): the way out of the wall screen: invisible until the pointer moves or the screen is touched. */
+body.fm-tv .fm-tv-exit{position:fixed;top:12px;right:12px;z-index:60;opacity:0;pointer-events:none;transition:opacity .25s}
+body.fm-tv .fm-tv-exit[data-show]{opacity:1;pointer-events:auto}
+
+.fm-power-now{font:600 18px/1.3 var(--mono);margin:0 0 10px}
+.fm-power-warn{margin:0 0 12px;padding:10px 12px;border-radius:12px;border:1px solid rgba(255,45,146,.45);background:rgba(255,45,146,.08);font:500 14px/1.4 var(--sans)}
+
+/* Brand law for the wall (our board, 2026-10-18): the neons are accents, not floods and not gradients. The shared buttons carry a
+   sheen and a glow; on the wall they are flat. (Sheets and dialogs opened from the wall keep the shared look.) */
+.fm-root .nx-btn{background:rgba(255,255,255,.07);box-shadow:none}
+.fm-root .nx-btn[data-kind=primary]{background:var(--accent);border-color:var(--accent)}
+.fm-root .nx-btn[data-kind=danger]{background:rgba(255,45,146,.08)}
+.fm-root .nx-btn[data-kind=ghost]{background:none}
+@media (hover:hover){
+ .fm-root .nx-btn:not(:disabled):not([aria-disabled=true]):hover{background:rgba(255,255,255,.12);box-shadow:none}
+ .fm-root .nx-btn[data-kind=primary]:not(:disabled):hover{background:var(--accent-hi);box-shadow:none}
+ .fm-root .nx-btn[data-kind=danger]:not(:disabled):hover{background:rgba(255,45,146,.16)}
+ .fm-root .nx-btn[data-kind=ghost]:not(:disabled):hover{background:rgba(255,255,255,.07)}
+}

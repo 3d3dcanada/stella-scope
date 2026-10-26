@@ -5,7 +5,9 @@
 //   progressToLayer(parsed, fileOffset) -> {layer, fraction}
 //
 // Each layer carries `segments` as a packed Float32Array of x0,y0,z0,x1,y1,z1 and `extrude` as a
-// Uint8Array with one flag per segment (1 = extruding move, 0 = travel). `byteOffsets[i]` is the
+// Uint8Array with one flag per segment (1 = extruding move, 0 = travel); `tool` (polish WO-03,
+// 2026-10-18) is the tool number (T0, T1...) each segment was made with, for a part in two colours.
+// `byteOffsets[i]` is the
 // UTF-8 byte offset in the file where layer i starts, so Moonraker's `virtual_sdcard.file_position`
 // maps straight onto a layer and a fraction inside it.
 //
@@ -98,6 +100,8 @@ export function parseGcode(text, { maxSegments = 2_000_000 } = {}) {
  let seg = new Float32Array(capacity * 6);
  let ext = new Uint8Array(capacity);
  let off = new Int32Array(capacity);
+ let tl = new Uint8Array(capacity); // tool of each segment (polish WO-03)
+ let tool = 0; // the tool the last T command picked
  let count = 0;
 
  const layers = [];
@@ -126,15 +130,16 @@ export function parseGcode(text, { maxSegments = 2_000_000 } = {}) {
   const s = new Float32Array(capacity * 6); s.set(seg); seg = s;
   const x8 = new Uint8Array(capacity); x8.set(ext); ext = x8;
   const o32 = new Int32Array(capacity); o32.set(off); off = o32;
+  const t8 = new Uint8Array(capacity); t8.set(tl); tl = t8;
  };
  const closeLayer = () => {
   if (!cur || cur.count === 0) return;
   const from = cur.start, to = cur.start + cur.count;
-  // The done ramp ran ahead of the head inside a layer. The layer was right to 0.02 mm in Z, but
-  // the segment inside it was found by splitting the layer's byte span evenly over its segments,
-  // which put the boundary up to 29 mm away in XY. Each segment now carries the byte it starts at,
-  // so the drawn boundary is the move the printer is actually reading.
-  layers.push({ z: cur.z, segments: seg.slice(from * 6, to * 6), extrude: ext.slice(from, to), offsets: off.slice(from, to) });
+  // 2026-09-21: the done ramp ran ahead of the head inside a layer. The layer was right to
+  // 0.02 mm in Z, but the segment inside it was found by splitting the layer's byte span evenly
+  // over its segments, which put the boundary up to 29 mm away in XY. Each segment now carries the
+  // byte it starts at, so the drawn boundary is the move the printer is actually reading.
+  layers.push({ z: cur.z, segments: seg.slice(from * 6, to * 6), extrude: ext.slice(from, to), offsets: off.slice(from, to), tool: tl.slice(from, to) });
   byteOffsets.push(cur.offset);
  };
  const startLayer = (layerZ, explicit, offset) => {
@@ -170,6 +175,7 @@ export function parseGcode(text, { maxSegments = 2_000_000 } = {}) {
   seg[at + 3] = x1; seg[at + 4] = y1; seg[at + 5] = z1;
   ext[count] = extruding ? 1 : 0;
   off[count] = offset | 0;
+  tl[count] = tool;
   count++;
   cur.count++;
   const length = Math.hypot(x1 - x0, y1 - y0, z1 - z0);
@@ -268,6 +274,7 @@ export function parseGcode(text, { maxSegments = 2_000_000 } = {}) {
   if (code.length === 0) continue;
 
   const head = code.charCodeAt(0) | 32;
+  if (head === 116 && /^T\d{1,3}$/i.test(code)) { tool = Math.min(255, parseInt(code.slice(1), 10)); continue; } // T0, T1...: the tool the next moves are made with
   if (head !== 103 && head !== 109) { // not G, not M: the three macros we read
    if (head !== 101 && head !== 115) continue; // not E, not S either
    const up = code.toUpperCase();

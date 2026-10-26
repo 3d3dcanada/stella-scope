@@ -1,0 +1,26 @@
+PRUSA i3 MK3S+ MODEL FOR STELLA SCOPE: NOTICE
+
+This model of the Original Prusa i3 MK3S+ (and the MK3S and MK3, which share its frame, axes and plate) ships inside Stella Scope. This is its notice: who made it, the terms it is under and what was done to the file. It is also shown under About and under Printer models.
+
+WHO MADE IT
+Prusa Research designed the Original Prusa i3 MK3S and published its parts under the GNU General Public License.
+jzkmath built a SolidWorks assembly of it: "Prusa i3 MK3S SolidWorks Assembly (with STEP)", Thingiverse thing 3434917, licensed under the GNU GPL ("the same license as the Prusa i3 MK3S itself").
+Swesen made a Fusion 360 model from that assembly: "Original Prusa i3 MK3 for Fusion 360 (and STL)", Printables model 179638, CC BY. Swesen rebuilt the frame and the Y carriage from Prusa's DXF files, remade the E3D V6 from the official drawings, and organised and named the parts.
+Leto exported it as STEP: "Original Prusa i3 MK3 STEP", Printables model 563056, stated CC0. Address: https://www.printables.com/model/563056-original-prusa-i3-mk3-step
+Source file: 00Fusion360Export.step (41,249,381 bytes, SHA-256 c2ea1cafa2f71175524431a182f9e519f5568a0760ac007375c88495430ca5b2)
+
+UNDER WHAT TERMS
+Three licences meet in this model: the GNU General Public License (Prusa Research and jzkmath), CC BY (Swesen) and CC0 (Leto). The credit of all four is kept here, and the converted file is passed on under the GNU General Public License, version 2 (Prusa's own for the MK3 parts; the text is at the end of this notice), the strictest of the three, with this notice and free of charge. The source of this file, what you would edit to change it, is the STEP file at the address above and the conversion in the Stella Scope source. A GPL part inside is Prusa's; Stella Scope itself is not under it and a model is a separate file beside it.
+The MK3 model is a drawing of the MK3 as it was published; the MK3S+ has the same frame, axes and plate, and its IR sensor and filament sensor are small parts the model shows as the MK3's.
+
+WHAT WAS DONE TO IT
+The STEP assembly was converted into a triangle mesh in glTF 2.0 binary form (a .glb file, then gzipped) so that Stella Scope can draw the printer on screen. The parts were named and grouped so that the axes can move with the printer (the Y axis assembly's moving components are the bed, the X axis assembly the gantry that climbs, the extruder assembly the head). The colours are the model's own. Nothing was added to the geometry. The conversion is tools/printer-cad/step_to_glb.py in the Stella Scope source, with tools/printer-cad/prusa-mk3s/groups.json; anyone can repeat it from the STEP file and gets the same bytes.
+
+THE FILE
+Inside Stella Scope: models/prusa-mk3s.glb.gz
+Size: 4,361,256 bytes
+SHA-256 of that file: 7abfce12ad0775db4d842ce598923c64a5126437e1333bf14a22e08d2072fb3b
+SHA-256 once unpacked: 5a1a71a2d6396f1e6ef3a4ba66fb812856863d8a60f10bd1d19a359dfc9a1639
+Stella Scope knows both numbers in advance and puts the model in your library only if what it carries matches them.
+
+Prusa Research is not connected with Stella Scope and has not approved it.

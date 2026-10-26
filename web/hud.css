@@ -188,8 +188,8 @@
  opacity:.55}
 .hud-reticle{left:0;top:0;width:0;height:0;z-index:2;opacity:0;transition:opacity .3s}
 .hud-reticle[data-on="1"]{opacity:.9}
-/* The ring and crosshair that used to sit over the head are gone: the user 2026-09-21, "don't
-   get why they're there." The Z readout stays on the same anchor, now with nothing around it. */
+/* The ring and crosshair that used to sit over the head are gone: 2026-09-21, "don't get why
+   they're there." The Z readout stays on the same anchor, now with nothing around it. */
 .hud-reticle-text{position:absolute;left:14px;top:-8px;font:12px var(--mono);letter-spacing:.14em;color:var(--rim,var(--teal));white-space:nowrap;text-shadow:0 0 10px #000}
 @media(max-width:760px){.hud-app .canvas-wrap:before{inset:8px}.hud-reticle-text{display:none}}
 
@@ -378,12 +378,12 @@
  .hud-app main{overflow:auto;overscroll-behavior:contain;padding-bottom:8px}
  .hud-app #page-machine,.hud-app .cockpit,.hud-app .viewer{position:relative;inset:auto}
  .hud-app .viewer{display:grid;grid-template-columns:minmax(0,1fr);padding:0 12px;gap:14px}
- .hud-app .canvas-wrap{position:relative;inset:auto;order:0;margin:130px -12px 0;height:36dvh;min-height:280px}
+ .hud-app .canvas-wrap{position:relative;inset:auto;order:0;margin:138px -12px 0;height:36dvh;min-height:280px}
  .hud-app .canvas-wrap:before{inset:6px}
  .hud-heading{top:12px;left:14px;gap:3px}.hud-machine-name{font-size:21px;letter-spacing:.16em}
  .hud-machine-spec,.hud-readiness{display:none}.hud-state-row{margin-top:3px;gap:6px}
  .hud-state-pill,.hud-fresh{font-size:11px}
- .hud-jobstrip{top:74px;left:14px;right:14px;width:auto;transform:none;text-align:left}
+ .hud-jobstrip{top:82px;left:14px;right:14px;width:auto;transform:none;text-align:left}
  .hud-job-name{font-size:13px;max-width:100%}.hud-job-meta{font-size:11px}
  .hud-viewbox{top:12px;right:12px;display:flex}.hud-view-cube{display:none}
  .hud-zoom button{min-width:30px;min-height:30px}
@@ -434,7 +434,7 @@
 }
 @media(prefers-reduced-motion:reduce){.hud-app *{animation:none!important;transition:none!important}}
 
-/* --- 2026-09-20 one-block heading, compact colour-coded jog, rails clear the zoom buttons --- */
+/* --- 2026-09-20 owner review: one-block heading, compact colour-coded jog, rails clear the zoom buttons --- */
 .hud-heading{top:14px;left:20px;display:grid;gap:6px;max-width:none}
 .hud-ident{display:flex;align-items:baseline;gap:12px;white-space:nowrap}
 .hud-machine-name{font:700 24px/1 var(--sans);letter-spacing:.24em}
@@ -476,7 +476,7 @@
 .hud-queue .hud-fact{align-items:center}
 .hud-select{font:13px var(--mono);background:var(--surface);border:1px solid var(--line);color:var(--ink);padding:5px 8px;border-radius:3px}
 .hud-loaded:not(:empty){font:600 11px var(--mono);letter-spacing:.1em;color:var(--accent-ink);padding:3px 8px;border:1px solid var(--teal-dim);border-radius:2px}
-/* --- upright bars side by side, one colour per fan, arrows on the jog buttons --- */
+/* --- 2026-09-20 21:10: upright bars side by side, one colour per fan, arrows on the jog buttons --- */
 .hud-rail{top:150px;width:auto;gap:8px}
 .hud-rail-row{display:flex;gap:14px;align-items:flex-end}
 .hud-rail.right .hud-rail-row{flex-direction:row-reverse}
@@ -489,7 +489,7 @@
 .hud .hud-gauge.vertical .hud-gauge-note{font-size:10px;line-height:1.3;max-width:66px;white-space:normal}
 .hud .hud-gauge.vertical .hud-presets{display:none}
 .hud .hud-gauge.vertical .hud-fan{width:22px;height:22px}
-/* --- controller fan on a short row underneath, one colour per gauge --- */
+/* --- 2026-09-21: controller fan on a short row underneath, one colour per gauge --- */
 .hud-rail-row.under{margin-top:2px}
 .hud .hud-rail-row.under .hud-gauge.vertical .hud-gauge-track{height:clamp(56px,9vh,84px)}
 .hud .hud-rail-row.under .hud-gauge.vertical .hud-gauge-value{font-size:17px}
@@ -505,38 +505,39 @@
 .hud-arrow{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
 .led[data-state="push"] i{animation:none}
 @media(max-width:760px){.hud-rail-row{gap:8px}.hud .hud-gauge.vertical{width:52px}.hud .hud-gauge.vertical .hud-gauge-track{height:110px;width:20px}}
-/* --- --- */
+/* --- 2026-09-21: "you haven't put the nozzle and bed temperature gauges over and under." --- */
 /* NOZZLE over BED, in that append order. Both rails are absolutely positioned, so nothing stops them
    running into the bottom band; stacking the left pair made it overlap, so the tracks are sized off
    the free space instead of a flat clamp. Measured on the built HUD: the rail starts 202 px down the
-   window, the band occupies the last 245 px, so the rails have 100vh - 447px. Around each track sit a
-   37 px head, a 26 px note and the gauge's own gaps: 71 px on the left pair, 67 px on the right pair,
-   60 px on the controller row, plus an 18 px rail title and a 10 px row gap. left: 18 + 2*(71 + T) +
-   10 <= 100vh - 447 -> T <= 50vh - 308.5 right: 18 + (67 + T) + 10 + (60 + U) <= 100vh - 447, U =
-   clamp(56px,9vh,84px) -> T <= 91vh - 602 The constants below are those limits with ~10 px of slack,
-   so the header growing a line does not put a bar through the band. Both stop growing at the 230 px
-   the user accepted on 2026-09-20; under ~750 px the floors take over and the bars get short rather
-   than clipped, which is the trade he asked for. Measured clearance to the band: 19 px left, 84 px
-   right at 1000 px of viewport. */
+   window, the band occupies the last 245 px, so the rails have 100vh - 447px. Around each track sit
+   a 37 px head, a 26 px note and the gauge's own gaps: 71 px on the left pair, 67 px on the right
+   pair, 60 px on the controller row, plus an 18 px rail title and a 10 px row gap.
+     left:  18 + 2*(71 + T) + 10  <= 100vh - 447  ->  T <= 50vh - 308.5
+     right: 18 + (67 + T) + 10 + (60 + U) <= 100vh - 447, U = clamp(56px,9vh,84px)  ->  T <= 91vh - 602
+   The constants below are those limits with ~10 px of slack, so the header growing a line does not
+   put a bar through the band. Both stop growing at the 230 px the owner accepted on 2026-09-20; under
+   ~750 px the floors take over and the bars get short rather than clipped, which is the trade he
+   asked for. Measured clearance to the band: 19 px left, 84 px right at 1000 px of viewport. */
 .hud-rail.left .hud-rail-row{flex-direction:column;align-items:flex-start;gap:10px}
-/* — he means stacked, one over the other, exactly like NOZZLE over BED on the left. PART is first
-   in the DOM, so the column puts it on top. The right pair is sized by the same arithmetic as the
-   left, with 18 px less overhead per gauge because neither of these two carries a note line: 18 +
-   2*(49 + T) + 10 <= 100vh - 447 -> T <= 50vh - 281.5, taken with slack as 50vh - 300px and the
-   same 230 px cap the user accepted on 2026-09-20. */
+/* 2026-09-21, second look: "my hot end cooling fan and part cooling fan are still side by side
+   when I've asked for that to be fixed" — he means stacked, one over the other, exactly like NOZZLE
+   over BED on the left. PART is first in the DOM, so the column puts it on top. The right pair is
+   sized by the same arithmetic as the left, with 18 px less overhead per gauge because neither of
+   these two carries a note line:  18 + 2*(49 + T) + 10 <= 100vh - 447  ->  T <= 50vh - 281.5, taken
+   with slack as 50vh - 300px and the same 230 px cap the owner accepted on 2026-09-20. */
 .hud-rail.right .hud-rail-row{flex-direction:column;align-items:flex-end;gap:10px}
 @media(min-width:761px){ /* the phone layout stacks the rails into the page flow and sets its own sizes */
  .hud-rail.left .hud-gauge.vertical .hud-gauge-track{height:clamp(56px,calc(50vh - 318px),230px)}
  .hud-rail.right .hud-rail-row:not(.under) .hud-gauge.vertical .hud-gauge-track{height:clamp(56px,calc(50vh - 300px),230px)}
 }
-/* --- --- */
+/* --- 2026-09-21: "a complete empty space below the Zoom / Details / MOVE row." --- */
 /* The MOVE row was laid out in a 63 px band holding 30 px of buttons; the rest was black. Both rows
    are now sized to what is in them and the actions strip sits in the band instead of leaving it. */
 .hud-bottom{row-gap:6px}
 .hud-jogrow{height:fit-content;align-content:flex-start}
 .hud-actions{grid-column:1/-1;height:fit-content;width:100%;margin-left:0;flex-wrap:wrap;padding-top:6px;border-top:1px solid var(--line);align-items:stretch}
 .hud-actions .hud-machine{border-color:var(--teal-dim);color:var(--accent-ink)}
-/* --- the user 2026-09-21, live, watching their calibration prints --- */
+/* --- 2026-09-21, live, watching his calibration prints (WO-10) --- */
 /* "Hotend and part cooling stay together; the controller fan can go somewhere else." It is an
    automatic output with nothing to set, so it is a dot and a number beside the recorder's link dot
    in the header instead of a third gauge. The right rail's track height is deliberately unchanged:
@@ -551,33 +552,34 @@
  background:rgba(8,12,14,.72);border:1px solid rgba(255,74,61,.45);border-radius:3px;padding:2px 7px}
 .hud-app[data-theme=light] .hud-reticle-text{color:#e01100;background:rgba(255,255,255,.86);border-color:rgba(224,17,0,.5)}
 
-/* --- / additions ---------------------------------------------- */
-/* The "plain and boring" pass. His accepted layout does not move: these are weight, and the
-   styles for the new Files-modal history, thumbnails and exclude-object rows. The big visual
-   work of is in the scene (studio environment + material families), not here; this block only
-   sharpens the job strip headline. */
+/* --- WO-12 / WO-13 additions (2026-09-22) ---------------------------------------------- */
+/* our "plain and boring" pass. His accepted layout does not move: these are weight, and the
+   styles for the new Files-modal history, thumbnails and exclude-object rows.
+   The big visual work of WO-12 is in the scene (studio environment + material families), not
+   here; this block only sharpens the job strip headline. */
 .hud-job-name{font:600 14px var(--sans);color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-/* Slicer thumbnail beside each file: cropped square. the 44px column exists only while the row
-   holds its image. hud.js removes an image that fails to load (a file sliced without one), and
-   the row then lays out as text only, the filename across the width; the unconditional column
-   caught the filename and squeezed it to a letter per line. */
+/* Slicer thumbnail beside each file (WO-13): cropped square. WO-16 (2026-09-23): the 44px column
+   exists only while the row holds its image. hud.js removes an image that fails to load (a file
+   sliced without one), and the row then lays out as text only, the filename across the width;
+   the unconditional column caught the filename and squeezed it to a letter per line. */
 .hud-file:has(>.hud-file-thumb){grid-template-columns:44px 1fr;align-items:center}
 .hud-file-thumb{width:44px;height:44px;object-fit:cover;border:1px solid var(--line);border-radius:3px;background:#0c0f10;grid-row:span 2;justify-self:center}
-/* Print history rows: result sets the accent; clicking rewinds the recording to the moment
-   that print ended. */
+/* Print history rows (WO-13): result sets the accent; clicking rewinds the recording to the
+   moment that print ended. */
 .hud-history-list{display:grid;gap:4px}
 .hud-print{cursor:pointer;border-left:2px solid var(--line);padding-left:8px}
 .hud-print[data-result="complete"]{border-left-color:var(--green)}
 .hud-print[data-result="error"]{border-left-color:var(--magenta)}
 .hud-print[data-result="cancelled"],.hud-print[data-result="interrupted"]{border-left-color:var(--orange)}
-/* Exclude-objects rows: the name action and the plate highlight share a row. */
+/* Exclude-objects rows (WO-13): the name action and the plate highlight share a row. */
 .hud-object-row{display:flex;gap:4px;align-items:stretch}
 .hud-object-row>button:first-child{flex:1;min-width:0}
 
-/* --- part cards and the part chip ----------------------------------- */
-/* The card is glass over the printer, its instruments sit in recessed wells, numbers ease between
-   readings, only live values glow and only live elements move. Every number here is one of the
-   style decisions written first in -STOP-REPORT.md. */
+/* --- WO-18 (2026-09-23): part cards and the part chip ----------------------------------- */
+/* the owner, clicking parts: "When I click on something to pop up, it just doesn't feel right, it looks
+   stupid and minimal." The card is glass over the printer, its instruments sit in recessed wells,
+   numbers ease between readings, only live values glow and only live elements move. Every number
+   here is one of the style decisions written first in WO-18-STOP-REPORT.md. */
 .hud-app{--card-glass:rgba(19,25,26,.78);--card-edge:rgba(4,217,196,.22);--well:rgba(0,0,0,.30);--well-shadow:inset 0 2px 7px rgba(0,0,0,.5);--well-line:rgba(255,255,255,.05);--lift:0 3px 8px rgba(0,0,0,.45);--lift-hover:0 8px 18px rgba(0,0,0,.45);--dial-track:rgba(255,255,255,.07);--dial-tick:rgba(255,255,255,.14);--dial-major:rgba(255,255,255,.30)}
 .hud-app[data-theme=light]{--card-glass:rgba(246,249,248,.84);--card-edge:rgba(0,110,98,.30);--well:rgba(20,35,34,.06);--well-shadow:inset 0 2px 6px rgba(20,35,34,.16);--well-line:rgba(255,255,255,.75);--lift:0 3px 8px rgba(20,35,34,.16);--lift-hover:0 8px 18px rgba(20,35,34,.2);--dial-track:rgba(20,35,34,.10);--dial-tick:rgba(20,35,34,.22);--dial-major:rgba(20,35,34,.45)}
 .hud-app #detail-dialog{width:min(1120px,95vw);background:var(--card-glass);-webkit-backdrop-filter:blur(16px) saturate(135%);backdrop-filter:blur(16px) saturate(135%);border:1px solid var(--card-edge);border-radius:14px;box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 28px 70px rgba(0,0,0,.6),0 2px 10px rgba(0,0,0,.45);padding:18px 22px 20px}
@@ -667,10 +669,11 @@
 .hud-app #detail-dialog .detail-grid>.card>.hud-mesh-well{margin-top:10px}
 @media(max-height:800px){.hud-part-model{height:220px}}
 
-/* --- the HUD comes alive ------------------------------------------------ */
-/* Every number below is one of the style decisions written first in -STOP-REPORT.md, on the card
-   tokens. Geometry does not move: this is surface, motion, and the new content set into space that
-   was empty. */
+/* --- WO-19 (2026-09-23): the HUD comes alive ------------------------------------------------ */
+/* the owner: "It looks very vibe-coded... I just want it to feel really alive and real depth to
+   everything." Every number below is one of the style decisions written first in
+   WO-19-STOP-REPORT.md, on the WO-18 card tokens. Geometry does not move: this is surface, motion,
+   and the new content set into space that was empty. */
 .hud-app{--pod:rgba(18,24,25,.58);--pod-edge:rgba(4,217,196,.18);--hi:inset 0 1px 0 rgba(255,255,255,.07)}
 .hud-app[data-theme=light]{--pod:rgba(246,249,248,.74);--pod-edge:rgba(0,110,98,.24);--hi:inset 0 1px 0 rgba(255,255,255,.85)}
 /* One tooltip for the whole HUD: what it is, what a click does, and why not, when it cannot. */
@@ -748,7 +751,7 @@ body.hud-app[data-fresh="1"] .hud .hud-gauge-value:not(.pending),body.hud-app[da
 .hud-page-lead{padding:14px 14px 13px;border-color:var(--teal-dim)}.hud-page-lead strong{font-size:17px;color:var(--accent-ink)}
 .hud-page-here{border-style:dashed;cursor:default}
 .hud-pages-button{border-color:var(--teal-dim)!important;color:var(--accent-ink)!important}
-/* Cards take the HUD's depth too (reviewer on the shots: "still flat"). */
+/* Cards take the HUD's depth too (reviewer on the WO-18 shots: "still flat"). */
 .hud-app #detail-dialog{box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 0 0 1px rgba(0,0,0,.4),0 34px 80px rgba(0,0,0,.62),0 2px 10px rgba(0,0,0,.45)}
 .hud-part-model{background:radial-gradient(ellipse at 50% 42%,#3d494c 0%,#263033 48%,#141a1b 100%)}
 .hud-app[data-theme=light] .hud-part-model{background:radial-gradient(ellipse at 50% 42%,#ffffff 0%,#e3ebe8 55%,#c9d6d2 100%)}
@@ -760,9 +763,10 @@ body.hud-app[data-fresh="1"] .hud .hud-gauge-value:not(.pending),body.hud-app[da
 /* X, Y and Z ran into each other ("110.7174.50.4"): five 30 px digits do not fit an 86 px column.
    26 px does, so the three numbers read apart without moving the column. */
 @media(min-width:761px){.hud-motion .hud-axis strong{font-size:26px;line-height:30px;letter-spacing:-.02em}}
-/* --- printer off, locked controls, saved presets -------------------------- The header pill says
-   which state the printer is in; a locked control is dimmed and its tooltip gives the reason. Colour
-   law: the neon is on the text and the rim, not the fill. */
+/* --- WO-20 (2026-09-23): printer off, locked controls, saved presets --------------------------
+   the owner: "Nothing works without the printer being on. You can look at things, but you can't really
+   alter anything." The header pill says which state the printer is in; a locked control is dimmed
+   and its tooltip gives the reason. Colour law: the neon is on the text and the rim, not the fill. */
 .hud-app #led-transport{padding:5px 11px;border:1px solid var(--line);border-radius:999px;font-size:10.5px;letter-spacing:.14em;color:var(--ink);background:rgba(0,0,0,.28);cursor:default}
 .hud-app #led-transport[data-state="off"]{color:#ff8cc4;border-color:rgba(255,45,146,.7);background:rgba(58,13,31,.55);font-weight:700}
 .hud-app #led-transport[data-state="not_ready"]{color:#ffb070;border-color:rgba(255,106,0,.7);background:rgba(58,26,6,.55);font-weight:700}
@@ -780,8 +784,8 @@ body.hud-app[data-fresh="1"] .hud .hud-gauge-value:not(.pending),body.hud-app[da
 .hud-preset-fixed span:last-child{font-size:10px;letter-spacing:.08em}
 .hud-preset-pending{font:11px var(--mono);letter-spacing:.08em;color:var(--muted);margin-left:auto}
 .hud-modal-body[data-dirty="1"] .hud-preset-pending{color:#ffb070;font-weight:700}
-/* The page's own service not answering is a state of its own, in steel blue, so "Stella Scope is
-   not running" never reads as the printer's magenta PRINTER OFF. */
+/* WO-21 (2026-09-24): the page's own service not answering is a state of its own, in steel blue,
+   so "Stella Scope is not running" never reads as the printer's magenta PRINTER OFF. */
 .hud-app #led-transport[data-state="service"]{color:#c3cdfa;border-color:rgba(122,140,255,.7);background:rgba(20,24,58,.6);font-weight:700}
 .hud-app #led-transport[data-state="service"] i{background:#7a8cff;box-shadow:0 0 10px rgba(122,140,255,.6)}
 .hud-offline[data-link="service"] strong{color:#c3cdfa}

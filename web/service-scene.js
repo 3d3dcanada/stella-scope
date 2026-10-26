@@ -1,5 +1,5 @@
 import {layout} from './workspace-scene.js';
-import {CORNERS,slotById,SLOTS,n} from './service-core.js';
+import {slotById,SLOTS} from './service-core.js';
 export const CAMERA_VIEWS={iso:[-.62,.46],front:[0,.02],back:[Math.PI,.02],right:[Math.PI/2,.02],left:[-Math.PI/2,.02],top:[0,1.56],bottom:[0,-1.56]};
 const col={board:'#1c2026',chip:'#2a3138',metal:'#ccd5d9',steel:'#aab4b9',gold:'#e6b05f',red:'#c7332c',dark:'#2a3138',wire:'#454e57',selected:'#04D9C4',warn:'#FF6A00',edge:[0.08,0.55,0.5]};
 const box=(id,pos,size,color,layer='electronics',parent=id)=>({id,parent,pos,size,color,kind:'box',layer});
@@ -75,7 +75,7 @@ export function project(v,m,w,h){return {x:(m[0]*v[0]+m[4]*v[1]+m[8]*v[2]+m[12]+
  const fs='precision mediump float;varying vec3 c;void main(){gl_FragColor=vec4(c,1.);}';
  const shader=(type,src)=>{const s=gl.createShader(type);gl.shaderSource(s,src);gl.compileShader(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS))throw Error(gl.getShaderInfoLog(s));return s;};
  const prog=gl.createProgram();gl.attachShader(prog,shader(gl.VERTEX_SHADER,vs));gl.attachShader(prog,shader(gl.FRAGMENT_SHADER,fs));gl.linkProgram(prog);if(!gl.getProgramParameter(prog,gl.LINK_STATUS))throw Error(gl.getProgramInfoLog(prog));this.program=prog;this.buffer=gl.createBuffer();this.mu=gl.getUniformLocation(prog,'m');this.pu=gl.getUniformLocation(prog,'picking');
-  for(const [i,name]of ['p','normal','color','pick'].entries()){const a=gl.getAttribLocation(prog,name);gl.enableVertexAttribArray(a);this.attribs=(this.attribs||[]).concat(a);}
+  for(const name of ['p','normal','color','pick']){const a=gl.getAttribLocation(prog,name);gl.enableVertexAttribArray(a);this.attribs=(this.attribs||[]).concat(a);}
   gl.enable(gl.DEPTH_TEST);gl.disable(gl.DITHER);
   this.edgeBuffer=gl.createBuffer();this.dynBuffer=gl.createBuffer();this.dynEdgeBuffer=gl.createBuffer();
  this.tip=document.getElementById('scene-tip');this.hoverAt=0;this.hoverId=null;
@@ -107,7 +107,7 @@ export function project(v,m,w,h){return {x:(m[0]*v[0]+m[4]*v[1]+m[8]*v[2]+m[12]+
  focus(id){const model=serviceLayout(this.snapshot,this.explode),slot=slotById(id),parent=slot?.parent||id,parts=model.parts.filter(p=>p.id===id||p.parent===parent||p.id===parent);if(!parts.length)return;this.pan=[0,0];this.zoom=2;const c=[0,1,2].map(i=>parts.reduce((s,p)=>s+p.pos[i],0)/parts.length);const m=matrix(this.canvas.clientWidth,this.canvas.clientHeight,model,this.yaw,this.pitch,this.zoom,this.pan),p=project(c,m,this.canvas.clientWidth,this.canvas.clientHeight);this.pan=[1-2*p.x/this.canvas.clientWidth,2*p.y/this.canvas.clientHeight-1];this.schedule();}
  geometry(){const model=serviceLayout(this.snapshot,this.explode),slot=slotById(this.selected),target=slot?.parent||this.selected;
   // Static parts (frame, bed, electronics, Z drives) cache; only pose-dependent gantry parts rebuild per frame.
-  const flags=Object.entries(this.snapshot?.point?.motors||{}).filter(([k,v])=>v.flags?.length).map(([k])=>k).join(',');
+  const flags=Object.entries(this.snapshot?.point?.motors||{}).filter(([,v])=>v.flags?.length).map(([k])=>k).join(',');
   // Geometry rides the key too: switching to a recording with a different bed or Z height must
   // invalidate every cached static part, or the old frame floats under the new data. The newest
   // probe landings ride it as well so fresh BLTouch points appear without a full refetch.
@@ -122,7 +122,7 @@ export function project(v,m,w,h){return {x:(m[0]*v[0]+m[4]*v[1]+m[8]*v[2]+m[12]+
     this._pushPart(p,color,idx,v,e);}
    this._staticV=new Float32Array(v);this._staticE=new Float32Array(e);this._staticIds=ids;this._key=key;
   }
-  const v=[],e=[],ids=[...this._staticIds],off=this._staticIds.length,index=new Map(ids.map((x,i)=>[x,i]));
+  const v=[],e=[],ids=[...this._staticIds],index=new Map(ids.map((x,i)=>[x,i]));
   for(const p of model.parts){if(!p.dyn)continue;if(this.hidden.has(p.layer))continue;
    let color=p.color;if(p.id===this.selected||p.id===target||p.parent===target)color=col.selected;
    if(this.snapshot?.point?.motors?.[p.parent]?.flags?.length)color=col.warn;

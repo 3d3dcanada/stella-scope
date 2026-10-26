@@ -89,7 +89,7 @@ pub fn select(
         } else if matches!(name, "input_shaper" | "adxl345" | "safe_z_home") {
             // These are real config sections, but Klipper exposes no status object for them
             // (observed live 2026-09-17). Their settings are read from configfile instead;
-            // telling the user to "check its Klipper configuration name" sends them to fix a
+            // telling the owner to "check its Klipper configuration name" sends him to fix a
             // configuration that is correct.
             notes.push(format!(
                 "Configuration-only object: {name} has no status object; its settings are read from the recorded configfile"

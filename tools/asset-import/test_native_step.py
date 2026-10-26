@@ -2,6 +2,8 @@
 
 import hashlib
 import json
+import os
+import sys
 from pathlib import Path
 import shutil
 import tempfile
@@ -9,13 +11,14 @@ import tempfile
 from native_step_import import import_step
 
 
+# A real STEP assembly to import, named by STELLA_TEST_STEP; without one there is nothing to test.
+if not os.environ.get("STELLA_TEST_STEP"):
+    print("skip: set STELLA_TEST_STEP to a STEP assembly")
+    sys.exit(0)
+
 temporary = Path(tempfile.mkdtemp(prefix="stella-native-step-test-"))
 try:
-    import os, sys
-    source = Path(os.environ.get("STEP_TEST_FILE", ""))
-    if not source.is_file():
-        print("skipped: set STEP_TEST_FILE to a small STEP assembly to run this test")
-        sys.exit(0)
+    source = Path(os.environ["STELLA_TEST_STEP"])
     database = temporary / "test.sqlite3"
     spec = {
         "id": "native-a-drive-test",

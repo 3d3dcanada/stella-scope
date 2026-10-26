@@ -13,6 +13,8 @@
     "core:default",
     "core:event:default",
     "barcode-scanner:default",
-    "deep-link:default"
+    "deep-link:default",
+    "haptics:allow-selection-feedback",
+    "haptics:allow-impact-feedback"
   ]
 }

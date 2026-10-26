@@ -1,0 +1,226 @@
+/* The HUD pass (2026-10-24), loaded last on the printer page. the owner looked at rc9 in the desktop window and listed it: dials with a pointless
+   disc behind them, square trays instead of the radial menus he asked for at the start, see-through panels, notifications over the machine,
+   a giant PHONE PAIRED key, readouts crowding the bottom bar, a rail that scrolls, no COOL and no plain STOP. Rules for everything here:
+   - Solid surfaces. The desktop window is WebKit and draws no backdrop blur, so nothing may depend on blur to be readable.
+   - The layout stays the 10-20 one (rail left, dials floating on the machine, the bottom deck); this changes what is on it, not where it is. */
+
+:root{--hud-solid:#0c1219;--hud-solid-2:#111a23;--hud-line:rgba(255,255,255,.12);--hud-rim:inset 0 1px 0 rgba(255,255,255,.14);--hud-teal:var(--accent-hi)}
+
+/* ---------- 1. the dials: the 10-20 LED kit, a lit ring and the number, nothing behind it ---------- */
+.nxctl:not(.nxctl--lift){background:none!important;box-shadow:none!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+.nxctl:not(.nxctl--lift)::before,.nxctl:not(.nxctl--lift)::after{content:none!important}
+.nxctl:not(.nxctl--lift) .nxc-face circle:first-child{fill:transparent!important;stroke:transparent!important}
+.nxctl:not(.nxctl--lift) .nxc-face circle:nth-child(2){stroke:transparent!important}
+.nx-cluster .nxctl{--nxctl-size:clamp(96px,calc((100vh - 300px) / 4.3),150px)}
+/* over the machine the number keeps a dark halo so it reads on any part behind it */
+.nxctl .nxc-read b{text-shadow:0 0 calc(var(--nxctl-size)*.06) var(--c),0 1px 2px #000,0 0 10px rgba(0,0,0,.9)}
+.nxctl .nxc-read .nxc-n,.nxctl .nxc-read .nxc-l{text-shadow:0 1px 2px #000,0 0 8px rgba(0,0,0,.95)}
+
+/* ---------- 2. the wheel: every key's choices (next-ui openRadial) ---------- */
+.nx-wheel-host{position:fixed;inset:0;z-index:30;background:radial-gradient(circle at 50% 50%,rgba(3,6,10,.50),rgba(3,6,10,.80) 70%)!important;
+ -webkit-backdrop-filter:none!important;backdrop-filter:none!important;animation:none!important;pointer-events:auto}
+.nx-wheel{position:absolute;transform:translate(-50%,-50%)}
+.nx-wheel-svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.nx-wheel-seg{fill:var(--hud-solid);stroke:rgba(255,255,255,.12);stroke-width:1.2;transition:fill .12s,stroke .12s;cursor:pointer}
+.nx-wheel-seg[data-hot]{fill:#0d3633;stroke:var(--hud-teal);stroke-width:2}
+.nx-wheel-seg[data-tone=heat][data-hot]{fill:#3a1d0b;stroke:#FF9C55}
+.nx-wheel-seg[data-tone=cool][data-hot]{fill:#0d2a3e;stroke:#7CC4FF}
+.nx-wheel-seg[data-off]{fill:#080b0f}
+.nx-wheel .nx-wheel-key{position:absolute;transform:translate(-50%,-50%);width:var(--seg,120px);min-width:0;height:auto;min-height:0;padding:0;margin:0;
+ display:flex;flex-direction:column;align-items:center;gap:5px;background:none!important;border:0!important;box-shadow:none!important;outline:0;color:#C9D3DC;pointer-events:auto;cursor:pointer}
+.nx-wheel .nx-wheel-key::before,.nx-wheel .nx-wheel-key::after{content:none!important}
+.nx-wheel .nx-wheel-key svg.nx-ico{width:28px;height:28px;color:var(--accent-2)}
+.nx-wheel .nx-wheel-key .nx-lbl{font:700 12px/1.15 var(--sans);letter-spacing:.07em;text-transform:uppercase;color:#E6EDF3;white-space:normal;text-align:center;overflow-wrap:anywhere}
+.nx-wheel .nx-wheel-key .nx-radial-sub{position:static;font:600 12px/1.1 var(--mono);color:#9fb0bd;background:none;padding:0}
+.nx-wheel .nx-wheel-key[data-hot] .nx-lbl{color:#fff}
+.nx-wheel .nx-wheel-key[data-hot] svg.nx-ico{color:var(--accent-2);filter:drop-shadow(0 0 6px rgba(var(--accent-hi-rgb),.8))}
+.nx-wheel .nx-wheel-key[data-tone=heat] svg.nx-ico,.nx-wheel .nx-wheel-key[data-tone=heat] .nx-radial-sub{color:#FFB067}
+.nx-wheel .nx-wheel-key[data-tone=cool] svg.nx-ico{color:#7CC4FF}
+.nx-wheel .nx-wheel-key[data-kind=danger] svg.nx-ico{color:#FF7A9E}
+.nx-wheel .nx-wheel-key:disabled{opacity:.42}
+.nx-wheel .nx-radial-num .nx-lbl{font:600 20px/1 var(--mono);letter-spacing:-.02em}
+.nx-wheel-hub{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);border-radius:50%;pointer-events:none;
+ background:radial-gradient(circle at 50% 28%,#17222d,#080c11 72%);border:1px solid rgba(255,255,255,.16);
+ box-shadow:inset 0 1px 0 rgba(255,255,255,.2),0 0 0 6px rgba(0,0,0,.45),0 0 46px -12px rgba(var(--accent-rgb),.55);
+ display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:14px 16px;gap:5px;box-sizing:border-box}
+.nx-wheel-hub[data-tone=heat]{box-shadow:inset 0 1px 0 rgba(255,255,255,.2),0 0 0 6px rgba(0,0,0,.45),0 0 46px -12px rgba(255,106,0,.6)}
+.nx-wheel-hub-ico svg.nx-ico{width:30px;height:30px;color:var(--hud-teal)}
+.nx-wheel-hub[data-tone=heat] .nx-wheel-hub-ico svg.nx-ico{color:#FF9C55}
+.nx-wheel-hub-t{font:700 15px/1.2 var(--sans);color:#fff;max-width:100%}
+.nx-wheel-hub-d{margin:0;font:500 12px/1.35 var(--sans);color:#A9B6C2;max-width:100%;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
+.nx-wheel-hub-c{font:600 12.5px/1.35 var(--mono);color:var(--accent-2);white-space:pre-line}
+.nx-wheel-hub-c:empty{display:none}
+.nx-wheel-page{position:absolute;left:50%;bottom:-30px;transform:translateX(-50%);font:600 12px var(--mono);color:#8B95A1;letter-spacing:.12em}
+
+/* ---------- 3. the command deck: the live lane, then the keys; the readouts moved into the wheels' hubs ---------- */
+body:not([data-layout=phone]):not([data-layout=phone-land]) #nx-dock #nx-pos,
+body:not([data-layout=phone]):not([data-layout=phone-land]) #nx-dock .nx-bar-mini{display:none!important}
+#nx-dock{background:linear-gradient(180deg,#141d27,#0b1118)!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;border:1px solid var(--hud-line)!important;
+ box-shadow:var(--hud-rim),0 18px 40px -10px rgba(0,0,0,.8)!important;gap:12px!important;align-items:center!important}
+.nx-lane{position:relative;flex:0 0 clamp(250px,24vw,420px);align-self:stretch;min-height:64px;display:flex;align-items:center;padding:8px 14px 12px;margin:0;border-radius:12px;overflow:hidden;cursor:pointer;
+ text-align:left;color:inherit;font:inherit;background:#080d13;border:1px solid rgba(255,255,255,.08);box-shadow:inset 0 2px 6px rgba(0,0,0,.6);pointer-events:auto}
+.nx-lane-base{display:flex;align-items:center;gap:12px;min-width:0;width:100%}
+.nx-lane-ico svg.nx-ico{width:26px;height:26px;color:var(--hud-teal);flex:none}
+.nx-lane[data-tone=heat] .nx-lane-ico svg.nx-ico{color:#FF9C55}
+.nx-lane[data-tone=warn] .nx-lane-ico svg.nx-ico{color:#FFC861}
+.nx-lane[data-tone=ok] .nx-lane-ico svg.nx-ico{color:#5BF59A}
+.nx-lane-txt{display:flex;flex-direction:column;gap:3px;min-width:0}
+.nx-lane-txt b{font:700 14px/1.15 var(--sans);color:#F2F6F9;letter-spacing:.02em}
+.nx-lane-txt small{font:500 12px/1.25 var(--mono);color:#A9B6C2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nx-lane-bar{position:absolute;left:0;bottom:0;height:4px;width:0;background:linear-gradient(90deg,var(--accent-lo),var(--accent-hi));box-shadow:0 0 10px var(--accent);transition:width .6s var(--ease)}
+.nx-lane[data-tone=heat] .nx-lane-bar{background:linear-gradient(90deg,#C24A00,#FF9C55);box-shadow:0 0 10px #FF6A00}
+.nx-lane:not([data-bar]) .nx-lane-bar{display:none}
+/* a filament step lies over the lane, with its own line and bar (next-pages paintFilMarker) */
+.nx-lane .nx-filmark{position:absolute!important;inset:0!important;left:0!important;top:0!important;transform:none!important;width:auto!important;max-width:none!important;margin:0;z-index:2;border-radius:12px;
+ background:#0b141b!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;border:0!important;box-shadow:inset 0 0 0 1px rgba(var(--accent-hi-rgb),.25)!important;padding:8px 14px 12px!important;align-content:center}
+.nx-lane .nx-filmark .nx-filmark-bar{left:0;right:0;bottom:0;height:4px;border-radius:0}
+/* new messages slide in over the lane, solid, and go */
+.nx-lane-toasts{position:absolute;inset:0;z-index:3;pointer-events:none}
+.nx-lane-toasts .nx-toast{position:absolute;inset:0;margin:0;max-width:none;width:auto;border-radius:12px;display:flex;align-items:center;gap:10px;padding:8px 14px;
+ background:#101a22!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;border:0!important;box-shadow:inset 0 0 0 1px rgba(255,255,255,.12)!important;font:600 13px/1.3 var(--sans);color:#F2F6F9}
+.nx-lane-toasts .nx-toast[data-tone=alarm]{background:#2a0d17!important;box-shadow:inset 0 0 0 1px rgba(255,45,146,.5)!important}
+.nx-lane-toasts .nx-toast[data-tone=ok]{box-shadow:inset 0 0 0 1px rgba(24,227,107,.35)!important}
+.nx-lane-toasts .nx-toast span{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+/* the keys: a STOP that reads as one, COOL in ice blue */
+#nx-dock .nxkey[data-key=stop]{--k:#FF4D6A}
+#nx-dock .nxkey[data-key=stop] svg{color:#FF7A8E}
+#nx-dock .nxkey[data-key=cool] svg{color:#7CC4FF}
+
+/* ---------- 4. the top bar: icons, not words; no temperatures twice ---------- */
+body:not([data-layout=phone]) #nx-back .nx-lbl{display:none}
+body:not([data-layout=phone]) #nx-back{min-width:44px!important;width:44px;padding:0!important;justify-content:center}
+body:not([data-layout=phone]) .nx-cmd-host{flex:0 0 48px!important;min-width:48px!important;margin-left:4px!important}
+body:not([data-layout=phone]) .nx-cmd-box{width:48px;padding:0 14px!important;overflow:hidden}
+body:not([data-layout=phone]) .nx-cmd-box kbd{display:none}
+body:not([data-layout=phone]) .nx-cmd-box:focus-within{position:absolute;z-index:8;width:min(460px,calc(100vw - 40px));padding:0 10px 0 14px!important}
+#nx-idle .nx-idle-item[data-k=noz],#nx-idle .nx-idle-item[data-k=bed]{display:none}
+#nx-phonebtn .nx-lbl{display:none}
+#nx-phonebtn{min-width:44px;width:44px;padding:0!important;justify-content:center}
+#nx-phonebtn[data-paired="1"] svg{color:#5BF59A;filter:drop-shadow(0 0 6px rgba(24,227,107,.7))}
+#nx-bell{position:relative}
+#nx-bell .nx-bell-n{position:absolute;top:2px;right:2px;min-width:16px;height:16px;padding:0 4px;border-radius:8px;font:700 10px/16px var(--mono);font-style:normal;text-align:center;background:#FF2D92;color:#fff}
+#nx-bell .nx-bell-n:empty{display:none}
+/* solid bars and pills: nothing in the top bar is see-through */
+#nx-top{background:linear-gradient(180deg,#121a23,#0b1118)!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+.nx-job,.nx-idle,.nx-state,#nx-top>.nxkey,.nx-cmd-box,.nx-top-right .nx-btn:not(.nx-estop){background:#141d27!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+
+/* ---------- 5. the rail fits the window; it never scrolls ---------- */
+body:not([data-layout=phone]):not([data-layout=phone-land]) #nx-rail{overflow:hidden!important;max-height:calc(100% - var(--top) - var(--safe-t) - 28px)!important;bottom:auto!important;display:flex;flex-direction:column}
+body:not([data-layout=phone]):not([data-layout=phone-land]) #nx-rail .nx-btn[data-size=icon]{flex:0 1 auto;min-height:34px;height:auto}
+body:not([data-layout=phone]):not([data-layout=phone-land]) #nx-rail hr{flex:none;margin-block:3px}
+@media (max-height:860px){body:not([data-layout=phone]) #nx-rail .nx-btn[data-size=icon]{padding-block:4px!important;gap:2px}}
+
+/* ---------- 6. solid panels, menus and messages everywhere ---------- */
+.nx-sheet,.nx-pop,.nx-modal-card,.nx-modal>.nx-glass,.nx-toast,.nx-filmark,.nx-activity,#nx-rail{background-color:var(--hud-solid)!important;background-image:linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,0))!important;
+ -webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+.nx-pop{z-index:40!important}
+.nx-sheet{z-index:20}
+.nx-modal{background:rgba(3,5,8,.72)!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+
+/* the deck holds all its keys: it is as wide as what is in it, centred, inside the window */
+body:not([data-layout=phone]):not([data-layout=phone-land]):not([data-layout=tablet-port]) #nx-dock{width:max-content;max-width:calc(100vw - 2 * (var(--rail) + 40px))}
+body:not([data-layout=phone]):not([data-layout=phone-land]):not([data-layout=tablet-port]) .nx-lane{flex:0 1 clamp(220px,24vw,420px);min-width:200px}
+/* an unlit LED still shows the ring it belongs to, over the machine as on black */
+.nxctl:not(.nxctl--lift) .nxc-seg:not(.on){fill:rgba(28,36,46,.92);stroke:rgba(255,255,255,.10)}
+.nx-wheel-seg[data-empty]{fill:#070a0e;stroke:rgba(255,255,255,.05);cursor:default}
+
+/* ---------- 7. the farm wall (2026-10-24) ---------- */
+/* a printer opens as a card over the wall, not a tile that grows in place and pushes the others round */
+.fm-veil{position:fixed;inset:0;z-index:55;background:rgba(3,6,10,.74)}
+.fm-ghost{visibility:hidden;pointer-events:none}
+.fm-tile[data-open]{position:fixed!important;z-index:60;grid-column:auto!important;grid-row:auto!important;max-height:none!important;
+ top:max(16px,6vh);bottom:max(16px,6vh);left:max(16px,calc((100vw - 1180px) / 2));right:max(16px,calc((100vw - 1180px) / 2));
+ display:grid!important;grid-template-columns:minmax(0,1.35fr) minmax(360px,1fr);grid-template-rows:auto 1fr;gap:0;
+ background:var(--hud-solid)!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;box-shadow:0 30px 80px -10px rgba(0,0,0,.9),0 0 0 1px rgba(255,255,255,.14)!important;cursor:default}
+.fm-tile[data-open] .fm-head{grid-column:1/-1}
+.fm-tile[data-open] .fm-media{grid-column:1;grid-row:2;min-height:0;aspect-ratio:auto;height:100%;border-radius:0 0 0 20px}
+.fm-tile[data-open] .fm-inst{grid-column:2;grid-row:2;overflow-y:auto;display:flex;flex-direction:column;justify-content:flex-start}
+.fm-tile[data-open] .fm-act{flex-wrap:wrap;gap:8px}
+@media (max-width:900px){.fm-tile[data-open]{grid-template-columns:1fr;grid-template-rows:auto minmax(200px,40vh) auto;inset:12px!important;overflow-y:auto}
+ .fm-tile[data-open] .fm-media{grid-column:1;grid-row:2;border-radius:0}.fm-tile[data-open] .fm-inst{grid-column:1;grid-row:3;overflow:visible}}
+/* the panel's colour is the person's own choice; the coloured dot that meant nothing is gone, the colour is the tile's top edge and glow */
+.fm-dot{display:none!important}
+.fm-tile{border-top:3px solid var(--c,var(--accent))!important;box-shadow:0 -10px 30px -18px var(--c,var(--accent)),0 14px 30px -14px rgba(0,0,0,.7)!important}
+.fm-look{display:none}
+.fm-tile[data-open] .fm-look{display:flex;align-items:center;gap:12px;padding:6px 0 2px}
+.fm-look small{font:700 11px/1 var(--sans);letter-spacing:.12em;color:#8B95A1}
+.fm-tile:not([data-open]) .fm-act [data-act=heat],.fm-tile:not([data-open]) .fm-act [data-act=cool]{display:none}
+.fm-act [data-act=cool] svg{color:#7CC4FF}
+/* the counts at the top: lit figures and words on the bar, not boxes inside boxes */
+.fm-top{background:linear-gradient(180deg,#121a23,#0b1118)!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+.fm-stat,.nxkey.fm-stat,.fm-stat--next{background:none!important;border:0!important;box-shadow:none!important;border-radius:0!important;padding:0 14px!important;min-height:40px;
+ border-left:1px solid rgba(255,255,255,.08)!important}
+.fm-stat .fm-led{background:none!important;box-shadow:none!important;padding:0!important}
+.fm-stat .fm-led::before{display:none}
+.nxkey.fm-stat[aria-pressed=true]{background:none!important;box-shadow:inset 0 -3px 0 var(--accent)!important}
+.nxkey.fm-stat:hover .nx-lbl{color:#fff}
+/* (the veil lives beside the card, in the wall, so the card always stands on top of it) */
+.fm-tile[data-open] .nx-fm-swatches{display:flex;gap:10px;flex-wrap:wrap}
+.fm-tile[data-open] .nx-fm-sw{width:26px;height:26px;min-width:0;padding:0;border-radius:50%!important;border:2px solid rgba(255,255,255,.18)!important;background:var(--c)!important;box-shadow:0 0 10px -2px var(--c)!important}
+.fm-tile[data-open] .nx-fm-sw[aria-pressed=true]{border-color:#fff!important;box-shadow:0 0 0 3px rgba(255,255,255,.18),0 0 16px var(--c)!important}
+
+/* the camera / model tabs sat on the view keys (Iso Front Top Side): they stand under them now */
+body:not([data-layout=phone]):not([data-layout=tablet-port]) .nx-stagecard .nx-md-tabs{top:calc(var(--top) + var(--safe-t) + 60px)!important;width:auto!important}
+
+/* ---------- finish board A (2026-10-25) ---------- */
+/* A3: keys sit side by side; a state's groups no longer spread across the bar */
+body:is([data-layout=desktop],[data-layout=tablet],[data-layout=kiosk]) #nx-dock .nx-keygroup{flex:none}
+body:is([data-layout=desktop],[data-layout=tablet],[data-layout=kiosk]) #nx-dock .nx-keys{gap:6px;flex:none}
+/* A5: on a phone the deck is a column: the lane is one slim line above the keys, never a block that pushes the dials away */
+body:is([data-layout=phone],[data-layout=phone-land],[data-layout=tablet-port]) #nx-dock .nx-lane{flex:none!important;min-height:0;height:auto;padding:6px 12px 9px;min-width:0;width:auto;align-self:stretch}
+body:is([data-layout=phone],[data-layout=phone-land],[data-layout=tablet-port]) .nx-lane-txt b{font-size:13px}
+body:is([data-layout=phone],[data-layout=phone-land],[data-layout=tablet-port]) .nx-lane-ico svg.nx-ico{width:20px;height:20px}
+body[data-layout=phone] .nx-wheel-host{background:rgba(3,6,10,.9)!important}
+.nx-wheel[data-small] .nx-wheel-hub-d{display:none}
+.nx-wheel[data-small] .nx-wheel .nx-wheel-key svg.nx-ico{width:22px;height:22px}
+/* A6: a choice's name is whole: it wraps between words, never inside one, and is never cut with "…" */
+.nx-wheel .nx-wheel-key .nx-lbl{display:block!important;max-width:none!important;-webkit-line-clamp:unset!important;overflow:visible!important;overflow-wrap:normal!important;word-break:normal!important;hyphens:none;
+ font-size:clamp(10px,calc(var(--seg,120px) / 11),12px)!important;line-height:1.15}
+body[data-sheet=wide]:is([data-layout=desktop],[data-layout=tablet]) #nx-left{opacity:1!important;pointer-events:auto!important}
+
+/* A5: the phone's deck is taller by the lane's line: the bank of dials stands above it */
+body:is([data-layout=phone],[data-layout=tablet-port]){--barh:172px}
+
+/* ---------- finish board B (2026-10-25) ---------- */
+/* B10: Heat & fans, one instrument per heater: the dial, its readings as plain lines, the graph the whole width */
+.nx-u06 .nx-ht-grid{grid-template-columns:1fr!important;gap:12px}
+.nx-u06 .nx-ht{display:flex!important;flex-direction:column!important;gap:12px;padding:14px 16px!important}
+.nx-u06 .nx-ht-top{display:flex;align-items:center;gap:18px}
+.nx-u06 .nx-ht-top .nxctl{--nxctl-size:132px;flex:none}
+.nx-u06 .nx-ht-figs{display:flex!important;flex-direction:column;gap:2px!important;min-width:0}
+.nx-u06 .nx-ht-figs .nx-stat{display:flex!important;flex-direction:row!important;align-items:baseline;justify-content:space-between;gap:14px;background:none!important;border:0!important;box-shadow:none!important;
+ padding:6px 0!important;border-bottom:1px solid rgba(255,255,255,.07)!important;border-radius:0!important;min-height:0}
+.nx-u06 .nx-ht-figs .nx-stat:last-child{border-bottom:0!important}
+.nx-u06 .nx-ht-figs .nx-stat>*:first-child{font:700 11px/1 var(--sans);letter-spacing:.12em;color:#8B95A1}
+.nx-u06 .nx-ht-figs .nx-stat b,.nx-u06 .nx-ht-figs .nx-stat .nx-led,.nx-u06 .nx-ht-figs .nx-stat .nx-stat-v{font:600 18px/1 var(--mono)!important;background:none!important;box-shadow:none!important;padding:0!important}
+.nx-u06 .nx-ht .nx-thermo,.nx-u06 .nx-ht>.nx-tc,.nx-u06 .nx-ht>*:last-child:not(.nx-ht-top){width:100%;min-height:120px}
+/* the fans: three lit gauges in a row, no boxes round them */
+.nx-u06 .nx-ht-fan{background:none!important;border:0!important;box-shadow:none!important;padding:6px 4px!important}
+.nx-u06 .nx-ht-fan .nxctl{--nxctl-size:104px}
+.nx-u06 .nx-ht-figs .nx-stat-n{display:none}
+/* B11: a panel is as tall as what is in it (an empty one was a big empty box), up to the room above the deck */
+body:is([data-layout=desktop],[data-layout=tablet]) .nx-sheet{bottom:auto!important;max-height:calc(100% - var(--top) - var(--safe-t) - var(--dockzone) - 8px);display:flex;flex-direction:column}
+body:is([data-layout=desktop],[data-layout=tablet]) .nx-sheet .nx-sheet-body{flex:1 1 auto;min-height:0}
+.nx-empty-line{font-size:14px!important;color:#C9D3DC!important;padding:6px 0}
+.nx-wheel-hub-d:empty{display:none}
+.nxctl .nxc-read .nxc-none{font:600 calc(var(--nxctl-size)*.075)/1 var(--sans);letter-spacing:.1em;text-transform:uppercase;color:#8B95A1;text-shadow:none}
+.nx-u06 .nx-lv-corner b{white-space:nowrap;font-size:15px!important}
+
+/* ---------- finish board D (2026-10-25): the farm ---------- */
+/* D16: what each tile shows (kept on this device) */
+.fm-tile[data-show=machine] .fm-cam{display:none!important}
+.fm-tile[data-show=camera] .fm-3d,.fm-tile[data-show=camera] .fm-still{display:none!important}
+.fm-tile[data-show=job] .fm-3d,.fm-tile[data-show=job] .fm-still,.fm-tile[data-show=job] .fm-cam{display:none!important}
+.fm-tile[data-show=job] .fm-nocam{display:flex!important}
+.fm-tile[data-open] .fm-look{flex-wrap:wrap;row-gap:10px}
+.fm-tile[data-open] .fm-look small{flex:0 0 100%}
+.fm-tile[data-open] .fm-look .nx-seg{flex:1 1 auto}
+.fm-pin{display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 14px;border-radius:999px;border:1px solid rgba(255,255,255,.14);background:#141d27;color:#C9D3DC;font:600 12px/1 var(--sans);letter-spacing:.06em;cursor:pointer}
+.fm-pin svg{width:16px;height:16px}
+.fm-pin[aria-pressed=true]{border-color:var(--c,var(--accent));color:#fff;box-shadow:0 0 12px -4px var(--c,var(--accent))}
+/* D14: the card's keys are the deck's keys: square glass, the picture over the word */
+.fm-tile[data-open] .fm-act{display:flex!important;flex-wrap:wrap;gap:8px}
+.fm-tile[data-open] .fm-act .nxkey{flex:none!important;width:76px!important;height:68px!important;min-width:0!important;flex-direction:column!important;justify-content:center;gap:5px!important;padding:6px 4px!important;border-radius:14px!important}
+.fm-tile[data-open] .fm-act .nxkey .nx-lbl{font-size:10.5px!important;letter-spacing:.05em;text-align:center;white-space:normal;line-height:1.1}
+.fm-tile[data-open] .fm-act .nxkey svg{width:22px;height:22px}
+.nx-ht-rpm{font:600 14px/1.4 var(--mono)!important;color:#C9D3DC!important}

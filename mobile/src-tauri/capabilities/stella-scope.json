@@ -1,0 +1,9 @@
+{
+  "$schema": "../gen/schemas/mobile-schema.json",
+  "identifier": "stella-scope-pages",
+  "description": "Stella Scope's own pages, loaded through the tunnel on this phone's loopback, may only make the phone click under the finger (UI board U08, 2026-10-20).",
+  "windows": ["main"],
+  "platforms": ["android", "iOS"],
+  "remote": { "urls": ["http://127.0.0.1:*"] },
+  "permissions": ["haptics:allow-selection-feedback", "haptics:allow-impact-feedback"]
+}

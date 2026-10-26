@@ -1,13 +1,21 @@
-//! Stella-eye: print failure detection for Stella Scope. The model is Obico's open failure detector (a one-class YOLOv2, 416 x 416,
-//! exported to ONNX with the box decoding inside; weights from Obico's public model bucket), run by tract, a pure-Rust ONNX engine,
-//! so the same program builds for Linux, Windows and Mac with nothing to install. Its scores match ONNX Runtime's on the test
-//! pictures (0.666, 0.607, 0.295); ~0.9 s a frame on one core. The scoring below is Obico's own (obico-server
-//! backend/lib/prediction.py and failure_detection.py, 1st-gen hyperparameters, tuned for one frame every 10 s): each frame's score
-//! is the sum of detection confidences; an exponential mean (span 12) is compared with a long rolling baseline, so a camera that
-//! always shows a little "noise" does not raise alarms, and a sudden rise does. It runs on the computer (the Pi on the test printer
-//! has 1 GB and would take 15 s a frame), reads Moonraker read-only, and writes its verdict to a status file that Stella Scope
-//! shows and alerts on. It never pauses the printer itself. `stella-eye --model FILE --moonraker URL --snapshot URL --status FILE
-//! [--state FILE] [--interval 10]` `stella-eye --model FILE --image FILE` scores one picture and prints the detections.
+//! stella-eye: print failure detection for Stella Scope (2026-09-25: "the biggest thing is
+//! spaghetti detective or something like it").
+//!
+//! The model is Obico's open failure detector (a one-class YOLOv2, 416 x 416, exported to ONNX with
+//! the box decoding inside; weights from Obico's public model bucket), run by tract, a pure-Rust
+//! ONNX engine, so the same program builds for Linux, Windows and Mac with nothing to install. Its
+//! scores match ONNX Runtime's on the test pictures (0.666, 0.607, 0.295); ~0.9 s a frame on one core. The scoring below is Obico's
+//! own (obico-server backend/lib/prediction.py and failure_detection.py, 1st-gen hyperparameters,
+//! tuned for one frame every 10 s): each frame's score is the sum of detection confidences; an
+//! exponential mean (span 12) is compared with a long rolling baseline, so a camera that always
+//! shows a little "noise" does not raise alarms, and a sudden rise does.
+//!
+//! It runs on the computer (the Pi on Stella has 1 GB and would take 15 s a frame), reads Moonraker
+//! read-only, and writes its verdict to a status file that Stella Scope shows and alerts on. It
+//! never pauses the printer itself.
+//!
+//! `stella-eye --model FILE --moonraker URL --snapshot URL --status FILE [--state FILE] [--interval 10]`
+//! `stella-eye --model FILE --image FILE` scores one picture and prints the detections.
 use anyhow::{bail, Context, Result};
 use tract_onnx::prelude::*;
 type Session = SimplePlan<TypedFact, Box<dyn TypedOp>, Graph<TypedFact, Box<dyn TypedOp>>>;

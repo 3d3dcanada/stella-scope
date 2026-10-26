@@ -40,11 +40,12 @@
   <div class="row" style="margin-top:12px"><button class="primary" id="scan">Scan the code</button></div>
   <p class="note">Or paste the link id:</p>
   <div class="row"><input id="paste" placeholder="stella://link/…" autocomplete="off" spellcheck="false"></div>
-  <div class="row" style="margin-top:10px"><input id="name" placeholder="Name, for example Voron" autocomplete="off"><button id="add">Add</button></div>
+  <div class="row" style="margin-top:10px"><input id="name" placeholder="Name, for example Stella" autocomplete="off"><button id="add">Add</button></div>
   <p class="note err" id="msg"></p>
  </section>
  <p class="note">Scanning the pairing code connects and pairs this phone. If you add only a link id, Stella Scope asks for the six-digit code when you open it. Everything travels encrypted, straight to your computer when it can and through a relay when it cannot; the relay cannot read it.</p>
 </main>
+<script src="links.js"></script>
 <script>
 const T=window.__TAURI__,invoke=T&&T.core&&T.core.invoke,$=id=>document.getElementById(id);
 const load=()=>{try{return JSON.parse(localStorage.getItem('printers')||'[]');}catch{return [];}};
@@ -56,15 +57,22 @@ function paint(){const l=load(),host=$('list');host.replaceChildren();$('empty')
   const x=document.createElement('button');x.className='ghost';x.textContent='✕';x.title='Remove';x.onclick=()=>{const m=load();m.splice(i,1);save(m);paint();};
   r.append(n,go,x);host.append(r);});}
 async function open(p,btn){$('msg').textContent='';btn.classList.add('busy');btn.textContent='Connecting…';
- try{const port=await invoke('open_link',{id:p.id});location.href='http://127.0.0.1:'+port+'/';}
+ try{const port=await invoke('open_link',{id:p.id});localStorage.setItem('last',p.id);location.href='http://127.0.0.1:'+port+'/';}
  catch(e){$('msg').textContent='Could not reach '+p.name+': '+e+'. Is the computer on, with Stella Scope open?';btn.classList.remove('busy');btn.textContent='Open';}}
 function add(id,name){id=clean(id);if(!/^[0-9a-f]{64}$/i.test(id)){$('msg').textContent='That is not a Stella link code.';return null;}
- const old=load().find(p=>p.id===id),l=load().filter(p=>p.id!==id),p={id,name:(name||'').trim()||old?.name||'Printer '+(l.length+1)};l.push(p);save(l);$('paste').value='';$('name').value='';$('msg').textContent='';paint();return p;}
-// One scan sets a phone up: the desktop's pairing code reads stella://pair/<id>?code=123456. The app adds the
-// printer, dials it and pairs with the code, with nothing to type. stella://link/<id> only adds it. The same
-// links open the app from the phone's own camera.
-async function handle(text,name){const t=String(text||'').trim(),m=/^stella:\/\/pair\/([0-9a-f]{64})\?code=(\d{6})/i.exec(t);
- if(m){const p=add(m[1],name);if(!p)return;$('msg').textContent='Setting up '+p.name+'…';try{const port=await invoke('open_link',{id:p.id});location.href='http://127.0.0.1:'+port+'/pair#code='+m[2];}catch(e){$('msg').textContent='Could not reach the computer: '+e;}return;}
+ const old=load().find(p=>p.id===id),l=load().filter(p=>p.id!==id),p={id,name:(name||'').trim()||old?.name||(l.length?'Printer '+(l.length+1):'Stella')};l.push(p);save(l);$('paste').value='';$('name').value='';$('msg').textContent='';paint();return p;}
+// One scan sets a phone up (2026-09-25): the desktop's pairing code reads stella://pair/<id>?code=123456.
+// The app adds the printer, dials it and pairs with the code, with nothing to type. stella://link/<id>
+// only adds it. The same links open the app from the phone's own camera.
+async function handle(text,name){const t=String(text||'').trim(),k=StellaLinks.parse(t);
+ // An alert was tapped: open that printer, on the computer it names (or the only or last one).
+ if(k.kind==='printer'){const svc=StellaLinks.pick(load(),k.link,localStorage.getItem('last'));
+  if(!svc){$('msg').textContent=k.link?'That printer is on a computer this phone is not set up with yet.':'Open a printer from the list once, then an alert can find it.';return;}
+  $('msg').textContent='Opening '+k.printer+'…';
+  try{const port=await invoke('open_link',{id:svc.id});localStorage.setItem('last',svc.id);location.href='http://127.0.0.1:'+port+'/p/'+k.printer;}
+  catch(e){$('msg').textContent='Could not reach '+svc.name+': '+e+'. Is the computer on, with Stella Scope open?';}return;}
+ const m=/^stella:\/\/pair\/([0-9a-f]{64})\?code=(\d{6})/i.exec(t);
+ if(m){const p=add(m[1],name);if(!p)return;$('msg').textContent='Setting up '+p.name+'…';try{const port=await invoke('open_link',{id:p.id});localStorage.setItem('last',p.id);location.href='http://127.0.0.1:'+port+'/pair#code='+m[2];}catch(e){$('msg').textContent='Could not reach the computer: '+e;}return;}
  add(t,name);}
 $('add').onclick=()=>handle($('paste').value,$('name').value);
 $('scan').onclick=async()=>{$('msg').textContent='';try{

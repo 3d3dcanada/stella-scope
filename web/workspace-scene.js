@@ -1,4 +1,4 @@
-import {pose,PARTS,partById,severity,finite} from './workspace-core.js';
+import {pose,partById,severity,finite} from './workspace-core.js';
 const C={frame:'#3d444c',rail:'#ccd5d9',dark:'#2a3138',plate:'#cdd6da',printed:'#f4791f',selected:'#04D9C4',belt:'#d4b06a',motor:'#6b757d',gold:'#e6b05f',board:'#1c2026',steel:'#aab4b9'};
 const box=(id,pos,size,color=C.frame)=>({id,pos,size,color,kind:'box'});
 const cylinder=(id,pos,r,h,color=C.motor)=>({id,pos,r,h,color,kind:'cylinder'});
@@ -6,8 +6,8 @@ const cylinder=(id,pos,r,h,color=C.motor)=>({id,pos,r,h,color,kind:'cylinder'});
 const axle=(id,pos,r,len,color=C.steel)=>({id,pos,r,len,color,kind:'axle'});
 // Slot hint: a dark inset line running the long axis of an extrusion, seen on the inward face.
 const slot=(id,pos,size)=>({id,pos,size,color:'#1a1f24',kind:'box'});
-// Proportioned R2 kinematic envelopes, not dimensional CAD or independent corner telemetry. Palette
-// and part density raised 2026-09-17: still schematic, still no invented telemetry.
+// Proportioned R2 kinematic envelopes, not dimensional CAD or independent corner telemetry.
+// Palette and part density raised 2026-09-17 (WO-04): still schematic, still no invented telemetry.
 export function layout(snapshot){
  const p=pose(snapshot),[w,d]=p.bed,bz=74,gz=bz+p.z+58,top=bz+p.zmax+112,a=[];
  let dyn=false; // dyn parts depend on the reported pose (whole gantry rides Z); the rest caches in the renderer.
@@ -46,9 +46,9 @@ export function layout(snapshot){
  b('heater_bed',[w/2,d/2,bz-5],[w+8,d+8,9],C.dark);
  b('heater_bed',[w/2,d/2,bz],[w,d,2],C.plate);
  for(const x of [-8,w+8])for(const y of [-8,d+8])b('heater_bed',[x,y,bz+1],[10,10,1.5],C.gold);
- // Z drives — the real R2 arrangement: sideways motor → motor pulley → belt loop → jackshaft in
- // bearing blocks → reduction pulley → vertical Z belt → top idler. user-corrected 2026-09-16: front
- // shafts face front, rear face back.
+ // Z drives — the real R2 arrangement (owner's 154-slot inventory as the blueprint):
+ // sideways motor → motor pulley → belt loop → jackshaft in bearing blocks → reduction pulley →
+ // vertical Z belt → top idler. Owner-corrected 2026-09-16: front shafts face front, rear face back.
  const corners=[[-34,-27,'stepper_z'],[-34,d+27,'stepper_z1'],[w+34,d+27,'stepper_z2'],[w+34,-27,'stepper_z3']];
  for(const [x,y,id] of corners){
   b('frame',[x+(x<0?-12:12),y,top/2],[8,13,top-75],C.steel);   // vertical corner rail the drive mounts to
@@ -69,7 +69,7 @@ export function layout(snapshot){
   dyn=false;
  }
  dyn=true; // from here through the toolhead everything rides the gantry
- // Gantry: side extrusions with grooves, rear crossbar only, Y rails, carriages.
+ // Gantry: side extrusions with grooves, rear crossbar only (owner-corrected), Y rails, carriages.
  for(const x of [-24,w+24]){
   b('gantry',[x,d/2,gz],[20,d+75,20],C.frame);
   slotDyn('gantry',[x+(x<0?10:-10),d/2,gz],[3.5,1.6,d+60]);
@@ -95,7 +95,7 @@ export function layout(snapshot){
   motor(id,x,d+8,gz+29,1);                     // motor, shaft toward the back
   pulley(id,x,d+34,gz+29,9,10);                // A/B pulley riding both belt planes
  }
- // Toolhead: a generic envelope — blower with hub and blades, ducts, heatsink fins, heater block.
+ // Toolhead: Rapid Burner v8 envelope — blower with hub and blades, ducts, heatsink fins, heater block.
  b('head',[p.x,p.y-20,gz+19],[42,25,40],C.printed);
  b('head',[p.x,p.y-33,gz+6],[44,27,42],C.dark);
  ax('hotend_fan',[p.x,p.y-14,gz+7],11,8,C.dark);
@@ -163,7 +163,7 @@ export class PrinterScene{
  draw(){
  const rect=this.canvas.getBoundingClientRect();if(!rect.width||!rect.height)return;
  const w=rect.width,h=rect.height,dpr=Math.min(devicePixelRatio||1,2);this.canvas.width=Math.round(w*dpr);this.canvas.height=Math.round(h*dpr);const c=this.canvas.getContext('2d');c.scale(dpr,dpr);
- const model=layout(this.snapshot),{bed,zmax}=model.pose;this.projection={w,h,s:fitScale(w,h,bed,model.top,this.yaw,this.elevation)*this.zoom,cx:bed[0]/2,cy:bed[1]/2,cz:model.top/2};
+ const model=layout(this.snapshot),{bed}=model.pose;this.projection={w,h,s:fitScale(w,h,bed,model.top,this.yaw,this.elevation)*this.zoom,cx:bed[0]/2,cy:bed[1]/2,cz:model.top/2};
  c.fillStyle='#0b0e0f';c.fillRect(0,0,w,h);
  const worldLine=(points,color,width=1,dash=[])=>{c.strokeStyle=color;c.lineWidth=width;c.setLineDash(dash);c.beginPath();points.forEach((p,i)=>{const q=this.project(p);i?c.lineTo(q.x,q.y):c.moveTo(q.x,q.y);});c.stroke();c.setLineDash([]);};
  for(let x=-100;x<=bed[0]+100;x+=50)worldLine([[x,-100,-12],[x,bed[1]+100,-12]],'#1b2124');

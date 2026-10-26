@@ -1,6 +1,6 @@
-/* Stella Scope NEXT. One stylesheet: tokens, base, components, layouts. Rules that matter: colour
-   means something (section 4), every control is.nx-btn with all its states (6.1), glass only over
-   the scene, minimum text 11 px, minimum target 44 px (48 kiosk). */
+/* Stella Scope NEXT (docs/next-ui/BLUEPRINT.md). One stylesheet: tokens, base, components, layouts.
+   Rules that matter: colour means something (section 4), every control is .nx-btn with all its
+   states (6.1), glass only over the scene, minimum text 11 px, minimum target 44 px (48 kiosk). */
 
 @font-face{font-family:Geist;src:url(/fonts/geist.woff2) format("woff2");font-weight:100 900;font-display:swap}
 @font-face{font-family:"Geist Mono";src:url(/fonts/geist-mono.woff2) format("woff2");font-weight:100 900;font-display:swap}
@@ -11,10 +11,10 @@
  --glass-1:rgba(13,18,25,.64);--glass-2:rgba(17,22,30,.84);
  --glass-edge:rgba(255,255,255,.10);--glass-line:rgba(255,255,255,.08);
  /* lit glass: a bright top lip, a faint rim all round, a dark bottom lip and a cool sheen falling from the top */
- --glass-rim:var(--glass-rim),inset 0 0 0 1px rgba(255,255,255,.035),inset 0 -1px 0 rgba(0,0,0,.4),inset 0 22px 30px -22px rgba(140,225,255,.13);
+ --glass-rim:inset 0 1px 0 rgba(255,255,255,.12),inset 0 0 0 1px rgba(255,255,255,.035),inset 0 -1px 0 rgba(0,0,0,.4),inset 0 22px 30px -22px rgba(140,225,255,.13);
  --shadow-1:0 10px 30px rgba(0,0,0,.45);--shadow-2:0 24px 60px rgba(0,0,0,.55);
- --ink-1:#EEF2F6;--ink-2:#A7B0BA;--ink-3:#6E7883;
- --accent:#04D9C4;--accent-hi:#3FF3E0;--accent-lo:#02A596;--accent-ink:#031A17;
+ --ink-1:#EEF2F6;--ink-2:#A7B0BA;--ink-3:#8B95A1;/* polish WO-06 (2026-10-18): was #6E7883, which is 3.2 to 4.4 against the dark panels; this is 4.7 or better (WCAG AA is 4.5) */
+ --accent:#04D9C4;--accent-hi:#3FF3E0;--accent-lo:#02A596;--accent-ink:#031A17;--accent-2:#7FFFF0;--accent-rgb:4,217,196;--accent-hi-rgb:63,243,224;
  --heat:#FF6A00;--heat-warm:#FF9C55;--alarm:#FF2D92;--ok:#18E36B;--estop:#E5263A;
  --neutral-arc:rgba(255,255,255,.12);
  --sans:Geist,ui-sans-serif,system-ui,sans-serif;--mono:"Geist Mono",ui-monospace,monospace;
@@ -41,12 +41,13 @@ svg.nx-ico .f{fill:currentColor;stroke:none}
 [hidden]{display:none!important}
 :focus{outline:none}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+#nx-sheet:focus-visible,.nx-modal-card:focus-visible{outline:none}   /* a panel takes focus when it opens (polish WO-06); its first control shows the ring */
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:1ms!important;animation-iteration-count:1!important;transition-duration:1ms!important}}
 
 /* ---------- scene and backdrop (9) ---------- */
 #nx-backdrop{position:fixed;inset:0;z-index:0;pointer-events:none;
  background:
-  radial-gradient(60% 34% at 50% 86%,rgba(4,217,196,.07),transparent 70%),
+  radial-gradient(60% 34% at 50% 86%,rgba(var(--accent-rgb),.07),transparent 70%),
   radial-gradient(70% 60% at 50% 58%,#18202A 0%,#0F141B 46%,var(--bg-0) 100%)}
 #nx-backdrop::after{content:"";position:absolute;left:50%;top:72%;width:62vmin;height:12vmin;transform:translate(-50%,-50%);
  background:radial-gradient(closest-side,rgba(0,0,0,.55),transparent);filter:blur(6px)}
@@ -79,12 +80,12 @@ svg.nx-ico .f{fill:currentColor;stroke:none}
 .nx-btn:disabled,.nx-btn[aria-disabled=true]{cursor:not-allowed;color:var(--ink-3);opacity:.46;box-shadow:inset 0 1px 0 rgba(255,255,255,.04)}
 .nx-btn:disabled .nx-lbl,.nx-btn[aria-disabled=true] .nx-lbl{color:var(--ink-3)}
 /* primary: the one action this state is for */
-.nx-btn[data-kind=primary]{color:var(--accent-ink);border-color:rgba(63,243,224,.55);
+.nx-btn[data-kind=primary]{color:var(--accent-ink);border-color:rgba(var(--accent-hi-rgb),.55);
  background:linear-gradient(180deg,var(--accent-hi),var(--accent) 55%,var(--accent-lo));
- box-shadow:inset 0 1px 0 rgba(255,255,255,.5),0 0 0 1px rgba(4,217,196,.25),0 8px 26px rgba(4,217,196,.28)}
+ box-shadow:inset 0 1px 0 rgba(255,255,255,.5),0 0 0 1px rgba(var(--accent-rgb),.25),0 8px 26px rgba(var(--accent-rgb),.28)}
 .nx-btn[data-kind=primary] .nx-lbl{color:var(--accent-ink)}
-@media (hover:hover){.nx-btn[data-kind=primary]:not(:disabled):hover{background:linear-gradient(180deg,#7CF8EA,var(--accent-hi) 50%,var(--accent));
- box-shadow:inset 0 1px 0 rgba(255,255,255,.6),0 0 0 1px rgba(4,217,196,.35),0 10px 32px rgba(4,217,196,.38)}
+@media (hover:hover){.nx-btn[data-kind=primary]:not(:disabled):hover{background:linear-gradient(180deg,var(--accent-2),var(--accent-hi) 50%,var(--accent));
+ box-shadow:inset 0 1px 0 rgba(255,255,255,.6),0 0 0 1px rgba(var(--accent-rgb),.35),0 10px 32px rgba(var(--accent-rgb),.38)}
  .nx-btn[data-kind=primary]:not(:disabled):hover .nx-lbl{color:var(--accent-ink)}}
 .nx-btn[data-kind=primary]:disabled{opacity:.4;filter:saturate(.3)}
 /* danger: destructive, alarm hairline, never filled */
@@ -112,7 +113,7 @@ svg.nx-ico .f{fill:currentColor;stroke:none}
 .nx-btn[data-size=dock] .nx-lbl{font-size:11px;line-height:1.12;letter-spacing:.05em;max-width:calc(var(--slot) - 6px);text-align:center;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .nx-btn[data-size=row]{height:48px;justify-content:flex-start;padding:0 16px;gap:12px}
 .nx-btn[data-size=row] svg.nx-ico{width:20px;height:20px}
-.nx-btn[data-size=row] .nx-lbl{letter-spacing:.05em}
+.nx-btn[data-size=row] .nx-lbl{letter-spacing:.05em;text-wrap:balance}   /* F04: a label that needs two lines splits them evenly ("CHANGE MACHINE OR / ADD-ONS") */
 .nx-btn[data-size=icon]{width:44px;height:44px;padding:0;border-radius:14px}
 .nx-btn[data-size=icon] svg.nx-ico{width:22px;height:22px}
 .nx-btn[data-size=tile]{flex-direction:column;align-items:flex-start;justify-content:space-between;gap:10px;width:100%;min-height:92px;padding:14px 16px;border-radius:var(--r-l);text-align:left}
@@ -128,7 +129,7 @@ svg.nx-ico .f{fill:currentColor;stroke:none}
 .nx-state-since{font:500 var(--t-micro)/1 var(--mono);color:var(--ink-3)}
 .nx-state[data-state=ready] .nx-state-dot{background:var(--ok);box-shadow:0 0 0 3px rgba(24,227,107,.15),0 0 12px rgba(24,227,107,.6)}
 .nx-state[data-state=not_ready] .nx-state-dot{background:var(--alarm);box-shadow:0 0 0 3px rgba(255,45,146,.18),0 0 12px rgba(255,45,146,.6)}
-.nx-state[data-state=replay] .nx-state-dot,.nx-state[data-state=rewound] .nx-state-dot{background:var(--accent);box-shadow:0 0 0 3px rgba(4,217,196,.15)}
+.nx-state[data-state=replay] .nx-state-dot,.nx-state[data-state=rewound] .nx-state-dot{background:var(--accent);box-shadow:0 0 0 3px rgba(var(--accent-rgb),.15)}
 .nx-state[data-state=service] .nx-state-dot{background:none;border:2px solid var(--ink-3)}
 .nx-state[data-state=not_ready]{border-color:rgba(255,45,146,.35)}
 
@@ -155,7 +156,8 @@ svg.nx-ico .f{fill:currentColor;stroke:none}
 .nx-top-right{margin-left:auto;display:flex;align-items:center;gap:12px}
 .nx-job{position:absolute;left:50%;top:calc(var(--top) / 2);transform:translate(-50%,-50%);display:flex;align-items:center;gap:14px;
  height:52px;padding:0 18px 0 6px;border-radius:999px;max-width:min(560px,40vw)}
-.nx-idle{display:flex;align-items:center;gap:4px;height:44px;padding:0 8px;border-radius:999px;margin:0 auto;min-width:0;overflow:hidden}
+/* F04 (2026-10-19): the strip shows whole items or none: what does not fit wraps to a second row, which is out of sight (the last item was cut in half beside a long state, "none recorde") */
+.nx-idle{display:flex;flex-wrap:wrap;align-content:flex-start;row-gap:20px;align-items:center;gap:4px;row-gap:20px;height:44px;padding:7px 8px 0;border-radius:999px;margin:0 auto;min-width:0;overflow:hidden}
 .nx-idle-item{display:inline-flex;align-items:center;gap:7px;padding:0 12px;height:30px;white-space:nowrap;font:500 12.5px/1 var(--mono);color:var(--ink-2)}
 .nx-idle-item+.nx-idle-item{border-left:1px solid var(--glass-line)}
 .nx-idle-item svg.nx-ico{width:15px;height:15px;color:var(--ink-3)}
@@ -163,12 +165,25 @@ svg.nx-ico .f{fill:currentColor;stroke:none}
 .nx-idle-item[data-k=noz] svg.nx-ico,.nx-idle-item[data-k=bed] svg.nx-ico{color:var(--heat-warm)}
 @media (max-width:1440px){.nx-idle-item[data-k=sheet]{display:none}}
 @media (max-width:1180px){.nx-idle-item[data-k=since]{display:none}}
-.nx-id{flex-shrink:0}
+.nx-id{flex-shrink:1;min-width:0;max-width:min(36vw,420px)}
+/* A farm names its printers (up to 60 characters): the name gives way before the state chip and the
+   STOP do, with an ellipsis, and the full name stays in the tooltip. */
+.nx-id-text{min-width:0}
+/* F04 (2026-10-19): a long printer name takes two lines, set a little closer, before anything is cut ("ADVENTURER 5M (FLASHFOR…" at 1024 px) */
+.nx-id-text b{white-space:normal;overflow-wrap:anywhere;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;line-height:1.1;max-width:100%}
+.nx-id-text b[data-long]{letter-spacing:.14em;font-size:15px}
+.nx-id-text small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+body[data-layout=phone] .nx-id{max-width:none;flex:1 1 auto}
+body[data-layout=phone] .nx-id-text b{letter-spacing:.18em;font-size:15px}
+/* F04 (2026-10-19): on a phone a long printer name takes two lines instead of being cut ("VORON 2.4 (KLIP…") */
+body[data-layout=phone] .nx-id-text b{white-space:normal;overflow-wrap:anywhere;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-height:1.1;font-size:13px;letter-spacing:.12em}
 body[data-layout=phone] .nx-idle,body[data-layout=phone-land] .nx-idle,body[data-layout=kiosk] .nx-idle{display:none}
 .nx-job-thumb{width:40px;height:40px;border-radius:50%;object-fit:cover;background:var(--bg-2)}
 .nx-job-text{display:flex;flex-direction:column;gap:4px;min-width:0}
 .nx-job-title{font:600 14px/1.1 var(--sans);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.nx-job-meta{font:500 var(--t-micro)/1 var(--mono);color:var(--ink-2)}
+/* F04 (2026-10-19): one line always; on a phone the pill keeps what matters (the time left, the percentage and the ring say the rest) instead of wrapping "left" under the time */
+.nx-job-meta{font:500 var(--t-micro)/1.25 var(--mono);color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+body[data-layout=phone] .nx-job-in,body[data-layout=phone-land] .nx-job-in{display:none}
 .nx-job-ring{width:40px;height:40px;flex:none}
 .nx-job-ring circle{fill:none;stroke-width:4}
 .nx-job-ring .track{stroke:var(--neutral-arc)}
@@ -176,10 +191,10 @@ body[data-layout=phone] .nx-idle,body[data-layout=phone-land] .nx-idle,body[data
 .nx-job-pct{font:600 12px/1 var(--mono);color:var(--ink-1);min-width:36px;text-align:right}
 
 /* ---------- rail (pages) ---------- */
-#nx-rail{position:absolute;left:calc(16px + var(--safe-l));top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:6px;padding:8px;border-radius:var(--r-l)}
+#nx-rail{position:absolute;left:calc(16px + var(--safe-l));top:calc(var(--top) + 8px);bottom:calc(var(--top) + 8px);height:fit-content;margin-block:auto;max-height:calc(100% - 2 * (var(--top) + 8px));overflow-y:auto;scrollbar-width:none;display:flex;flex-direction:column;gap:6px;padding:8px;border-radius:var(--r-l)}
 #nx-rail .nx-btn[data-size=icon]{width:48px;height:48px;background:none;border-color:transparent;box-shadow:none;color:var(--ink-2)}
 @media (hover:hover){#nx-rail .nx-btn[data-size=icon]:hover{background:rgba(255,255,255,.07);color:var(--ink-1)}}
-#nx-rail .nx-btn[aria-current=page]{color:var(--accent);background:rgba(4,217,196,.10);box-shadow:inset 0 0 0 1px rgba(4,217,196,.28)}
+#nx-rail .nx-btn[aria-current=page]{color:var(--accent);background:rgba(var(--accent-rgb),.10);box-shadow:inset 0 0 0 1px rgba(var(--accent-rgb),.28)}
 #nx-rail hr{width:28px;border:0;border-top:1px solid var(--glass-line);margin:4px auto}
 
 /* ---------- clusters and dials (6.2) ---------- */
@@ -250,6 +265,11 @@ body{--dockzone:calc(var(--slot) + var(--edge) + 16px + 52px + 12px)}
 body[data-layout=phone] .nx-pos-x,body[data-layout=phone-land] .nx-pos-x,body[data-layout=kiosk] .nx-pos-x{display:none}
 @media (max-width:1100px){.nx-pos-x[data-k=vmax],.nx-pos-x[data-k=acc]{display:none}}
 .nx-pos-speed small{font:500 var(--t-micro)/1 var(--mono);color:var(--ink-3)}
+/* Polish WO-03: where a position comes from when it is not the printer's own reading. */
+.nx-pos-src{display:flex;flex-direction:column;align-items:flex-start;gap:4px}
+.nx-pos-src small{font:650 9.5px/1 var(--sans);letter-spacing:.14em;color:var(--ink-3);white-space:nowrap}
+.nx-pos-src span{font:600 13px/1 var(--sans);color:var(--heat-warm);white-space:nowrap}
+body[data-layout=phone] .nx-pos-src small{display:none}
 
 /* ---------- 6.3 dock ---------- */
 .nx-dock{position:absolute;left:50%;bottom:calc(var(--edge) + var(--safe-b));transform:translateX(-50%);display:flex;align-items:center;gap:8px;padding:8px;border-radius:calc(var(--r-l) + 8px);
@@ -257,7 +277,7 @@ body[data-layout=phone] .nx-pos-x,body[data-layout=phone-land] .nx-pos-x,body[da
 .nx-dock:not(.nx-glass){padding:0;gap:10px}
 .nx-dock-pod{display:flex;align-items:center;gap:6px;padding:6px;border-radius:calc(var(--r-l) + 6px)}
 /* the pod holding the main action for this state carries a soft accent under-glow */
-.nx-dock-pod[data-primary]{box-shadow:var(--glass-rim),0 0 0 1px rgba(63,243,224,.28),0 10px 30px rgba(0,0,0,.45),0 0 34px rgba(4,217,196,.22)}
+.nx-dock-pod[data-primary]{box-shadow:var(--glass-rim),0 0 0 1px rgba(var(--accent-hi-rgb),.28),0 10px 30px rgba(0,0,0,.45),0 0 34px rgba(var(--accent-rgb),.22)}
 .nx-dock-msg{display:flex;align-items:center;gap:12px;height:var(--slot);padding:0 22px;font:600 var(--t-label)/1.3 var(--sans);letter-spacing:.08em;color:var(--ink-2);text-transform:uppercase}
 .nx-dock-msg svg.nx-ico{color:var(--ink-3)}
 .nx-dock .nx-btn{animation:nx-slot-in var(--t-sheet) var(--ease) both}
@@ -277,14 +297,17 @@ body[data-layout=phone] .nx-pos-x,body[data-layout=phone-land] .nx-pos-x,body[da
 .nx-section>h3{margin:0;font:600 var(--t-label)/1 var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)}
 .nx-grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .nx-grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+/* F04 (2026-10-19): three row buttons side by side are 110 px each on a phone and their labels ("MEASURE", "COMPARE") ran out of them: two to a row, and a long label may wrap */
+@media (max-width:600px){.nx-grid3:has(>.nx-btn[data-size=row]){grid-template-columns:repeat(2,minmax(0,1fr))}.nx-grid3>.nx-btn[data-size=row] .nx-lbl,.nx-grid2>.nx-btn[data-size=row] .nx-lbl{white-space:normal;overflow-wrap:anywhere;line-height:1.15}.nx-grid3>.nx-btn[data-size=row],.nx-grid2>.nx-btn[data-size=row]{height:auto;min-height:48px;padding-top:6px;padding-bottom:6px}}
 .nx-note{font:500 13px/1.45 var(--sans);color:var(--ink-2);margin:0}
 .nx-row{display:flex;align-items:center;gap:10px}
 .nx-stepper{display:flex;align-items:center;gap:8px;padding:6px;border-radius:var(--r-l);background:rgba(255,255,255,.04);border:1px solid var(--glass-line)}
 .nx-stepper-value{flex:1;text-align:center;font:600 28px/1 var(--mono);font-variant-numeric:tabular-nums}
 .nx-stepper-value small{font-size:14px;color:var(--ink-2);margin-left:2px}
-.nx-seg{display:flex;padding:4px;border-radius:14px;background:rgba(0,0,0,.25);border:1px solid var(--glass-line)}
-.nx-seg button{flex:1;min-height:40px;border:0;border-radius:10px;background:none;color:var(--ink-2);font:600 14px/1 var(--mono);cursor:pointer;transition:background var(--t-hover),color var(--t-hover)}
-.nx-seg button[aria-pressed=true]{background:rgba(4,217,196,.14);color:var(--accent);box-shadow:inset 0 0 0 1px rgba(4,217,196,.35)}
+/* F04 (2026-10-19): a segmented control wraps to a second row before it cuts a label ("Alerts" was "Ale" at 390 px on the Phone sheet) */
+.nx-seg{display:flex;flex-wrap:wrap;padding:4px;border-radius:14px;background:rgba(0,0,0,.25);border:1px solid var(--glass-line)}
+.nx-seg button{flex:1;min-width:max-content;padding:0 10px;min-height:40px;border:0;border-radius:10px;background:none;color:var(--ink-2);font:600 14px/1 var(--mono);cursor:pointer;transition:background var(--t-hover),color var(--t-hover)}
+.nx-seg button[aria-pressed=true]{background:rgba(var(--accent-rgb),.14);color:var(--accent);box-shadow:inset 0 0 0 1px rgba(var(--accent-rgb),.35)}
 .nx-list{display:flex;flex-direction:column;gap:6px}
 .nx-item{display:flex;align-items:center;gap:12px;min-height:60px;padding:8px 10px;border-radius:var(--r-m);background:rgba(255,255,255,.03);border:1px solid transparent;cursor:pointer;color:var(--ink-1);text-align:left;width:100%}
 @media (hover:hover){.nx-item:hover{background:rgba(255,255,255,.07);border-color:var(--glass-line)}}
@@ -308,7 +331,7 @@ body[data-layout=phone] .nx-pos-x,body[data-layout=phone-land] .nx-pos-x,body[da
 .nx-pad .up{left:88px;top:6px}.nx-pad .down{left:88px;bottom:6px}.nx-pad .left{left:6px;top:88px}.nx-pad .right{right:6px;top:88px}
 .nx-pad .up span{bottom:8px}.nx-pad .down span{top:8px}.nx-pad .left span{right:8px}.nx-pad .right span{left:8px}
 @media (hover:hover){.nx-pad button:not(:disabled):hover{background:rgba(255,255,255,.08)}}
-.nx-pad button[data-pressed]{background:rgba(4,217,196,.16);transform:scale(.95)}
+.nx-pad button[data-pressed]{background:rgba(var(--accent-rgb),.16);transform:scale(.95)}
 .nx-pad button:disabled{color:var(--ink-3);cursor:not-allowed}
 .nx-pad-center{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:92px;height:92px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
  background:rgba(255,255,255,.04);box-shadow:inset 0 0 0 1px var(--glass-line);font:600 13px/1.2 var(--mono);color:var(--ink-1)}
@@ -321,9 +344,9 @@ body[data-layout=phone] .nx-pos-x,body[data-layout=phone-land] .nx-pos-x,body[da
 @keyframes nx-fade{from{opacity:0}}
 .nx-radial-hub{position:absolute;width:0;height:0}
 .nx-radial-hub .nx-btn{position:absolute;width:84px;height:84px;margin:-42px 0 0 -42px;flex-direction:column;gap:6px;border-radius:50%;padding:0;
- background:radial-gradient(circle at 50% 30%,rgba(255,255,255,.14),rgba(255,255,255,.03) 60%),var(--glass-2);box-shadow:var(--glass-rim),0 0 0 1px rgba(255,255,255,.1),0 10px 26px rgba(0,0,0,.55),0 0 22px rgba(4,217,196,.15);
+ background:radial-gradient(circle at 50% 30%,rgba(255,255,255,.14),rgba(255,255,255,.03) 60%),var(--glass-2);box-shadow:var(--glass-rim),0 0 0 1px rgba(255,255,255,.1),0 10px 26px rgba(0,0,0,.55),0 0 22px rgba(var(--accent-rgb),.15);
  animation:nx-radial-in 260ms var(--ease) both;animation-delay:calc(var(--i) * 30ms)}
-.nx-radial-hub .nx-btn .nx-lbl{position:absolute;top:calc(100% + 7px);white-space:nowrap;max-width:none;overflow:visible;font-size:11px;color:var(--ink-1)!important;text-shadow:0 1px 4px #000,0 0 10px rgba(0,0,0,.8)}
+.nx-radial-hub .nx-btn .nx-lbl{position:absolute;top:calc(100% + 7px);width:92px;text-align:center;line-height:1.15;white-space:normal;max-width:none;overflow:visible;font-size:11px;color:var(--ink-1)!important;text-shadow:0 1px 4px #000,0 0 10px rgba(0,0,0,.8)}
 .nx-radial-hub .nx-btn[data-hot]{background:linear-gradient(180deg,var(--accent-hi),var(--accent));color:var(--accent-ink);transform:scale(1.08)}
 .nx-radial-close{position:absolute;width:52px;height:52px;margin:-26px 0 0 -26px;border-radius:50%}
 @keyframes nx-radial-in{from{opacity:0;transform:translate(calc(var(--x) * -1),calc(var(--y) * -1)) scale(.6)}}
@@ -451,7 +474,7 @@ body[data-sheet]:is([data-layout=desktop],[data-layout=tablet]) #nx-right{opacit
 @keyframes nx-alarm{50%{opacity:.35}}
 .nx-state-label{white-space:nowrap}
 
-/* ================= instruments, menus, command bar ================= */
+/* ================= NEXT review 2026-09-24: instruments, menus, command bar ================= */
 body{--card-w:300px;--graph-h:74px}
 /* ---- round instrument gauge (speed, flow) ---- */
 .nx-gauge{position:relative;width:var(--dial);height:var(--dial);flex:none;border-radius:50%;cursor:pointer;touch-action:manipulation;
@@ -463,21 +486,21 @@ body{--card-w:300px;--graph-h:74px}
 .g-face{fill:url(#nx-gface);stroke:rgba(0,0,0,.7);stroke-width:1.2}
 .g-track{fill:none;stroke:rgba(255,255,255,.07);stroke-width:7}
 .g-red{fill:none;stroke:var(--alarm);stroke-width:7;opacity:.5}
-.g-fill{fill:none;stroke:var(--accent);stroke-width:7;filter:drop-shadow(0 0 6px rgba(4,217,196,.55));transition:stroke var(--t-sweep)}
+.g-fill{fill:none;stroke:var(--accent);stroke-width:7;filter:drop-shadow(0 0 6px rgba(var(--accent-rgb),.55));transition:stroke var(--t-sweep)}
 .nx-gauge[data-tone=high] .g-fill{stroke:var(--heat);filter:drop-shadow(0 0 6px rgba(255,106,0,.55))}
 .nx-gauge[data-tone=over] .g-fill{stroke:var(--alarm);filter:drop-shadow(0 0 8px rgba(255,45,146,.7))}
 .g-scale line{stroke:rgba(255,255,255,.26);stroke-width:1.1;stroke-linecap:round}
 .g-scale line.maj{stroke:#dde4ea;stroke-width:2.2}
 .g-nums text{font:600 11px var(--mono);fill:#98a3ae;text-anchor:middle}
 .g-needle{transform-box:view-box;transform-origin:110px 110px;transition:transform 750ms cubic-bezier(.25,.9,.3,1.12)}
-.g-needle path{fill:#F4F7FA;filter:drop-shadow(0 0 3px rgba(4,217,196,.75))}
+.g-needle path{fill:#F4F7FA;filter:drop-shadow(0 0 3px rgba(var(--accent-rgb),.75))}
 .nx-gauge[data-tone=high] .g-needle path{filter:drop-shadow(0 0 3px rgba(255,106,0,.85))}
 .nx-gauge[data-tone=over] .g-needle path{fill:#FFD2E6;filter:drop-shadow(0 0 4px rgba(255,45,146,.95))}
 .g-hub{fill:url(#nx-ghub);stroke:rgba(255,255,255,.22);stroke-width:.8}
 .g-hub-dot{fill:#0a0d11}
 .g-sheen{fill:url(#nx-gsheen);pointer-events:none}
 .nx-gauge-read{position:absolute;left:0;right:0;top:66%;display:flex;flex-direction:column;align-items:center;gap:4px;pointer-events:none}
-.nx-gauge-value{font:600 calc(var(--dial) * .13)/1 var(--mono);font-variant-numeric:tabular-nums;letter-spacing:-.03em;color:var(--ink-1);text-shadow:0 0 18px rgba(4,217,196,.18)}
+.nx-gauge-value{font:600 calc(var(--dial) * .13)/1 var(--mono);font-variant-numeric:tabular-nums;letter-spacing:-.03em;color:var(--ink-1);text-shadow:0 0 18px rgba(var(--accent-rgb),.18)}
 .nx-gauge-value small{font-size:.4em;color:var(--ink-2);margin-left:2px}
 .nx-gauge-label{display:flex;align-items:center;gap:5px;font:650 10.5px/1 var(--sans);letter-spacing:.18em;color:var(--ink-2)}
 .nx-gauge-label svg.nx-ico{width:13px;height:13px;stroke-width:2}
@@ -538,7 +561,7 @@ body[data-stale] .g-fill,body[data-stale] .nx-thermo-chart .line{opacity:.45}
 .nx-cmd-box{display:flex;align-items:center;gap:10px;height:44px;padding:0 10px 0 14px;border-radius:14px;cursor:text;
  background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.015)),var(--glass-1);-webkit-backdrop-filter:var(--blur-1);backdrop-filter:var(--blur-1);
  border:1px solid var(--glass-line);box-shadow:var(--glass-rim);transition:border-color var(--t-hover),box-shadow var(--t-hover)}
-.nx-cmd-box:focus-within{border-color:rgba(4,217,196,.5);box-shadow:var(--glass-rim),0 0 0 3px rgba(4,217,196,.14)}
+.nx-cmd-box:focus-within{border-color:rgba(var(--accent-rgb),.5);box-shadow:var(--glass-rim),0 0 0 3px rgba(var(--accent-rgb),.14);outline:2px solid var(--accent);outline-offset:2px}   /* polish WO-06: --glass-rim refers to itself, so the whole box-shadow is dropped; the ring is an outline */
 .nx-cmd-box svg.nx-ico{width:18px;height:18px;color:var(--ink-3)}
 .nx-cmd-box:focus-within svg.nx-ico{color:var(--accent)}
 .nx-cmd-input{flex:1;min-width:0;height:100%;background:none;border:0;outline:none;color:var(--ink-1);font:500 14px var(--mono)}
@@ -548,7 +571,7 @@ body[data-stale] .g-fill,body[data-stale] .nx-thermo-chart .line{opacity:.45}
 .nx-cmd-list{position:absolute;z-index:9;top:calc(100% + 8px);left:0;width:max(100%,480px);padding:6px;border-radius:16px;display:flex;flex-direction:column;gap:2px}
 .nx-cmd-item{display:grid;grid-template-columns:20px auto 1fr;align-items:center;gap:12px;min-height:44px;padding:6px 12px;border-radius:10px;cursor:pointer}
 .nx-cmd-item svg.nx-ico{width:18px;height:18px;color:var(--ink-3)}
-.nx-cmd-item[aria-selected=true]{background:rgba(4,217,196,.12)}
+.nx-cmd-item[aria-selected=true]{background:rgba(var(--accent-rgb),.12)}
 .nx-cmd-item[aria-selected=true] svg.nx-ico{color:var(--accent)}
 .nx-cmd-name{font:600 13px/1.2 var(--mono);color:var(--ink-1);white-space:nowrap}
 .nx-cmd-help{font:500 12px/1.3 var(--sans);color:var(--ink-3);text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -581,7 +604,7 @@ body:is([data-layout=kiosk],[data-layout=tablet-port]) .nx-cmd-list{width:min(42
 body[data-layout=kiosk] .nx-job{max-width:none}
 body[data-layout=kiosk] .nx-job-meta{white-space:nowrap}
 
-/* ================= instrument controls: A knob / B bar ================= */
+/* ================= instrument controls: A knob / B bar (NEXT review 2026-09-24) ================= */
 body{--bar-w:72px;--bar-h:min(250px,calc((100vh - var(--top) - var(--dockzone) - 200px) / 2))}
 /* ---- A. knob ---- */
 .nxk{--col:var(--accent);--deg:0deg;--ldeg:0deg;--act:0;position:relative;width:var(--dial);height:var(--dial);flex:none;border-radius:50%;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}
@@ -623,10 +646,10 @@ body{--bar-w:72px;--bar-h:min(250px,calc((100vh - var(--top) - var(--dockzone) -
 .nxk-mark[data-set]::before{background:var(--col)}
 .nxk-mark[data-on]::before{background:#fff;box-shadow:0 0 10px var(--col),0 0 4px #fff}
 /* ---- B. bar ---- */
-/* Bars: the compact style. Slim upright bars standing side by side, one row a side: nozzle and
-   bed on the left; speed, flow and the three fans on the right. Slide up and down; the fill is
-   what is set, the white line the reading, the thin line on the left edge the actual speed or
-   flow. */
+/* Bars (2026-09-25): the compact style. Slim upright bars standing side by side, one row a
+   side: nozzle and bed on the left; speed, flow and the three fans on the right. Slide up and
+   down; the fill is what is set, the white line the reading, the thin line on the left edge the
+   actual speed or flow. */
 .nxb{--col:var(--accent);--f:0;--lf:0;--cf:0;--act:0;position:relative;width:var(--bar-w);height:var(--bar-h);flex:none;border-radius:calc(var(--bar-w) * .32);overflow:hidden;cursor:ns-resize;touch-action:none;user-select:none;-webkit-user-select:none;
  background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.025)),rgba(18,23,30,.72);-webkit-backdrop-filter:var(--blur-1);backdrop-filter:var(--blur-1);
  border:1px solid rgba(255,255,255,.08);box-shadow:var(--glass-rim),0 14px 30px rgba(0,0,0,.5),0 0 calc(34px * var(--act)) color-mix(in srgb,var(--col) calc(var(--act) * 45%),transparent);transition:box-shadow .8s}
@@ -655,7 +678,7 @@ body[data-layout=tablet-port]{--bar-w:60px;--bar-h:180px}
 body[data-stale] .nxk-big,body[data-stale] .nxb-big{color:var(--ink-3)}
 body[data-stale] .nxk-ring,body[data-stale] .nxb-fill{opacity:.45}
 
-/* ---------- Round three: flip arrow, reticle, wide sheets, part panels,
+/* ---------- NEXT review 2026-09-24, round three: flip arrow, reticle, wide sheets, part panels,
    mesh viewer, file details, rail pages ---------- */
 /* In the cluster's own column (first), so it is counted when the cluster is placed and never
    rides up into the header. */
@@ -663,16 +686,16 @@ body[data-stale] .nxk-ring,body[data-stale] .nxb-fill{opacity:.45}
  border:1px solid var(--glass-line);background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.02)),var(--glass-1);box-shadow:var(--glass-rim),var(--shadow-1);
  -webkit-backdrop-filter:var(--blur-1);backdrop-filter:var(--blur-1);transition:color var(--t-hover),box-shadow var(--t-hover)}
 .nx-flip .nx-ico{width:18px;height:18px}
-@media (hover:hover){.nx-flip:hover{color:var(--accent);box-shadow:var(--glass-rim),0 0 0 1px rgba(4,217,196,.35),0 0 16px rgba(4,217,196,.25)}}
+@media (hover:hover){.nx-flip:hover{color:var(--accent);box-shadow:var(--glass-rim),0 0 0 1px rgba(var(--accent-rgb),.35),0 0 16px rgba(var(--accent-rgb),.25)}}
 body[data-layout=phone] .nx-flip,body[data-layout=phone-land] .nx-flip{display:none}
 
-.nx-dock .nx-btn[data-showing],#nx-rail .nx-btn[data-showing]{color:var(--accent);background:rgba(4,217,196,.12);box-shadow:inset 0 0 0 1px rgba(4,217,196,.45),0 0 18px rgba(4,217,196,.18)}
+.nx-dock .nx-btn[data-showing],#nx-rail .nx-btn[data-showing]{color:var(--accent);background:rgba(var(--accent-rgb),.12);box-shadow:inset 0 0 0 1px rgba(var(--accent-rgb),.45),0 0 18px rgba(var(--accent-rgb),.18)}
 .nx-dock .nx-btn[data-showing] .nx-lbl{color:var(--accent)}
 .nx-dock .nx-btn[data-showing] .nx-caret{transform:rotate(180deg)}
 #nx-rail .nx-btn[data-classic]{opacity:.62}
 .nx-reticle{position:fixed;left:0;top:0;z-index:2;pointer-events:none;display:flex;flex-direction:column;gap:3px;padding:0 0 0 22px;margin-top:-10px;will-change:transform}
-.nx-reticle::before{content:"";position:absolute;left:0;top:9px;width:16px;height:1px;background:linear-gradient(90deg,transparent,rgba(4,217,196,.9))}
-.nx-reticle b{font:600 13px/1 var(--mono);color:var(--ink-1);padding:4px 7px;border-radius:7px;background:rgba(7,9,12,.66);border:1px solid rgba(4,217,196,.35);text-shadow:0 1px 4px #000;white-space:nowrap}
+.nx-reticle::before{content:"";position:absolute;left:0;top:9px;width:16px;height:1px;background:linear-gradient(90deg,transparent,rgba(var(--accent-rgb),.9))}
+.nx-reticle b{font:600 13px/1 var(--mono);color:var(--ink-1);padding:4px 7px;border-radius:7px;background:rgba(7,9,12,.66);border:1px solid rgba(var(--accent-rgb),.35);text-shadow:0 1px 4px #000;white-space:nowrap}
 .nx-reticle span:empty{display:none}
 .nx-reticle span{font:600 11px/1 var(--mono);color:#FFD60A;padding:3px 7px;border-radius:7px;background:rgba(7,9,12,.66);border:1px solid rgba(255,214,10,.35);white-space:nowrap}
 body[data-sheet] .nx-reticle{opacity:.5}
@@ -685,6 +708,7 @@ body[data-sheet=wide]:is([data-layout=desktop],[data-layout=tablet]) #nx-left{op
 .nx-grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
 @media (max-width:640px){.nx-grid4{grid-template-columns:1fr 1fr}}
 .nx-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+@media (max-width:600px){.nx-stats>.nx-stat--wide{grid-column:1/-1}}
 .nx-stat{position:relative;padding:12px 14px 12px;border-radius:var(--r-m);background:radial-gradient(120% 90% at 50% 0%,rgba(255,255,255,.06),rgba(255,255,255,.015));border:1px solid var(--glass-line);
  box-shadow:inset 0 1px 0 rgba(255,255,255,.07),inset 0 -12px 24px rgba(0,0,0,.25);display:flex;flex-direction:column;gap:6px;min-width:0}
 .nx-stat-l{font:650 10px/1 var(--sans);letter-spacing:.16em;color:var(--ink-3)}
@@ -723,7 +747,7 @@ body[data-sheet=wide]:is([data-layout=desktop],[data-layout=tablet]) #nx-left{op
 .nx-mesh-legend span:nth-child(3){grid-column:2;grid-row:2;text-align:center;color:var(--ok)}
 .nx-chips{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;scrollbar-width:thin}
 .nx-chip{flex:none;height:34px;padding:0 12px;border-radius:17px;border:1px solid var(--glass-line);background:rgba(255,255,255,.04);color:var(--ink-2);font:600 11.5px/1 var(--mono);cursor:pointer;white-space:nowrap}
-.nx-chip[aria-pressed=true]{color:var(--accent-ink);background:linear-gradient(180deg,var(--accent-hi),var(--accent));border-color:transparent;box-shadow:0 0 14px rgba(4,217,196,.35)}
+.nx-chip[aria-pressed=true]{color:var(--accent-ink);background:linear-gradient(180deg,var(--accent-hi),var(--accent));border-color:transparent;box-shadow:0 0 14px rgba(var(--accent-rgb),.35)}
 /* QGL runs */
 .nx-qgl{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
 .nx-qgl-run{padding:14px;border-radius:var(--r-l);border:1px solid var(--glass-line);background:radial-gradient(120% 80% at 50% 0%,rgba(255,255,255,.05),rgba(255,255,255,.01));display:flex;flex-direction:column;gap:12px}
@@ -753,7 +777,7 @@ body[data-sheet=wide]:is([data-layout=desktop],[data-layout=tablet]) #nx-left{op
 .nx-list .nx-item[role=button]:focus-visible{outline:2px solid var(--accent)}
 /* signals, timeline, parts pages */
 .nx-sig-list{display:flex;flex-direction:column}
-.nx-sig-obj{position:sticky;top:0;z-index:1;margin-top:10px;padding:8px 0;font:650 11px/1 var(--sans);letter-spacing:.14em;color:var(--accent);text-transform:uppercase;background:linear-gradient(180deg,var(--bg-1,#0d1116) 70%,transparent)}
+.nx-sig-obj{position:sticky;top:0;z-index:1;margin-top:10px;padding:8px 0;font:650 11px/1 var(--sans);letter-spacing:.14em;color:var(--accent);text-transform:uppercase;background:rgba(17,22,29,.97);border-radius:6px}   /* F04 (2026-10-19): the heading that sticks over the list is solid: the rows going under it showed through its fade, half a line of text over the heading */
 .nx-tl{display:flex;flex-direction:column}
 .nx-tl-day{margin:14px 0 6px;font:650 11px/1 var(--sans);letter-spacing:.14em;color:var(--ink-3)}
 .nx-tl-row{display:grid;grid-template-columns:78px 96px 1fr;gap:10px;padding:8px 0;border-bottom:1px solid var(--glass-line);font:500 12.5px/1.4 var(--mono);align-items:start}
@@ -766,7 +790,7 @@ body[data-sheet=wide]:is([data-layout=desktop],[data-layout=tablet]) #nx-left{op
 .nx-parts-h{margin:8px 0 0;font:650 11px/1 var(--sans);letter-spacing:.14em;color:var(--ink-3);text-transform:uppercase}
 .nx-parts-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px}
 .nx-part{display:flex;align-items:center;gap:12px;min-height:58px;padding:10px 12px;border-radius:var(--r-m);border:1px solid var(--glass-line);background:rgba(255,255,255,.03);color:var(--ink-2);cursor:pointer;text-align:left}
-.nx-part[data-wired]{color:var(--accent);background:radial-gradient(120% 100% at 0% 0%,rgba(4,217,196,.10),rgba(255,255,255,.02))}
+.nx-part[data-wired]{color:var(--accent);background:radial-gradient(120% 100% at 0% 0%,rgba(var(--accent-rgb),.10),rgba(255,255,255,.02))}
 @media (hover:hover){.nx-part:hover{background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.14)}}
 .nx-part-t{display:flex;flex-direction:column;gap:4px;min-width:0}
 .nx-part-t b{font:600 13.5px/1.2 var(--sans);color:var(--ink-1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -805,7 +829,7 @@ body[data-kiosk] .nx-dock .nx-btn .nx-lbl{font-size:12.5px}
 /* mesh: live badge, compare chip, build sheets */
 .nx-mesh-live{font:650 10.5px/1 var(--sans);letter-spacing:.14em;color:#FFD60A;padding:6px 10px;border-radius:12px;border:1px solid rgba(255,214,10,.4);background:rgba(255,214,10,.08);animation:nx-glowpulse 1.6s var(--ease) infinite}
 @keyframes nx-glowpulse{50%{box-shadow:0 0 14px rgba(255,214,10,.45)}}
-.nx-chip--tool{color:var(--accent);border-color:rgba(4,217,196,.4);background:rgba(4,217,196,.06)}
+.nx-chip--tool{color:var(--accent);border-color:rgba(var(--accent-rgb),.4);background:rgba(var(--accent-rgb),.06)}
 .nx-chip--tool[aria-pressed]{color:var(--accent-ink);background:linear-gradient(180deg,var(--accent-hi),var(--accent))}
 .nx-chip[data-b]{box-shadow:0 0 0 2px #FFD60A}
 .nx-sheetpick{display:flex;flex-direction:column;gap:10px}
@@ -825,9 +849,11 @@ body[data-kiosk] .nx-dock .nx-btn .nx-lbl{font-size:12.5px}
 body[data-layout=phone] .nx-activity{top:calc(var(--top) + var(--safe-t) + 8px)}
 /* print page */
 .nx-print-hero{display:grid;grid-template-columns:150px 1fr;gap:16px;align-items:start}
+/* F04 (2026-10-19): a printer with no picture of its file (a FlashForge) leaves the picture hidden, and the text moved into its 150 px column: the Pause and Cancel labels ran out of their buttons */
+.nx-print-hero:has(>.nx-file-thumb[hidden]){grid-template-columns:1fr}
 .nx-print-info{display:flex;flex-direction:column;gap:10px;min-width:0}
 .nx-print-info>b{font:650 18px/1.2 var(--sans);overflow-wrap:anywhere}.nx-print-info>span{font:500 12.5px/1.3 var(--mono);color:var(--ink-2)}
-.nx-print-bar{height:10px;border-radius:5px;background:rgba(255,255,255,.07);overflow:hidden}.nx-print-bar i{display:block;height:100%;background:linear-gradient(90deg,var(--accent-lo),var(--accent-hi));box-shadow:0 0 14px rgba(4,217,196,.5);transition:width .6s var(--ease)}
+.nx-print-bar{height:10px;border-radius:5px;background:rgba(255,255,255,.07);overflow:hidden}.nx-print-bar i{display:block;height:100%;background:linear-gradient(90deg,var(--accent-lo),var(--accent-hi));box-shadow:0 0 14px rgba(var(--accent-rgb),.5);transition:width .6s var(--ease)}
 .nx-layer{display:flex;flex-direction:column;gap:10px}
 .nx-layer-cv{width:100%;height:420px;border-radius:var(--r-l);background:radial-gradient(90% 90% at 50% 40%,#131a22,#080b0f);border:1px solid var(--glass-line);display:block}
 .nx-objs{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
@@ -836,6 +862,7 @@ body[data-layout=phone] .nx-activity{top:calc(var(--top) + var(--safe-t) + 8px)}
 .nx-obj[data-current]{border-color:rgba(255,194,74,.6);box-shadow:0 0 14px rgba(255,194,74,.2)}
 .nx-obj[data-excluded]{opacity:.5}.nx-obj-state{font:650 10px/1 var(--sans);letter-spacing:.14em;color:var(--alarm);text-transform:uppercase}
 @media (max-width:520px){.nx-print-hero{grid-template-columns:1fr}.nx-layer-cv{height:300px}}
+
 /* causes, journal, assembly, motors */
 .nx-seg--wrap{flex-wrap:wrap;height:auto}
 .nx-causes,.nx-asm{display:flex;flex-direction:column;gap:12px}
@@ -870,12 +897,12 @@ body[data-layout=phone] .nx-alerts{top:calc(var(--top) + var(--safe-t) + 4px)}
 @keyframes nx-ledflash{0%{background:#ff2a1a;box-shadow:0 0 12px #ff2a1a,0 0 26px rgba(255,42,26,.5)}50%{background:#3a1512;box-shadow:none}}
 .nx-led>div{display:flex;flex-direction:column;gap:3px}.nx-led b{font:650 14px/1.2 var(--sans)}.nx-led span{font:500 12.5px/1.4 var(--sans);color:var(--ink-2)}
 .nx-led[data-state=alarm]{border-color:rgba(255,45,146,.5)}.nx-led[data-state=alarm] b{color:var(--alarm)}
-/* The compact style keeps the round gauges' layout exactly (nozzle above bed, speed above flow, the
-   small fan rings under flow); only each gauge becomes a slim upright bar. */
+/* 2026-09-25: the compact style keeps the round gauges' layout exactly (nozzle above bed,
+   speed above flow, the small fan rings under flow); only each gauge becomes a slim upright bar. */
 body[data-inst=bar] .nx-cluster{gap:12px}
-/* Compact means a narrow column pressed against each wall. The right column is the width of one
-   bar, flush to the right edge, and the three fans stand in it one under the other, small, in line
-   with speed and flow; the left column sits flush beside the rail. */
+/* 2026-09-25: compact means a narrow column pressed against each wall. The right column is the
+   width of one bar, flush to the right edge, and the three fans stand in it one under the other,
+   small, in line with speed and flow; the left column sits flush beside the rail. */
 body[data-inst=bar] #nx-right{align-items:flex-end;right:calc(12px + var(--safe-r))}
 body[data-inst=bar] #nx-left{align-items:flex-start}
 body[data-inst=bar] .nx-fans{flex-direction:column;align-items:center;gap:8px;width:var(--bar-w)}
@@ -885,7 +912,7 @@ body[data-inst=bar] .nx-fan-name{font-size:8.5px;letter-spacing:.04em}
 body[data-inst=bar] .nx-fan-pct{font-size:11px}
 body[data-inst=bar]:is([data-layout=desktop],[data-layout=tablet]){--bar-h:clamp(120px,calc((100vh - var(--top) - var(--dockzone) - 330px) / 2),250px)}
 .nx-fan[data-settable] .nx-fan-disc{cursor:grab;touch-action:none}
-.nx-fan-handle{position:absolute;width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff,#cfd6dd);box-shadow:0 2px 6px rgba(0,0,0,.6),0 0 10px rgba(4,217,196,.6);pointer-events:none}
+.nx-fan-handle{position:absolute;width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff,#cfd6dd);box-shadow:0 2px 6px rgba(0,0,0,.6),0 0 10px rgba(var(--accent-rgb),.6);pointer-events:none}
 .nx-fan[data-pending] .nx-fan-pct{color:var(--accent);text-shadow:0 0 10px var(--accent)}
 .nx-fan[data-locked] .nx-fan-disc{cursor:not-allowed}
 .nx-modal{position:fixed;inset:0;z-index:30;display:grid;place-items:center;padding:16px;background:rgba(3,5,8,.55);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);animation:nx-fade 180ms var(--ease)}
@@ -894,10 +921,12 @@ body[data-inst=bar]:is([data-layout=desktop],[data-layout=tablet]){--bar-h:clamp
 .nx-modal-card{width:min(520px,100%);max-height:calc(100vh - 32px);overflow:auto;border-radius:var(--r-l);display:flex;flex-direction:column}
 .nx-modal-body{padding:4px 20px 20px;display:flex;flex-direction:column;gap:14px}
 .nx-baby{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+/* F04 (2026-10-19): on a phone the Z offset's four steps are two to a row, each label on one line ("−0.05 / DOWN" ran out of a 76 px button) */
+@media (max-width:520px){.nx-baby{grid-template-columns:repeat(2,minmax(0,1fr))}.nx-baby .nx-btn{padding:0 10px}.nx-baby .nx-btn .nx-lbl{white-space:nowrap}}
 .nx-baby .nx-btn .nx-lbl{font:600 15px/1 var(--mono);letter-spacing:0}
 .nx-wizard{display:flex;flex-direction:column;gap:10px;padding:16px;border-radius:var(--r-l);border:1px solid var(--glass-line);background:radial-gradient(120% 90% at 50% 0%,rgba(255,255,255,.05),rgba(255,255,255,.01))}
 .nx-wizard>b{font:650 17px/1.3 var(--sans)}.nx-wizard>span{font:500 13px/1.45 var(--sans);color:var(--ink-2)}
-.nx-wizard[data-step=ready]{border-color:rgba(4,217,196,.55);box-shadow:0 0 24px rgba(4,217,196,.18)}
+.nx-wizard[data-step=ready]{border-color:rgba(var(--accent-rgb),.55);box-shadow:0 0 24px rgba(var(--accent-rgb),.18)}
 .nx-wizard[data-step=heating] .nx-print-bar i{background:linear-gradient(90deg,#b34a00,var(--heat))}
 .nx-hist-cv{width:100%;height:150px;display:block}
 .nx-hist-row{display:grid;grid-template-columns:44px 1fr auto;gap:12px;align-items:center;padding:8px 6px;border:0;border-bottom:1px solid var(--glass-line);background:none;color:var(--ink-1);text-align:left;cursor:pointer}
@@ -915,11 +944,11 @@ body[data-inst=bar]:is([data-layout=desktop],[data-layout=tablet]){--bar-h:clamp
 .nx-campin-grip{display:flex;justify-content:center;align-items:center;height:18px;margin:-2px 0 4px;cursor:grab;touch-action:none}
 .nx-campin-grip i{width:44px;height:4px;border-radius:2px;background:rgba(255,255,255,.35)}
 .nx-campin[data-drag] .nx-campin-grip{cursor:grabbing}
-.nx-campin[data-drag]{box-shadow:var(--glass-rim),0 24px 60px rgba(0,0,0,.6),0 0 0 1px rgba(4,217,196,.4)}
+.nx-campin[data-drag]{box-shadow:var(--glass-rim),0 24px 60px rgba(0,0,0,.6),0 0 0 1px rgba(var(--accent-rgb),.4)}
 #nx-phonebtn{white-space:nowrap}
 #nx-phonebtn[data-paired="1"],#nx-phonebtn[data-paired="1"] .nx-lbl{color:var(--accent)}
 body[data-layout=phone] #nx-phonebtn>:not(svg){display:none}
-#nx-camtoggle[aria-pressed=true]{color:var(--accent);box-shadow:inset 0 0 0 1px rgba(4,217,196,.45),0 0 16px rgba(4,217,196,.2)}
+#nx-camtoggle[aria-pressed=true]{color:var(--accent);box-shadow:inset 0 0 0 1px rgba(var(--accent-rgb),.45),0 0 16px rgba(var(--accent-rgb),.2)}
 .nx-campin .nx-cam-img{min-height:0;border-radius:calc(var(--r-l) - 6px);cursor:pointer}
 .nx-campin .nx-btn[data-size=icon]{position:absolute;top:28px;right:10px;background:rgba(7,9,12,.6)}
 body[data-layout=phone] .nx-campin{left:8px;width:46vw;bottom:auto;top:calc(var(--top) + 8px)}
@@ -930,7 +959,7 @@ body[data-sheet=wide] .nx-campin{opacity:0;pointer-events:none}
 .nx-key{display:inline-flex;align-items:center;gap:6px;font:600 11px/1 var(--mono);color:var(--ink-2)}.nx-key::before{content:"";width:14px;height:3px;border-radius:2px;background:var(--c)}
 .nx-table-wrap{overflow-x:auto}.nx-table{width:100%;border-collapse:collapse;font:500 12.5px/1.3 var(--mono)}.nx-table th{text-align:left;font:650 10px/1 var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);padding:8px 6px}
 .nx-table td{padding:8px 6px;border-top:1px solid var(--glass-line);color:var(--ink-2)}.nx-table tr[data-best] td{color:var(--accent);font-weight:650}
-.nx-belt-advice{margin:0;font:600 14px/1.5 var(--sans);color:var(--ink-1);padding:12px 14px;border-radius:var(--r-m);border:1px solid rgba(4,217,196,.35);background:rgba(4,217,196,.06)}
+.nx-belt-advice{margin:0;font:600 14px/1.5 var(--sans);color:var(--ink-1);padding:12px 14px;border-radius:var(--r-m);border:1px solid rgba(var(--accent-rgb),.35);background:rgba(var(--accent-rgb),.06)}
 /* maintenance */
 .nx-maint{display:flex;flex-direction:column;gap:8px}
 .nx-maint-row{display:grid;grid-template-columns:1fr 84px auto;gap:12px;align-items:center;padding:12px 14px;border-radius:var(--r-m);border:1px solid var(--glass-line);background:rgba(255,255,255,.03)}
@@ -942,11 +971,15 @@ body.nx-pair-page{display:grid;place-items:center;min-height:100vh;padding:16px;
 .nx-pair{width:min(420px,100%);padding:28px 24px;border-radius:var(--r-l);display:flex;flex-direction:column;gap:14px;text-align:center}
 .nx-pair-logo{width:56px;height:56px;margin:0 auto}.nx-pair h1{margin:0;font:650 22px/1.2 var(--sans)}.nx-pair p{margin:0;font:500 14px/1.5 var(--sans);color:var(--ink-2)}
 .nx-pair input{font:600 32px/1 var(--mono);letter-spacing:.3em;text-align:center;height:64px}
-.nx-paircode{font:600 44px/1 var(--mono);letter-spacing:.25em;text-align:center;color:var(--accent);text-shadow:0 0 18px rgba(4,217,196,.5);padding:14px 0}
-.nx-stagecard{position:absolute;z-index:1;left:calc(16px + var(--safe-l));right:calc(16px + var(--safe-r));top:calc(var(--top) + var(--safe-t) + 12px);padding:10px;border-radius:var(--r-l);display:flex;flex-direction:column;gap:10px;align-items:center;justify-content:center;max-height:44vh;overflow:hidden}
-.nx-stagecard .nx-cam-img{min-height:0;max-height:calc(44vh - 20px);width:100%;object-fit:contain;cursor:pointer}
+.nx-paircode{font:600 44px/1 var(--mono);letter-spacing:.25em;text-align:center;color:var(--accent);text-shadow:0 0 18px rgba(var(--accent-rgb),.5);padding:14px 0}
+.nx-stagecard{position:absolute;z-index:1;left:calc(16px + var(--safe-l));right:calc(16px + var(--safe-r));top:calc(var(--top) + var(--safe-t) + 12px);bottom:calc(var(--dockzone) + 8px);padding:10px;border-radius:var(--r-l);display:flex;flex-direction:column;gap:10px;align-items:stretch;overflow:hidden}
+.nx-stagecard .nx-cam-img{min-height:0;flex:1;width:100%;height:100%;max-height:100%;object-fit:cover;cursor:pointer}
 .nx-stagecard .nx-note{text-align:center}
-body:not([data-layout=phone]) .nx-stagecard{left:calc(16px + var(--safe-l) + var(--rail) + 250px);right:calc(24px + var(--safe-r) + 260px);max-height:56vh}
+body:not([data-layout=phone]) .nx-stagecard{left:calc(16px + var(--safe-l) + var(--rail) + 250px);right:calc(24px + var(--safe-r) + 260px)}
+/* F04 (2026-10-19): on a phone the card is the scene's place (the same top and bottom as #nx-scene): it used to run down to the dock and sit over the heat dials, the pager and the job pill */
+body[data-layout=phone] .nx-stagecard{top:calc(var(--top) + 60px + var(--safe-t));bottom:var(--phone-bottom)}
+.nx-stagecard .nx-md-cam{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.nx-stagecard .nx-md-host{flex:1;min-height:0;width:100%;align-self:stretch;display:flex;flex-direction:column}
 /* The knob clusters shrink with the window height so the arrow and the right column never ride up
    into the header (1280 x 800 put the arrow under the state chip). */
 body:is([data-layout=desktop],[data-layout=tablet]){--dial:clamp(130px,calc((100vh - var(--top) - var(--dockzone) - 230px) / 2),200px)}
@@ -956,14 +989,14 @@ body:is([data-layout=desktop],[data-layout=tablet]){--dial:clamp(130px,calc((100
 .nx-swatch{width:32px;height:32px;border-radius:50%;border:0;padding:0;cursor:pointer;background:var(--c,#82949c);
  box-shadow:inset 0 1px 0 rgba(255,255,255,.25),inset 0 -6px 10px rgba(0,0,0,.35),0 0 0 1px rgba(255,255,255,.14);transition:transform var(--t-press),box-shadow var(--t-hover)}
 .nx-swatch:hover{transform:scale(1.08)}
-.nx-swatch[aria-pressed=true]{box-shadow:inset 0 1px 0 rgba(255,255,255,.25),0 0 0 2px var(--bg-1),0 0 0 4px var(--accent),0 0 16px rgba(4,217,196,.4)}
+.nx-swatch[aria-pressed=true]{box-shadow:inset 0 1px 0 rgba(255,255,255,.25),0 0 0 2px var(--bg-1),0 0 0 4px var(--accent),0 0 16px rgba(var(--accent-rgb),.4)}
 .nx-swatch--any{-webkit-appearance:none;appearance:none;background:conic-gradient(#ff4d4d,#ffd24d,#6dff6d,#4dd8ff,#6d6dff,#ff4dff,#ff4d4d);overflow:hidden}
 .nx-swatch--any::-webkit-color-swatch-wrapper{padding:0;opacity:0}
 .nx-swatch--any::-moz-color-swatch{opacity:0}
 
-/* Part panels in tabs */
+/* part panels in tabs (2026-09-25: no long scrolls) */
 .nx-sheet-body--tabs{gap:14px}
-.nx-tabs{position:sticky;top:0;z-index:2;flex:none;display:flex;width:100%;background:var(--glass-2)}
+.nx-tabs{position:sticky;top:0;z-index:2;flex:none;display:flex;width:100%;background:rgba(21,27,35,.98)}   /* F04 (2026-10-19): solid, so the note scrolling under the tabs does not show through them */
 .nx-tabs>button{flex:1;white-space:nowrap}
 .nx-tabpane{display:flex;flex-direction:column;gap:16px}
 .nx-chips--scroll{flex-wrap:nowrap;overflow-x:auto;padding-bottom:4px;scrollbar-width:thin}
@@ -984,7 +1017,7 @@ body:is([data-layout=desktop],[data-layout=tablet]){--dial:clamp(130px,calc((100
 #nx-eye[data-v=warning]{color:var(--heat-warm);box-shadow:inset 0 0 0 1px rgba(255,156,85,.5),0 0 18px rgba(255,106,0,.25)}
 #nx-eye[data-v=failing]{color:#fff;background:rgba(255,45,146,.25);box-shadow:inset 0 0 0 1px var(--alarm),0 0 24px rgba(255,45,146,.45);animation:nx-attn 1.6s var(--ease) infinite}
 
-/* ---------- Move: jog console ---------- */
+/* ---------- Move: jog console (2026-09-25) ---------- */
 .nx-mv-pos{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
 .nx-mv-axis{display:flex;flex-direction:column;gap:6px;padding:14px 16px;border-radius:var(--r-l);background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.015));border:1px solid var(--glass-line);box-shadow:var(--glass-rim)}
 .nx-mv-axis small{font:650 12px/1 var(--sans);letter-spacing:.18em;color:var(--ink-3)}
@@ -1001,16 +1034,16 @@ body:is([data-layout=desktop],[data-layout=tablet]){--dial:clamp(130px,calc((100
 .nx-mv-map{width:100%;max-width:280px;aspect-ratio:1}
 .nx-mv-map .bed{fill:rgba(185,120,240,.12);stroke:rgba(255,255,255,.25);stroke-width:2}
 .nx-mv-map line{stroke:rgba(255,255,255,.06);stroke-width:1}
-.nx-mv-map line.cx,.nx-mv-map line.cy{stroke:rgba(4,217,196,.45);stroke-dasharray:4 5}
+.nx-mv-map line.cx,.nx-mv-map line.cy{stroke:rgba(var(--accent-rgb),.45);stroke-dasharray:4 5}
 .nx-mv-map .head{fill:var(--accent-hi);filter:drop-shadow(0 0 6px var(--accent))}
-.nx-mv-map .halo{fill:rgba(4,217,196,.12);stroke:rgba(4,217,196,.5);stroke-width:1.5;animation:nx-mv-ping 2s ease-out infinite;transform-box:fill-box;transform-origin:center}
+.nx-mv-map .halo{fill:rgba(var(--accent-rgb),.12);stroke:rgba(var(--accent-rgb),.5);stroke-width:1.5;animation:nx-mv-ping 2s ease-out infinite;transform-box:fill-box;transform-origin:center}
 .nx-mv-map[data-known="0"] .head,.nx-mv-map[data-known="0"] .halo,.nx-mv-map[data-known="0"] line.cx,.nx-mv-map[data-known="0"] line.cy{opacity:.25}
 .nx-mv-map text{fill:var(--ink-3);font:600 11px var(--sans);letter-spacing:.2em}
 @keyframes nx-mv-ping{from{transform:scale(.6);opacity:1}to{transform:scale(1.5);opacity:0}}
 /* the XY pad: a lit glass disc, four direction wedges, home in the middle */
 .nx-mv-pad{position:relative;justify-self:center;width:100%;max-width:360px;aspect-ratio:1;border-radius:50%;
- background:radial-gradient(circle at 50% 40%,rgba(4,217,196,.10),rgba(255,255,255,.02) 55%,rgba(0,0,0,.25)),var(--glass-1);
- box-shadow:var(--glass-rim),inset 0 -20px 40px rgba(0,0,0,.45),0 0 0 1px var(--glass-line),0 20px 50px rgba(0,0,0,.5),0 0 40px rgba(4,217,196,.08)}
+ background:radial-gradient(circle at 50% 40%,rgba(var(--accent-rgb),.10),rgba(255,255,255,.02) 55%,rgba(0,0,0,.25)),var(--glass-1);
+ box-shadow:var(--glass-rim),inset 0 -20px 40px rgba(0,0,0,.45),0 0 0 1px var(--glass-line),0 20px 50px rgba(0,0,0,.5),0 0 40px rgba(var(--accent-rgb),.08)}
 .nx-mv-pad::before,.nx-mv-pad::after{content:"";position:absolute;left:50%;top:50%;background:rgba(255,255,255,.06);pointer-events:none}
 .nx-mv-pad::before{width:70%;height:1px;transform:translate(-50%,-50%) rotate(45deg)}
 .nx-mv-pad::after{width:70%;height:1px;transform:translate(-50%,-50%) rotate(-45deg)}
@@ -1018,16 +1051,16 @@ body:is([data-layout=desktop],[data-layout=tablet]){--dial:clamp(130px,calc((100
  background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.02));box-shadow:var(--glass-rim),0 6px 18px rgba(0,0,0,.4);transition:background var(--t-hover),box-shadow var(--t-hover),transform var(--t-press)}
 .nx-mv-dir{width:31%;height:31%;border-radius:50%}
 .nx-mv-dir.n{left:34.5%;top:3%}.nx-mv-dir.s{left:34.5%;bottom:3%}.nx-mv-dir.w{left:3%;top:34.5%}.nx-mv-dir.e{right:3%;top:34.5%}
-.nx-mv-dir svg.nx-ico,.nx-mv-zbtn svg.nx-ico{width:26px;height:26px;color:var(--accent);filter:drop-shadow(0 0 6px rgba(4,217,196,.6))}
+.nx-mv-dir svg.nx-ico,.nx-mv-zbtn svg.nx-ico{width:26px;height:26px;color:var(--accent);filter:drop-shadow(0 0 6px rgba(var(--accent-rgb),.6))}
 .nx-mv-dir b,.nx-mv-zbtn b{font:700 16px/1 var(--mono)}
 .nx-mv-dir small,.nx-mv-zbtn small{font:600 10.5px/1.2 var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2)}
 .nx-mv-dir small::after,.nx-mv-zbtn small::after{content:" · " attr(data-step);color:var(--accent)}
-.nx-mv-hub{left:36%;top:36%;width:28%;height:28%;border-radius:50%;background:radial-gradient(circle at 50% 35%,rgba(4,217,196,.25),rgba(4,217,196,.05));border-color:rgba(4,217,196,.4)}
+.nx-mv-hub{left:36%;top:36%;width:28%;height:28%;border-radius:50%;background:radial-gradient(circle at 50% 35%,rgba(var(--accent-rgb),.25),rgba(var(--accent-rgb),.05));border-color:rgba(var(--accent-rgb),.4)}
 .nx-mv-hub svg.nx-ico{width:22px;height:22px;color:var(--accent-hi)}
 .nx-mv-hub b{font:700 12px/1 var(--sans);letter-spacing:.14em}
 .nx-mv-hub small{font:600 10px/1 var(--mono);color:var(--ink-2)}
-@media (hover:hover){.nx-mv-dir:hover,.nx-mv-zbtn:hover,.nx-mv-hub:hover{background:linear-gradient(180deg,rgba(4,217,196,.28),rgba(4,217,196,.08));box-shadow:var(--glass-rim),0 0 0 1px rgba(63,243,224,.5),0 0 26px rgba(4,217,196,.35)}}
-.nx-mv-dir:active,.nx-mv-zbtn:active,.nx-mv-hub:active,.nx-mv-dir[data-pressed],.nx-mv-zbtn[data-pressed]{transform:scale(.95);background:rgba(4,217,196,.35)}
+@media (hover:hover){.nx-mv-dir:hover,.nx-mv-zbtn:hover,.nx-mv-hub:hover{background:linear-gradient(180deg,rgba(var(--accent-rgb),.28),rgba(var(--accent-rgb),.08));box-shadow:var(--glass-rim),0 0 0 1px rgba(var(--accent-hi-rgb),.5),0 0 26px rgba(var(--accent-rgb),.35)}}
+.nx-mv-dir:active,.nx-mv-zbtn:active,.nx-mv-hub:active,.nx-mv-dir[data-pressed],.nx-mv-zbtn[data-pressed]{transform:scale(.95);background:rgba(var(--accent-rgb),.35)}
 .nx-mv-dir:disabled,.nx-mv-zbtn:disabled,.nx-mv-hub:disabled{opacity:.35;cursor:not-allowed;filter:saturate(.2)}
 /* Z rocker */
 .nx-mv-z{display:flex;flex-direction:column;gap:10px;width:150px}
@@ -1043,9 +1076,12 @@ body[data-layout=phone] .nx-mv-pad{max-width:320px}
 body[data-layout=phone] .nx-mv-mapbox{display:none}
 body[data-layout=phone] .nx-mv-z{width:auto;flex-direction:row;align-items:stretch}
 body[data-layout=phone] .nx-mv-zbtn{height:80px;flex:1}
+/* F04 (2026-10-19): the row of Z+, the height and Z- holds three; Home Z is a row of its own below them (as a fourth it ran out of the sheet at 360 px), and the labels may take a second line */
+body[data-layout=phone] .nx-mv-z{flex-wrap:wrap}body[data-layout=phone] .nx-mv-zbtn,body[data-layout=phone] .nx-mv-zval{flex:1 1 0;min-width:0}body[data-layout=phone] .nx-mv-z>.nx-btn{flex:1 0 100%}
+body[data-layout=phone] .nx-mv-zbtn small{text-align:center}
 body[data-layout=phone] .nx-mv-acts{grid-template-columns:repeat(2,1fr)}
 
-/* ---------- filament ---------- */
+/* ---------- filament (2026-09-25) ---------- */
 .nx-matcards{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
 .nx-matcard{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:6px;padding:14px 14px 12px;min-height:92px;border-radius:var(--r-l);cursor:pointer;text-align:left;color:var(--ink-1);
  border:1px solid var(--glass-line);background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.015));box-shadow:var(--glass-rim);transition:box-shadow var(--t-hover),border-color var(--t-hover)}
@@ -1053,21 +1089,25 @@ body[data-layout=phone] .nx-mv-acts{grid-template-columns:repeat(2,1fr)}
 .nx-matcard-t{font:600 13px/1 var(--mono);color:var(--heat-warm)}
 .nx-matcard-b{font:500 12px/1 var(--mono);color:var(--ink-3)}
 .nx-matcard-in{position:absolute;top:10px;right:10px;font:700 9px/1 var(--sans);letter-spacing:.12em;font-style:normal;color:var(--ok)}
-.nx-matcard[aria-pressed=true]{border-color:rgba(63,243,224,.6);box-shadow:var(--glass-rim),0 0 0 1px rgba(63,243,224,.35),0 0 26px rgba(4,217,196,.28);background:linear-gradient(180deg,rgba(4,217,196,.16),rgba(4,217,196,.04))}
+.nx-matcard[aria-pressed=true]{border-color:rgba(var(--accent-hi-rgb),.6);box-shadow:var(--glass-rim),0 0 0 1px rgba(var(--accent-hi-rgb),.35),0 0 26px rgba(var(--accent-rgb),.28);background:linear-gradient(180deg,rgba(var(--accent-rgb),.16),rgba(var(--accent-rgb),.04))}
 @media (hover:hover){.nx-matcard:hover{border-color:rgba(255,255,255,.2)}}
 .nx-filjob{display:flex;flex-direction:column;gap:16px;padding:18px;border-radius:var(--r-xl);border:1px solid var(--glass-line);background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.01));box-shadow:var(--glass-rim)}
 .nx-filjob[data-step=done]{border-color:rgba(24,227,107,.45);box-shadow:var(--glass-rim),0 0 30px rgba(24,227,107,.15)}
 .nx-filjob[data-step=failed]{border-color:rgba(255,45,146,.5);box-shadow:var(--glass-rim),0 0 30px rgba(255,45,146,.2)}
-.nx-filsteps{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:0;padding:0;list-style:none;counter-reset:s}
+.nx-filsteps{display:grid;grid-template-columns:repeat(var(--n,4),1fr);gap:8px;margin:0;padding:0;list-style:none;counter-reset:s}
 .nx-filsteps li{counter-increment:s;position:relative;padding:10px 12px 10px 40px;border-radius:12px;background:rgba(0,0,0,.25);border:1px solid var(--glass-line);font:650 12.5px/1.2 var(--sans);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3)}
 .nx-filsteps li::before{content:counter(s);position:absolute;left:10px;top:50%;transform:translateY(-50%);width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font:700 12px/1 var(--mono);background:rgba(255,255,255,.08);color:var(--ink-2)}
-.nx-filsteps li[data-state=now]{color:var(--ink-1);border-color:rgba(63,243,224,.55);box-shadow:0 0 18px rgba(4,217,196,.25)}
-.nx-filsteps li[data-state=now]::before{background:var(--accent);color:var(--accent-ink);animation:nx-attn 1.8s var(--ease) infinite}
+.nx-filsteps li[data-state=now]{color:var(--ink-1);border-color:rgba(var(--accent-hi-rgb),.55);box-shadow:0 0 18px rgba(var(--accent-rgb),.25)}
+/* 2026-09-28: "a step number blinks below / in the middle of the button". The marker used nx-attn, a ring
+   animation that fades to 0 and sets its own transform, which dropped the circle half its height and made
+   it disappear. This one only breathes a halo; the circle never moves and never goes out. */
+.nx-filsteps li[data-state=now]::before{background:var(--accent);color:var(--accent-ink);animation:nx-stepglow 2s var(--ease) infinite}
+@keyframes nx-stepglow{50%{box-shadow:0 0 0 5px rgba(var(--accent-rgb),.24)}}
 .nx-filsteps li[data-state=done]{color:var(--ok)}
 .nx-filsteps li[data-state=done]::before{content:"✓";background:rgba(24,227,107,.2);color:var(--ok)}
 .nx-filmain{display:flex;align-items:center;gap:20px}
 .nx-filring{--p:0;flex:none;width:112px;height:112px;border-radius:50%;display:grid;place-items:center;
- background:radial-gradient(closest-side,#10151c 78%,transparent 79%),conic-gradient(var(--accent) calc(var(--p)*360deg),rgba(255,255,255,.08) 0);box-shadow:0 0 30px rgba(4,217,196,calc(var(--p)*.35))}
+ background:radial-gradient(closest-side,#10151c 78%,transparent 79%),conic-gradient(var(--accent) calc(var(--p)*360deg),rgba(255,255,255,.08) 0);box-shadow:0 0 30px rgba(var(--accent-rgb),calc(var(--p)*.35))}
 .nx-filring span{font:600 26px/1 var(--mono);color:var(--ink-1)}
 .nx-filring[data-step=heating]{background:radial-gradient(closest-side,#10151c 78%,transparent 79%),conic-gradient(var(--heat) calc(var(--p)*360deg),rgba(255,255,255,.08) 0);box-shadow:0 0 30px rgba(255,106,0,calc(var(--p)*.4))}
 .nx-filring[data-step=done]{background:radial-gradient(closest-side,#10151c 78%,transparent 79%),conic-gradient(var(--ok) 360deg,transparent 0);box-shadow:0 0 34px rgba(24,227,107,.4)}
@@ -1080,8 +1120,8 @@ body[data-layout=phone] .nx-mv-acts{grid-template-columns:repeat(2,1fr)}
 .nx-filacts{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px}
 /* the marker left on screen while a filament job runs with its page closed */
 .nx-filmark{--p:0;position:absolute;z-index:4;left:50%;top:calc(var(--top) + var(--safe-t) + 10px);transform:translateX(-50%);display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto;column-gap:12px;row-gap:3px;align-items:center;
- min-width:300px;max-width:min(520px,calc(100vw - 32px));padding:10px 18px 14px 14px;border-radius:18px;cursor:pointer;color:var(--ink-1);text-align:left;border:1px solid rgba(63,243,224,.5);
- box-shadow:var(--glass-rim),0 0 0 1px rgba(63,243,224,.2),0 0 28px rgba(4,217,196,.35);animation:nx-filglow 2.4s var(--ease) infinite}
+ min-width:300px;max-width:min(520px,calc(100vw - 32px));padding:10px 18px 14px 14px;border-radius:18px;cursor:pointer;color:var(--ink-1);text-align:left;border:1px solid rgba(var(--accent-hi-rgb),.5);
+ box-shadow:var(--glass-rim),0 0 0 1px rgba(var(--accent-hi-rgb),.2),0 0 28px rgba(var(--accent-rgb),.35);animation:nx-filglow 2.4s var(--ease) infinite}
 .nx-filmark svg.nx-ico{grid-row:1 / 3;width:26px;height:26px;color:var(--accent)}
 .nx-filmark b{font:700 14px/1.2 var(--sans)}
 .nx-filmark span{font:500 12px/1.2 var(--sans);color:var(--ink-2)}
@@ -1090,11 +1130,11 @@ body[data-layout=phone] .nx-mv-acts{grid-template-columns:repeat(2,1fr)}
 .nx-filmark[data-step=done] svg.nx-ico,.nx-filmark[data-step=done] b{color:var(--ok)}
 .nx-filmark[data-step=failed]{border-color:var(--alarm);box-shadow:0 0 28px rgba(255,45,146,.4);animation:none}
 .nx-filmark[data-step=ready]{border-color:var(--heat-warm);box-shadow:0 0 28px rgba(255,106,0,.4)}
-@keyframes nx-filglow{50%{box-shadow:var(--glass-rim),0 0 0 1px rgba(63,243,224,.35),0 0 44px rgba(4,217,196,.55)}}
+@keyframes nx-filglow{50%{box-shadow:var(--glass-rim),0 0 0 1px rgba(var(--accent-hi-rgb),.35),0 0 44px rgba(var(--accent-rgb),.55)}}
 body[data-layout=phone] .nx-filsteps{grid-template-columns:repeat(2,1fr)}
 body[data-layout=phone] .nx-filmark{top:calc(var(--top) + 64px)}
 
-.nx-radial-hub .nx-btn svg.nx-ico{width:26px;height:26px;color:var(--accent);filter:drop-shadow(0 0 6px rgba(4,217,196,.55))}
+.nx-radial-hub .nx-btn svg.nx-ico{width:26px;height:26px;color:var(--accent);filter:drop-shadow(0 0 6px rgba(var(--accent-rgb),.55))}
 .nx-radial-sub{position:absolute;top:calc(100% + 24px);white-space:nowrap;font:600 11px/1 var(--mono);color:var(--heat-warm);text-shadow:0 1px 4px #000}
 .nx-radial-hub .nx-btn[data-tone=heat]{box-shadow:var(--glass-rim),0 0 0 1px rgba(255,106,0,.35),0 10px 26px rgba(0,0,0,.55),0 0 24px rgba(255,106,0,.28)}
 .nx-radial-hub .nx-btn[data-tone=heat] svg.nx-ico{color:var(--heat-warm);filter:drop-shadow(0 0 8px rgba(255,106,0,.7))}
@@ -1107,9 +1147,9 @@ body[data-layout=phone] .nx-filmark{top:calc(var(--top) + 64px)}
 .nx-files-top .nx-input{flex:1}
 .nx-filegrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px;align-content:start}
 .nx-filecard{display:flex;flex-direction:column;gap:8px;padding:10px;border-radius:var(--r-l);border:1px solid var(--glass-line);background:linear-gradient(180deg,rgba(255,255,255,.055),rgba(255,255,255,.012));box-shadow:var(--glass-rim);transition:border-color var(--t-hover),box-shadow var(--t-hover)}
-.nx-filecard[data-newest]{border-color:rgba(63,243,224,.45);box-shadow:var(--glass-rim),0 0 24px rgba(4,217,196,.18)}
+.nx-filecard[data-newest]{border-color:rgba(var(--accent-hi-rgb),.45);box-shadow:var(--glass-rim),0 0 24px rgba(var(--accent-rgb),.18)}
 @media (hover:hover){.nx-filecard:hover{border-color:rgba(255,255,255,.2)}}
-.nx-filecard-pic{position:relative;aspect-ratio:4/3;border-radius:calc(var(--r-l) - 6px);overflow:hidden;display:grid;place-items:center;background:radial-gradient(circle at 50% 40%,rgba(4,217,196,.12),rgba(0,0,0,.35))}
+.nx-filecard-pic{position:relative;aspect-ratio:4/3;border-radius:calc(var(--r-l) - 6px);overflow:hidden;display:grid;place-items:center;background:radial-gradient(circle at 50% 40%,rgba(var(--accent-rgb),.12),rgba(0,0,0,.35))}
 .nx-filecard-pic img{width:100%;height:100%;object-fit:contain}
 .nx-filecard-pic svg.nx-ico{width:42px;height:42px;color:var(--ink-3)}
 .nx-filecard-new{position:absolute;top:8px;left:8px;padding:3px 7px;border-radius:6px;font:700 9.5px/1 var(--sans);letter-spacing:.12em;font-style:normal;background:var(--accent);color:var(--accent-ink)}
@@ -1144,11 +1184,11 @@ body[data-layout=phone] .nx-heatquick{grid-template-columns:repeat(4,1fr)}
 .nx-sheet-tools .nx-btn[data-size=icon]:hover{color:var(--accent)}
 .nx-sheet-titles,.nx-sheet-title{flex:1;min-width:0}
 .nx-sheet[data-float]{transform:none;resize:both;min-width:320px;min-height:240px;max-width:calc(100vw - 16px);max-height:calc(100vh - 16px);transition:none;
- box-shadow:var(--glass-rim),0 0 0 1px rgba(63,243,224,.18),0 30px 80px rgba(0,0,0,.6)}
+ box-shadow:var(--glass-rim),0 0 0 1px rgba(var(--accent-hi-rgb),.18),0 30px 80px rgba(0,0,0,.6)}
 .nx-sheet[data-float] .nx-sheet-head{cursor:grab;user-select:none}
 .nx-sheet[data-dragging] .nx-sheet-head{cursor:grabbing}
 .nx-sheet[data-dragging]{opacity:.92}
-.nx-sheet[data-pinned]{box-shadow:var(--glass-rim),0 0 0 1px rgba(63,243,224,.4),0 0 26px rgba(4,217,196,.18),0 30px 80px rgba(0,0,0,.6)}
+.nx-sheet[data-pinned]{box-shadow:var(--glass-rim),0 0 0 1px rgba(var(--accent-hi-rgb),.4),0 0 26px rgba(var(--accent-rgb),.18),0 30px 80px rgba(0,0,0,.6)}
 .nx-sheet[data-pinned] .nx-sheet-head::after{content:"PINNED";order:5;padding:3px 7px;border-radius:6px;font:700 9.5px/1 var(--sans);letter-spacing:.14em;color:var(--accent-ink);background:var(--accent)}
 body:is([data-layout=phone],[data-layout=phone-land],[data-layout=tablet-port],[data-layout=kiosk]) .nx-sheet-tools{display:none}
 
@@ -1158,8 +1198,8 @@ body:is([data-layout=phone],[data-layout=phone-land],[data-layout=tablet-port],[
 .nx-pairgrid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 .nx-pairstep{position:relative;display:flex;flex-direction:column;align-items:center;gap:12px;padding:22px 18px;border-radius:var(--r-xl);border:1px solid var(--glass-line);background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.01));box-shadow:var(--glass-rim);text-align:center}
 .nx-pairstep h4{margin:0;font:700 17px/1.2 var(--sans)}
-.nx-pairnum{position:absolute;top:14px;left:14px;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font:700 14px/1 var(--mono);background:var(--accent);color:var(--accent-ink);box-shadow:0 0 16px rgba(4,217,196,.5)}
-.nx-pairstep[data-live]{border-color:rgba(63,243,224,.55);box-shadow:var(--glass-rim),0 0 34px rgba(4,217,196,.25)}
+.nx-pairnum{position:absolute;top:14px;left:14px;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font:700 14px/1 var(--mono);background:var(--accent);color:var(--accent-ink);box-shadow:0 0 16px rgba(var(--accent-rgb),.5)}
+.nx-pairstep[data-live]{border-color:rgba(var(--accent-hi-rgb),.55);box-shadow:var(--glass-rim),0 0 34px rgba(var(--accent-rgb),.25)}
 .nx-qr--pair:empty{display:none}
 .nx-pairring{--p:0;font:600 12px/1 var(--mono);color:var(--accent)}
 .nx-pairring:empty{display:none}
@@ -1176,9 +1216,9 @@ body[data-layout=phone] .nx-pairgrid{grid-template-columns:1fr}
 
 /* ---------- levelling screen ---------- */
 .nx-lv-now{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;align-items:start}
-.nx-lv-gantry{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:auto 1fr auto;gap:10px;position:relative;padding:12px;border-radius:var(--r-xl);border:1px solid var(--glass-line);background:radial-gradient(circle at 50% 50%,rgba(4,217,196,.08),rgba(0,0,0,.2))}
+.nx-lv-gantry{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:auto 1fr auto;gap:10px;position:relative;padding:12px;border-radius:var(--r-xl);border:1px solid var(--glass-line);background:radial-gradient(circle at 50% 50%,rgba(var(--accent-rgb),.08),rgba(0,0,0,.2))}
 .nx-lv-frame{grid-column:1 / 3;position:relative;height:120px;border:2px dashed rgba(255,255,255,.12);border-radius:14px}
-.nx-lv-beam{position:absolute;left:8%;right:8%;top:50%;height:10px;margin-top:-5px;border-radius:4px;background:linear-gradient(90deg,rgba(4,217,196,.5),rgba(4,217,196,.2),rgba(4,217,196,.5));box-shadow:0 0 16px rgba(4,217,196,.35)}
+.nx-lv-beam{position:absolute;left:8%;right:8%;top:50%;height:10px;margin-top:-5px;border-radius:4px;background:linear-gradient(90deg,rgba(var(--accent-rgb),.5),rgba(var(--accent-rgb),.2),rgba(var(--accent-rgb),.5));box-shadow:0 0 16px rgba(var(--accent-rgb),.35)}
 .nx-lv-front{position:absolute;left:50%;bottom:6px;transform:translateX(-50%);font:700 10px/1 var(--sans);letter-spacing:.2em;color:var(--ink-3)}
 .nx-lv-corner{position:relative;display:flex;flex-direction:column;gap:6px;padding:14px;border-radius:var(--r-l);border:1px solid var(--glass-line);background:rgba(255,255,255,.04);box-shadow:var(--glass-rim)}
 .nx-lv-corner span{font:650 10.5px/1 var(--sans);letter-spacing:.16em;color:var(--ink-3)}
@@ -1200,3 +1240,702 @@ body[data-layout=phone] .nx-pairgrid{grid-template-columns:1fr}
 .nx-lv-track i[data-pass=true]{background:var(--ok);box-shadow:0 0 12px rgba(24,227,107,.5)}
 .nx-lv-track em{position:absolute;top:-4px;bottom:-4px;width:2px;background:#fff;box-shadow:0 0 6px #fff}
 body[data-layout=phone] .nx-lv-now{grid-template-columns:1fr}
+
+/* Show me (2026-09-28): the part circled on the 3D view, with a label that opens its panel. */
+.nx-spot{position:absolute;left:0;top:0;z-index:5;pointer-events:none;transform:translate(var(--x,0px),var(--y,0px))}
+.nx-spot[hidden]{display:none}
+.nx-spot-ring{position:absolute;left:calc(var(--r,40px) * -1);top:calc(var(--r,40px) * -1);width:calc(var(--r,40px) * 2);height:calc(var(--r,40px) * 2);border-radius:50%;border:2px solid var(--accent);box-shadow:0 0 0 1px rgba(3,26,23,.7),0 0 26px rgba(var(--accent-rgb),.55),inset 0 0 18px rgba(var(--accent-rgb),.22);animation:nx-spot-in .45s var(--ease) both}
+.nx-spot-tag{position:absolute;left:calc(var(--r,40px) + 14px);top:-26px;display:flex;align-items:center;gap:8px;padding:6px 8px 6px 14px;border-radius:var(--r-l);pointer-events:auto;white-space:nowrap}
+.nx-spot-tag b{font:650 13.5px/1.2 var(--sans);max-width:220px;overflow:hidden;text-overflow:ellipsis}
+.nx-spot[data-side=left] .nx-spot-tag{left:auto;right:calc(var(--r,40px) + 14px)}
+body[data-layout=phone] .nx-spot-tag{left:50%;top:calc(var(--r,40px) + 12px);transform:translateX(-50%)}
+@keyframes nx-spot-in{from{transform:scale(1.7);opacity:0}to{transform:scale(1);opacity:1}}
+@media (prefers-reduced-motion:reduce){.nx-spot-ring{animation:none}}
+/* Idle strip items that open something. */
+button.nx-idle-item{background:none;border:0;border-radius:10px;cursor:pointer;height:36px}
+button.nx-idle-item:hover{background:rgba(255,255,255,.07)}
+button.nx-idle-item:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+
+/* Levelling, the starting state (2026-09-28): a run is live before its first round is in. */
+.nx-lv-verdict[data-tone=live]{color:var(--accent)}
+.nx-lv-corner[data-hit] b{color:var(--accent)}
+.nx-lv-round[data-prev]{opacity:.62}
+.nx-lv-prev{font:500 11.5px/1 var(--mono);color:var(--ink-3)}
+
+/* Printers: the list, adding one, settings (farm board WO-06) */
+.nx-fm-list{display:grid;grid-template-columns:minmax(0,1fr);gap:10px}
+.nx-fm-row{display:grid;grid-template-columns:auto 1fr;column-gap:14px;row-gap:4px;align-items:center;padding:14px 16px;border-radius:var(--r-l);border:1px solid var(--glass-line);background:rgba(255,255,255,.03)}
+.nx-fm-dot{grid-row:1/3;width:12px;height:12px;border-radius:50%;background:var(--c,var(--accent));box-shadow:0 0 12px var(--c,var(--accent))}
+.nx-fm-top{display:flex;align-items:center;gap:10px;min-width:0;flex-wrap:wrap}
+.nx-fm-name{font:650 16px/1.2 var(--sans);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;max-width:100%}
+.nx-fm-sub{grid-column:2;font:500 12px/1.3 var(--mono);color:var(--ink-3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nx-fm-why{grid-column:2;font:500 12px/1.35 var(--sans);color:var(--ink-2)}
+.nx-fm-act{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.nx-fm-pill{display:inline-flex;align-items:center;height:24px;padding:0 10px;border-radius:12px;font:600 11px/1 var(--mono);letter-spacing:.04em;color:var(--ink-2);background:rgba(255,255,255,.06);border:1px solid var(--glass-line)}
+.nx-fm-pill[data-s=printing],.nx-fm-pill[data-s=heating]{color:var(--heat-warm);border-color:rgba(255,106,0,.4);background:rgba(255,106,0,.08)}
+.nx-fm-pill[data-s=idle],.nx-fm-pill[data-s=finished]{color:var(--ok);border-color:rgba(24,227,107,.35);background:rgba(24,227,107,.07)}
+.nx-fm-pill[data-s=error]{color:var(--alarm);border-color:rgba(255,45,146,.45);background:rgba(255,45,146,.08)}
+.nx-fm-head{display:flex;align-items:center;gap:12px}
+.nx-fm-headtext{display:flex;flex-direction:column;gap:3px;min-width:0}
+.nx-fm-headtext b{font:650 18px/1.2 var(--sans)}
+.nx-fm-headtext small{font:500 12px/1.2 var(--mono);color:var(--ink-3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nx-fm-field{display:flex;flex-direction:column;gap:6px}
+.nx-fm-label{font:600 var(--t-label)/1 var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)}
+.nx-fm-note{font:500 12px/1.4 var(--sans);color:var(--ink-3)}
+.nx-fm-resultbox{display:flex;flex-direction:column;gap:14px}
+.nx-fm-result{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:var(--r-m);border:1px solid var(--glass-line);background:rgba(255,255,255,.03)}
+.nx-fm-result p{margin:0;font:500 14px/1.4 var(--sans);color:var(--ink-1)}
+.nx-fm-result[data-tone=ok]{border-color:rgba(24,227,107,.4);background:rgba(24,227,107,.07)}
+.nx-fm-result[data-tone=ok] svg{color:var(--ok)}
+.nx-fm-result[data-tone=alarm]{border-color:rgba(255,45,146,.45);background:rgba(255,45,146,.08)}
+.nx-fm-result[data-tone=alarm] svg{color:var(--alarm)}
+.nx-fm-resulttext{display:flex;flex-direction:column;gap:3px;min-width:0}
+.nx-fm-resulttext b{font:650 15px/1.2 var(--sans)}
+.nx-fm-resulttext small{font:500 12px/1.3 var(--mono);color:var(--ink-2)}
+.nx-fm-capwrap{display:flex;flex-direction:column;gap:12px}
+.nx-fm-off{color:var(--ink-3)}
+.nx-fm-caps{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px 16px}
+.nx-fm-cap{display:flex;align-items:center;gap:8px;font:500 13.5px/1.3 var(--sans);color:var(--ink-3)}
+.nx-fm-cap[data-on=true]{color:var(--ink-1)}
+.nx-fm-cap[data-on=true] svg{color:var(--ok)}
+.nx-fm-swatches{display:flex;flex-wrap:wrap;gap:10px}
+.nx-fm-sw{width:44px;height:44px;border-radius:50%;border:2px solid transparent;background:var(--c);box-shadow:0 0 0 1px rgba(255,255,255,.14) inset;cursor:pointer}
+.nx-fm-sw[aria-pressed=true]{border-color:var(--ink-1);box-shadow:0 0 16px var(--c)}
+.nx-fm-remove{display:flex;flex-direction:column;gap:10px;padding-top:6px;border-top:1px solid var(--glass-line)}
+/* A short window (our 1568x751): the rail is centred between the top bar and the bottom, never under the logo. */
+@media (max-height:820px){#nx-rail{gap:4px;padding:6px}#nx-rail .nx-btn[data-size=icon]{width:42px;height:42px;min-height:0;min-width:0}#nx-rail hr{margin:3px auto}}
+@media (max-height:700px){#nx-rail{gap:2px}#nx-rail .nx-btn[data-size=icon]{width:38px;height:38px}}
+/* Printer switcher (farm board WO-07): a caret on the identity block, a dot per printer in its list */
+.nx-id[title] .nx-id-caret{width:16px;height:16px;margin-left:-4px;color:var(--ink-3)}
+.nx-sw-dot{width:9px;height:9px;border-radius:50%;flex:none;background:var(--c,var(--accent));box-shadow:0 0 8px var(--c,var(--accent))}
+.nx-sw-dot[data-s=printing],.nx-sw-dot[data-s=heating]{outline:2px solid rgba(255,106,0,.55);outline-offset:1px}
+.nx-sw-dot[data-s=error]{outline:2px solid var(--alarm);outline-offset:1px}
+.nx-sw-dot[data-s=offline]{opacity:.35;box-shadow:none}
+.nx-pop .nx-btn[aria-current=true]{box-shadow:inset 0 0 0 1px rgba(var(--accent-rgb),.45)}
+/* The top bar gives the running job its words before the G-code bar gets its width (1280x720, 1024x768:
+   the job title had 36 px). The bar can shrink to a short field; the job never below its content. */
+.nx-cmd-host{min-width:96px}
+body:is([data-layout=desktop],[data-layout=tablet]) #nx-top .nx-job{flex:0 0 auto;max-width:38vw}
+/* The printer's name is what the switcher is about: never squeezed to a letter. Desktop keeps the full
+   spacing; a tablet tightens it; a phone drops the logo mark (the name is the identity there) and sheds
+   letter-spacing before letters. */
+/* 2026-10-18 (polish WO-02): a 13-letter name (VORON 2.4 350, the demo farm's) was cut to "VORON 2.4 …" at 1366 and 1280 and
+   "TRIDENT 300" too; the name needs 201 px of text, 30 of mark and 36 of gap and caret. The command bar gives the room. */
+body[data-layout=desktop] .nx-id{min-width:270px}
+body[data-layout=tablet] .nx-id{min-width:232px}
+body[data-layout=tablet] .nx-id-text b{letter-spacing:.14em}
+body[data-layout=tablet] .nx-cmd-host{min-width:72px}
+/* The name's room has to come from somewhere at 1024: with a long job line ("1 h 16 min in · 1 h 33 min left") the bar ran 56 px
+   past the window and STOP was cut. The job's thumbnail (decorative; the kiosk layout drops it too) and the command bar's
+   width give it up below 1100 px: the bar becomes the icon alone, as it does on the kiosk and the portrait tablet. */
+@media (max-width:1099px){body[data-layout=tablet] .nx-job-thumb{display:none}body[data-layout=tablet] .nx-cmd-host{flex:0 0 48px;min-width:48px;margin-left:8px}body[data-layout=tablet] .nx-cmd-box{width:48px;padding:0 14px;overflow:hidden}body[data-layout=tablet] .nx-cmd-box kbd{display:none}}
+body[data-layout=phone] .nx-id-text b{font-size:12px;letter-spacing:.06em}
+body[data-layout=phone] .nx-id-caret{width:14px;height:14px}
+body[data-layout=phone] .nx-id{gap:6px}
+body[data-layout=phone] .nx-id[data-farm] .nx-id-mark{display:none}
+/* A small phone (360 wide): the header's gaps and chip give back what the name needs. The camera shortcut
+   is still in More, Pages. */
+@media (max-width:400px){
+ body[data-layout=phone] #nx-top{gap:6px}
+ body[data-layout=phone] .nx-top-right{gap:6px}
+ body[data-layout=phone] .nx-state{padding:0 12px 0 10px;gap:8px}
+ body[data-layout=phone] .nx-state-label{letter-spacing:.05em}
+}
+/* Queue and plate check (farm board WO-08) */
+.nx-q-add{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.nx-q-printers{display:grid;grid-template-columns:minmax(0,1fr);gap:8px}
+.nx-q-printer{display:flex;flex-direction:column;gap:3px;padding:10px 14px;border-radius:var(--r-m);border:1px solid var(--glass-line);background:rgba(255,255,255,.03)}
+.nx-q-printer b{font:650 14px/1.2 var(--sans)}
+.nx-q-printer small{font:500 12px/1.35 var(--mono);color:var(--ink-2)}
+.nx-q-printer[data-state=offline] small,.nx-q-printer[data-state=error] small{color:var(--ink-3)}
+.nx-q-list{display:grid;grid-template-columns:minmax(0,1fr);gap:12px}
+.nx-q-job{min-width:0}
+.nx-q-job{display:flex;flex-direction:column;gap:10px;padding:14px 16px;border-radius:var(--r-l)}
+.nx-q-job[data-drag]{outline:2px solid var(--accent);opacity:.9}
+.nx-q-job[data-state=done],.nx-q-job[data-state=cancelled]{opacity:.6}
+.nx-q-head{display:flex;align-items:center;gap:10px}
+.nx-q-grip{width:34px;height:34px;display:flex;align-items:center;justify-content:center;color:var(--ink-3);cursor:grab;touch-action:none;flex:none;border-radius:10px}
+.nx-q-title{flex:1;min-width:0;font:650 15px/1.25 var(--sans);overflow-wrap:anywhere}   /* F04 (2026-10-19): a file's name wraps in the queue card, whole (it was cut with an ellipsis at 360 px) */
+.nx-q-chips{display:flex;flex-wrap:wrap;gap:6px}
+.nx-q-chip{padding:4px 9px;border-radius:999px;border:1px solid var(--glass-line);background:rgba(255,255,255,.04);font:500 11.5px/1.2 var(--mono);color:var(--ink-2)}
+.nx-q-fits{display:grid;gap:6px}
+.nx-q-fit{display:grid;grid-template-columns:auto 1fr;gap:2px 8px;align-items:center;font:500 13px/1.3 var(--sans)}
+.nx-q-fit svg{width:18px;height:18px;color:var(--ok)}
+.nx-q-fit[data-ok=false] svg{color:var(--ink-3)}
+.nx-q-fit[data-ok=false]>span{color:var(--ink-3)}
+.nx-q-fit small{grid-column:2;font:500 12px/1.4 var(--sans);color:var(--ink-2)}
+.nx-q-controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.nx-q-controls select.nx-input{flex:1 1 180px;min-width:0;font-size:14px}
+.nx-q-copies{display:inline-flex;align-items:center;gap:6px;font:500 13px/1 var(--sans);color:var(--ink-2)}
+.nx-q-force{display:flex;gap:10px;align-items:flex-start;font:500 12.5px/1.4 var(--sans);color:var(--ink-2)}
+.nx-q-force input{margin-top:3px;width:18px;height:18px;flex:none}
+.nx-q-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.nx-q-actions p{flex:1 1 100%;margin:0}
+.nx-q-frame{position:relative;border-radius:12px;overflow:hidden;background:#000;border:1px solid var(--glass-line)}
+.nx-q-frame img{display:block;width:100%;height:auto}
+.nx-q-cell{position:absolute;background:rgba(255,45,146,.38);pointer-events:none}
+.nx-q-box{position:absolute;border:2px solid var(--alarm);border-radius:4px;box-shadow:0 0 0 1px rgba(0,0,0,.5);pointer-events:none}
+.nx-q-stage{display:flex;flex-direction:column;gap:14px}
+.nx-q-live{display:block;width:100%;border-radius:12px;background:#000;aspect-ratio:16/9;object-fit:contain}
+.nx-q-mark{position:relative;border-radius:12px;overflow:hidden;background:#000;touch-action:none}
+.nx-q-mark img{display:block;width:100%;height:auto;user-select:none;-webkit-user-drag:none}
+.nx-q-mark svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.nx-q-mark polygon{fill:rgba(var(--accent-rgb),.14);stroke:var(--accent);stroke-width:.45;vector-effect:non-scaling-stroke}
+.nx-q-handle{position:absolute;width:44px;height:44px;margin:-22px 0 0 -22px;border-radius:50%;border:0;background:radial-gradient(circle,var(--accent) 0 7px,rgba(var(--accent-rgb),.22) 8px 100%);cursor:grab;touch-action:none}
+.nx-q-handle:focus-visible{outline:2px solid var(--ink-1)}
+@media (max-width:600px){.nx-q-controls select.nx-input{flex-basis:100%}}
+/* Farm licence (farm board WO-09): a calm card, the product's own mark, no urgency */
+.nx-lic{display:flex;flex-direction:column;gap:14px;padding:22px 20px;border-radius:var(--r-l);border:1px solid var(--glass-line);
+ background:radial-gradient(120% 90% at 0% 0%,rgba(var(--accent-rgb),.10),transparent 60%),rgba(255,255,255,.03)}
+.nx-lic-mark{width:44px;height:44px}
+.nx-lic-title{margin:0;font:700 20px/1.2 var(--sans);letter-spacing:.01em}
+.nx-lic-text-p{margin:0;font:500 15px/1.5 var(--sans);color:var(--ink-1)}
+.nx-lic-text{font:500 13px/1.4 var(--mono);height:auto;min-height:96px;padding:12px 14px;resize:vertical}
+
+/* ---- printer models (farm board WO-10): the catalogue, one model's licence and install, the 3D view ---- */
+.nx-md-filters{display:flex;flex-wrap:wrap;gap:8px}
+.nx-md-filters>*{flex:1 1 200px;min-width:0}
+.nx-md-select{appearance:auto}
+.nx-md-list{display:grid;grid-template-columns:minmax(0,1fr);gap:8px;container-type:inline-size;margin-top:12px}
+.nx-md-row{display:grid;grid-template-columns:72px minmax(0,1fr) auto;gap:6px 12px;align-items:center;padding:10px;border-radius:var(--r-l);border:1px solid var(--glass-line);background:rgba(255,255,255,.03)}
+.nx-md-thumb{width:72px;height:54px;border-radius:10px;overflow:hidden;background:rgba(0,0,0,.28);display:grid;place-items:center}
+.nx-md-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.nx-md-ph{width:26px;height:26px;opacity:.45}
+.nx-md-mid{min-width:0;display:flex;flex-direction:column;gap:6px}
+.nx-md-name{font:600 14px/1.3 var(--sans);color:var(--ink-1);overflow-wrap:anywhere}
+.nx-md-meta{font:500 12px/1.4 var(--mono);color:var(--ink-3);overflow-wrap:anywhere}
+.nx-md-tags{display:flex;flex-wrap:wrap;gap:6px}
+.nx-md-badge{display:inline-flex;align-items:center;min-height:22px;padding:0 9px;border-radius:11px;font:600 11px/1 var(--mono);letter-spacing:.03em;color:var(--ink-2);background:rgba(255,255,255,.06);border:1px solid var(--glass-line);white-space:nowrap}
+.nx-md-badge[data-class=gpl],.nx-md-badge[data-class=mit],.nx-md-badge[data-class=cc-by],.nx-md-badge[data-class=cc-by-sa],.nx-md-badge[data-class=cc0]{color:var(--ok);border-color:rgba(24,227,107,.35);background:rgba(24,227,107,.07)}
+.nx-md-badge[data-class=nc],.nx-md-badge[data-class=mixed],.nx-md-badge[data-class=ocl]{color:var(--heat-warm);border-color:rgba(255,106,0,.4);background:rgba(255,106,0,.08)}
+.nx-md-badge[data-class=unlicensed]{color:#FF2D92;border-color:rgba(255,45,146,.4);background:rgba(255,45,146,.07)}
+.nx-md-badge[data-class=installed]{color:var(--accent);border-color:rgba(var(--accent-rgb),.4);background:rgba(var(--accent-rgb),.08)}
+.nx-md-badge[data-class=none]{color:var(--ink-3)}
+.nx-md-act{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end}
+@container (max-width:560px){.nx-md-row{grid-template-columns:56px minmax(0,1fr)}.nx-md-thumb{width:56px;height:42px}.nx-md-act{grid-column:1/-1;justify-content:flex-start}}
+.nx-md-link{color:var(--accent);overflow-wrap:anywhere;font:500 12px/1.5 var(--mono)}
+.nx-md-ok{display:flex;gap:10px;align-items:flex-start;font:500 13px/1.4 var(--sans);color:var(--ink-2)}
+.nx-md-ok input{margin-top:3px;width:18px;height:18px;flex:none;accent-color:var(--accent)}
+.nx-md-btns{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.nx-md-install{display:flex;flex-direction:column;gap:12px}
+.nx-md-card{width:min(640px,100%)}
+.nx-md-card--viewer{width:min(1100px,100%)}
+.nx-md-host{display:flex;flex-direction:column;gap:10px;min-width:0;position:relative}
+.nx-md-stage{position:relative;height:min(58vh,600px);min-height:240px;border-radius:var(--r-l);overflow:hidden;background:radial-gradient(circle at 50% 38%,rgba(255,255,255,.07),rgba(0,0,0,.34));border:1px solid var(--glass-line)}
+.nx-stagecard .nx-md-stage{flex:1;min-height:0;height:auto}
+body[data-layout=tablet-port] .nx-stagecard{left:calc(16px + var(--safe-l));right:calc(16px + var(--safe-r))}
+.nx-stagecard .nx-md-read{font-size:11px}
+.nx-stagecard .nx-md-tools .nx-seg button{min-height:34px}
+/* F04 (2026-10-19): on a phone the stage card is short (it sits between the job pill and the heat dials, 270 px on a 360 x 740 screen): the views and the Model button share a row and the
+   note is left out (the position capsule under the dials says "following the file" already), so the machine has the height instead of a 80 px strip. */
+body[data-layout=phone] .nx-stagecard .nx-md-tools{flex-wrap:nowrap}
+body[data-layout=phone] .nx-stagecard .nx-md-tools .nx-seg{flex:1 1 auto}
+body[data-layout=phone] .nx-stagecard .nx-md-tools>.nx-btn{flex:none;width:44px;padding:0;justify-content:center}
+body[data-layout=phone] .nx-stagecard .nx-md-tools>.nx-btn .nx-lbl{display:none}
+body[data-layout=phone] .nx-stagecard .nx-md-read{display:none}
+.nx-md-veil{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:16px}
+.nx-md-tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.nx-md-tools .nx-seg{flex:1 1 240px;min-width:0}
+.nx-md-chip{min-height:40px;padding:0 14px;border-radius:12px;border:1px solid var(--glass-line);background:rgba(0,0,0,.25);color:var(--ink-2);font:600 13px/1 var(--mono);cursor:pointer}
+.nx-md-chip[aria-pressed=true]{background:rgba(var(--accent-rgb),.14);color:var(--accent);border-color:rgba(var(--accent-rgb),.35)}
+.nx-md-read{font:500 12px/1.5 var(--mono);color:var(--ink-2);overflow-wrap:anywhere}
+.nx-md-read[data-stale=true]{color:var(--heat-warm)}
+.nx-md-tabs{margin-bottom:8px}
+.nx-md-cal{border:1px solid var(--glass-line);border-radius:var(--r-l);padding:12px 14px;background:rgba(255,255,255,.03);display:flex;flex-direction:column;gap:10px}
+.nx-md-cal>summary{cursor:pointer;font:600 14px/1.4 var(--sans);color:var(--ink-1)}
+.nx-md-cal[open]>summary{margin-bottom:8px}
+.nx-md-cal>*+*{margin-top:10px}
+.nx-md-axes{display:grid;gap:8px;container-type:inline-size}
+.nx-md-axis{display:grid;grid-template-columns:20px minmax(0,1fr) auto minmax(0,1.3fr);gap:8px;align-items:center}
+@container (max-width:520px){.nx-md-axis{grid-template-columns:20px minmax(0,1fr) auto}.nx-md-axis .nx-md-select{grid-column:2/-1}}
+.nx-md-match{display:flex;flex-direction:column;gap:10px}
+.nx-md-slider{display:grid;grid-template-columns:20px minmax(0,1fr) 76px;gap:10px;align-items:center;font:500 13px var(--mono);color:var(--ink-2)}
+.nx-md-slider input{width:100%;min-width:0;accent-color:var(--accent)}
+.nx-md-val{text-align:right}
+.nx-md-setting{display:flex;flex-direction:column;gap:10px}
+.nx-md-cur{font:600 15px/1.3 var(--sans);color:var(--ink-1);overflow-wrap:anywhere}
+/* ---- options: toolchangers, toolheads, add-ons (polish WO-01) ---- */
+.nx-md-pane{display:flex;flex-direction:column;gap:12px;min-width:0}
+.nx-md-pane[hidden]{display:none}
+.nx-md-files,.nx-md-fits,.nx-md-opts{display:flex;flex-direction:column;gap:6px;min-width:0}
+.nx-md-fits{gap:12px}
+.nx-md-file,.nx-md-opt{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;padding:8px 10px;border-radius:10px;border:1px solid var(--glass-line);background:rgba(255,255,255,.03)}
+.nx-md-fname{flex:1 1 180px;min-width:0;font:600 13px/1.3 var(--sans);color:var(--ink-1);overflow-wrap:anywhere}
+.nx-md-opt{justify-content:space-between}
+.nx-md-optname{display:flex;flex-direction:column;gap:6px;min-width:0;flex:1 1 220px}
+.nx-md-opt--pick{flex-direction:column;flex-wrap:nowrap;align-items:stretch;justify-content:flex-start}
+.nx-md-opt--pick .nx-md-optname{flex-direction:row;flex-wrap:wrap;align-items:center;flex:0 0 auto}
+.nx-md-bank{display:flex;flex-direction:column;gap:8px}
+.nx-md-bank[hidden]{display:none}
+.nx-md-docks{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));gap:8px}
+.nx-md-dock{display:flex;flex-direction:column;gap:4px;font:500 12px/1.3 var(--mono);color:var(--ink-3);min-width:0}
+.nx-md-dock small{font:500 12px/1.4 var(--sans);color:var(--ink-2);overflow-wrap:anywhere}
+.nx-md-scene,.nx-md-optbox{display:flex;flex-direction:column;gap:8px;min-width:0}
+
+/* ---- alerts (farm board WO-11): which events, ntfy, what was said lately ---- */
+.nx-alertpanel{display:flex;flex-direction:column;gap:10px}
+.nx-al-h{margin:10px 0 0;font:650 12px/1 var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
+.nx-al-events{display:flex;flex-direction:column;gap:6px}
+.nx-al-row{display:flex;gap:12px;align-items:flex-start;padding:10px 12px;border-radius:12px;border:1px solid var(--glass-line);background:rgba(255,255,255,.03);font:500 14px/1.4 var(--sans);color:var(--ink-1);cursor:pointer}
+.nx-al-row input{margin-top:2px;width:20px;height:20px;flex:none;accent-color:var(--accent)}
+.nx-al-recent{display:flex;flex-direction:column;gap:8px}
+.nx-al-line{display:grid;grid-template-columns:auto minmax(0,1fr);gap:2px 10px;font:500 12px/1.4 var(--mono);color:var(--ink-2)}
+.nx-al-line time{color:var(--ink-3)}
+.nx-al-line span{overflow-wrap:anywhere}
+.nx-al-line em{grid-column:2;font-style:normal;color:var(--ink-3)}
+/* WO-14 item 4: two small number fields side by side (bed width x depth) in printer settings */
+.nx-pairrow{display:flex;align-items:center;gap:8px}
+.nx-pairrow input{width:90px}
+
+/* ---- the farm's floor (2026-10-13): pop-ups, alarm feed, cameras, spools, analytics, backup ---- */
+.fl-pops{position:fixed;z-index:30;right:calc(16px + var(--safe-r));bottom:calc(16px + var(--safe-b));display:flex;flex-direction:column-reverse;gap:10px;width:min(400px,calc(100vw - 32px));pointer-events:none}
+.fl-pop{--sev:var(--accent);position:relative;display:grid;grid-template-columns:52px minmax(0,1fr) 36px;gap:12px;align-items:center;padding:12px 10px 12px 16px;border-radius:var(--r-l);pointer-events:auto;cursor:pointer;overflow:hidden;
+ animation:fl-pop-in .32s var(--ease);transition:opacity .22s,transform .22s;box-shadow:var(--shadow-2),0 0 0 1px color-mix(in srgb,var(--sev) 30%,transparent)}
+.fl-pop::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--sev);box-shadow:0 0 14px var(--sev)}
+.fl-pop[data-sev=alarm]{--sev:var(--alarm)}.fl-pop[data-sev=warn]{--sev:#FFD60A}.fl-pop[data-sev=ok]{--sev:var(--ok)}
+.fl-pop[data-out]{opacity:0;transform:translateX(24px)}
+.fl-pop:focus-visible{outline:2px solid var(--sev);outline-offset:2px}
+.fl-pop-pic{width:52px;height:52px;border-radius:12px;display:grid;place-items:center;overflow:hidden;background:radial-gradient(circle at 50% 35%,color-mix(in srgb,var(--sev) 22%,#1c2430),#0b0f14);border:1px solid var(--glass-line)}
+.fl-pop-pic img{width:100%;height:100%;object-fit:cover}
+.fl-pop-pic svg{width:24px;height:24px;color:var(--sev)}
+.fl-pop-text{min-width:0;display:flex;flex-direction:column;gap:4px}
+.fl-pop-top{display:flex;align-items:baseline;gap:8px;min-width:0}
+.fl-pop-top b{font:650 14px/1.2 var(--sans);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.fl-pop-top time{margin-left:auto;font:500 11px/1 var(--mono);color:var(--ink-3);white-space:nowrap}
+.fl-pop-kind{font:600 10px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--sev);white-space:nowrap}
+.fl-pop-text p{margin:0;font:500 13px/1.4 var(--sans);color:var(--ink-2);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.fl-pop-x{align-self:start}
+@keyframes fl-pop-in{from{opacity:0;transform:translateY(16px) scale(.98)}}
+/* F04 (2026-10-19): on a phone a pop-up sits below the printer page's top bar, not over its Stop button */
+@media (max-width:600px){.fl-pops{top:calc(var(--top,0px) + 10px + var(--safe-t));bottom:auto;right:16px;left:16px;width:auto;flex-direction:column}
+ @keyframes fl-pop-in{from{opacity:0;transform:translateY(-16px)}}}
+.fl-bell{position:relative}
+.fl-bell[data-unread]::after{content:attr(data-count);position:absolute;top:-6px;right:-6px;min-width:20px;height:20px;padding:0 5px;border-radius:10px;background:var(--alarm);color:#fff;font:700 11px/20px var(--mono);text-align:center;box-shadow:0 0 12px rgba(255,45,146,.6)}
+
+.fl-filter{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px}
+.fl-seg{flex:none}
+.fl-filter .fl-seg{flex:1 1 320px}
+.fl-who{flex:0 1 200px;height:44px}
+.fl-feed{display:flex;flex-direction:column;gap:6px}
+.fl-day{margin:14px 0 4px;font:600 11px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)}
+.fl-row{--sev:var(--accent);display:grid;grid-template-columns:8px 20px minmax(0,1fr) auto;gap:12px;align-items:center;width:100%;padding:12px 14px;border-radius:var(--r-m);border:1px solid var(--glass-line);background:rgba(255,255,255,.025);color:var(--ink-1);text-align:left;font:inherit;cursor:pointer;transition:background var(--t-hover)}
+.fl-row:hover:not(:disabled){background:rgba(255,255,255,.06)}
+.fl-row:disabled{cursor:default}
+.fl-row[data-sev=alarm]{--sev:var(--alarm);border-color:rgba(255,45,146,.35)}.fl-row[data-sev=warn]{--sev:#FFD60A}.fl-row[data-sev=ok]{--sev:var(--ok)}
+.fl-dot{width:8px;height:8px;border-radius:50%;background:var(--sev);box-shadow:0 0 8px var(--sev)}
+.fl-row svg.nx-ico{width:20px;height:20px;color:var(--sev)}
+.fl-row-text{min-width:0;display:flex;flex-direction:column;gap:3px}
+.fl-row-top{display:flex;flex-wrap:wrap;gap:2px 8px;align-items:baseline;min-width:0}
+/* F04 (2026-10-19): the printer's name wraps (the kind of alarm moves under it) instead of being cut at 360 px: "Micron+ …" */
+.fl-row-top b{font:650 14px/1.2 var(--sans);overflow-wrap:anywhere}
+.fl-row-text>span{font:500 13px/1.4 var(--sans);color:var(--ink-2)}
+.fl-row time{font:500 12px/1 var(--mono);color:var(--ink-3);white-space:nowrap}
+.fl-empty{padding:28px 8px;text-align:center;font:500 14px/1.5 var(--sans);color:var(--ink-2)}
+
+.fl-more{display:flex;flex-direction:column;gap:10px}
+.fl-more-row{display:grid;grid-template-columns:minmax(150px,auto) minmax(0,1fr);gap:14px;align-items:center}
+.fl-more-row .nx-btn{justify-content:flex-start}
+.fl-more-row small{font:500 13px/1.4 var(--sans);color:var(--ink-2)}
+.fl-more-row:has(>.nx-btn[hidden]){display:none}
+@media (max-width:600px){.fl-more-row{grid-template-columns:1fr;gap:4px}}
+
+/* cameras: every camera on one screen, sized by count */
+body[data-cams]{overflow:hidden}
+.fl-cams{position:fixed;inset:0;z-index:20;display:flex;flex-direction:column;gap:12px;background:#05070A;
+ padding:calc(var(--safe-t) + 12px) calc(var(--safe-r) + 16px) calc(var(--safe-b) + 16px) calc(var(--safe-l) + 16px)}
+.fl-cams-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 10px 8px 14px;border-radius:var(--r-l)}
+.fl-cams-title{display:flex;align-items:center;gap:12px}
+.fl-cams-title svg{width:26px;height:26px;color:var(--accent)}
+.fl-cams-title b{font:700 15px/1 var(--sans);letter-spacing:.3em}
+.fl-cams-title small{font:500 11px/1 var(--mono);letter-spacing:.1em;color:var(--ink-3);white-space:nowrap}
+@media (max-width:420px){.fl-cams-title small{display:none}}   /* F04: the count is the number of pictures below; at 360 px it pushed the Close button out of its place */
+.fl-cams-grid{flex:1;min-height:0;display:grid;gap:12px;grid-template-columns:repeat(var(--cols,2),minmax(0,1fr))}
+.fl-cams-grid[data-fill="1"]{grid-template-rows:repeat(var(--rows,1),minmax(0,1fr))}
+.fl-cams-grid[data-fill="0"]{overflow:auto;grid-auto-rows:minmax(220px,auto)}
+.fl-cam{--c:var(--accent);position:relative;min-height:0;padding:0;border:1px solid var(--glass-line);border-radius:var(--r-l);overflow:hidden;background:#0A0E13;cursor:pointer;color:var(--ink-1);font:inherit;text-align:left}
+.fl-cam[hidden]{display:none}
+.fl-cam img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+.fl-cam:not([data-ok]) img{opacity:0}
+.fl-cam[data-state=offline] img{filter:grayscale(1) brightness(.5)}
+.fl-cam::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--c);z-index:2}
+.fl-cam-over{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:space-between;padding:12px;background:linear-gradient(to bottom,rgba(5,7,10,.72),transparent 28%,transparent 62%,rgba(5,7,10,.82));pointer-events:none}
+.fl-cam-top,.fl-cam-bottom{display:flex;align-items:center;gap:10px;min-width:0}
+.fl-cam-dot{width:9px;height:9px;border-radius:50%;background:var(--c);box-shadow:0 0 10px var(--c);flex:none}
+/* F04 (2026-10-19): the printer's name may take two lines beside the state pill ("Adventurer 5M (FlashFor…" at 390 px) */
+.fl-cam-top{align-items:flex-start}
+.fl-cam-top b{font:650 16px/1.2 var(--sans);min-width:0;overflow-wrap:anywhere;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+.fl-cam-top .fl-cam-dot{margin-top:5px}
+.fl-cam-state{margin-left:auto;padding:5px 10px;border-radius:10px;background:rgba(7,9,12,.66);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);font:600 11px/1 var(--mono);letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
+.fl-cam[data-state=printing] .fl-cam-state,.fl-cam[data-state=heating] .fl-cam-state{color:var(--heat-warm)}
+.fl-cam[data-state=error] .fl-cam-state{color:var(--alarm)}
+.fl-cam[data-state=idle] .fl-cam-state,.fl-cam[data-state=finished] .fl-cam-state{color:var(--ok)}
+.fl-cam[data-live] .fl-cam-state::before{content:"";display:inline-block;width:7px;height:7px;margin-right:7px;border-radius:50%;background:var(--alarm);box-shadow:0 0 8px var(--alarm);vertical-align:0}
+.fl-cam-file{font:500 13px/1.3 var(--sans);color:var(--ink-1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:1}
+.fl-cam-pct{font:600 22px/1 var(--mono);font-variant-numeric:tabular-nums}
+.fl-cam-temps{font:500 12px/1 var(--mono);color:var(--ink-2);white-space:nowrap}
+.fl-cam-bar{position:absolute;left:0;bottom:0;height:3px;width:calc(var(--p,0) * 100%);background:linear-gradient(90deg,var(--heat),var(--heat-warm));z-index:2}
+@media (min-width:601px){.fl-cams-grid[data-n="3"]{grid-template-columns:2fr 1fr;grid-template-rows:1fr 1fr}.fl-cams-grid[data-n="3"]>.fl-cam:first-child{grid-row:span 2}}
+.fl-cams[data-solo] .fl-cam-pct{font-size:clamp(28px,4vw,48px)}
+.fl-cams[data-solo] .fl-cam-top b{font-size:clamp(18px,2vw,26px)}
+.fl-cams[data-solo] .fl-cam img{object-fit:contain;background:#000}
+@media (max-width:600px){.fl-cams-grid{grid-auto-rows:minmax(200px,auto)}.fl-cam-temps{display:none}}
+
+/* spools */
+.fl-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:16px}
+.fl-stat{display:flex;flex-direction:column;gap:6px;padding:14px 16px;border-radius:var(--r-m);border:1px solid var(--glass-line);background:rgba(255,255,255,.03)}
+.fl-stat b{font:600 24px/1 var(--mono);font-variant-numeric:tabular-nums}
+.fl-stat span{font:600 11px/1 var(--sans);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3)}
+.fl-stat[data-tone=warn] b{color:#FFD60A}.fl-stat[data-tone=ok] b{color:var(--ok)}
+.fl-spool-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
+.fl-spool{--sc:#9AA4B2;position:relative;display:grid;grid-template-columns:96px minmax(0,1fr);gap:14px;align-items:center;padding:14px;border-radius:var(--r-l)}
+.fl-spool[data-low]{border-color:rgba(255,214,10,.45)}
+.fl-spool-ring{--f:1;outline:1px solid rgba(255,255,255,.08);outline-offset:-1px;width:96px;height:96px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+ background:radial-gradient(circle,#0B0F14 54%,transparent 55%),conic-gradient(color-mix(in srgb,var(--sc) 82%,#fff) calc(var(--f) * 360deg),rgba(255,255,255,.08) 0);box-shadow:0 0 22px color-mix(in srgb,var(--sc) 30%,transparent)}
+.fl-spool-ring b{font:600 16px/1 var(--mono)}
+.fl-spool-ring small{font:500 10px/1 var(--mono);color:var(--ink-3)}
+.fl-spool-info{min-width:0;display:flex;flex-direction:column;gap:4px}
+.fl-spool-info b{font:650 15px/1.2 var(--sans)}
+.fl-spool-info span{font:500 13px/1.3 var(--sans);color:var(--ink-2);min-height:1em}
+.fl-spool-info small{font:500 12px/1.3 var(--mono);color:var(--ink-3)}
+.fl-spool-low{position:absolute;top:12px;right:12px;padding:4px 8px;border-radius:8px;font:700 10px/1 var(--mono);letter-spacing:.1em;color:#FFD60A;border:1px solid rgba(255,214,10,.45);background:rgba(255,214,10,.08)}
+.fl-spool-act{grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.fl-spool-act select.nx-input{flex:1 1 110px;height:44px;min-width:0}
+@media (max-width:600px){.fl-spool-act select.nx-input{flex-basis:100%}}   /* F04: on a phone the printer's name has the whole row ("Voron 2.4 35") */
+.fl-form{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;align-items:end}
+.fl-field{display:flex;flex-direction:column;gap:6px;min-width:0}
+.fl-field span{font:600 11px/1 var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);min-height:11px}
+.fl-field .nx-input{height:44px}
+.fl-colour{width:100%;height:44px;border-radius:14px;border:1px solid var(--glass-line);background:rgba(0,0,0,.3);padding:4px;cursor:pointer}
+.fl-inline{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.fl-inline .nx-input{flex:1 1 140px;height:44px;min-width:0}
+.fl-basis{margin-top:14px}
+.fm-spool{--sc:#9AA4B2;display:inline-flex;align-items:center;gap:7px;margin-left:auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.fm-spool::before{content:"";width:10px;height:10px;border-radius:50%;background:var(--sc);box-shadow:0 0 0 1px rgba(255,255,255,.35),0 0 8px var(--sc);flex:none}
+.fm-spool[data-low]{color:#FFD60A}
+
+/* analytics */
+.fl-an{display:flex;flex-direction:column;gap:14px;margin-top:14px}
+.fl-an .fl-stats{margin:0}
+.fl-chart{margin:0;padding:14px 16px;border-radius:var(--r-l)}
+.fl-chart figcaption{font:600 11px/1 var(--sans);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);margin-bottom:10px}
+.fl-chart-plot{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;height:150px}
+.fl-chart svg{width:100%;height:100%;display:block}
+.fl-chart rect{fill:var(--accent);opacity:.85}
+.fl-chart rect:hover{opacity:1;fill:var(--accent-hi)}
+.fl-chart-scale{display:flex;flex-direction:column;justify-content:space-between;font:500 11px/1 var(--mono);color:var(--ink-3)}
+.fl-table-wrap{overflow-x:auto;border-radius:var(--r-m);border:1px solid var(--glass-line)}
+/* F04 (2026-10-19): the table fits a 1024 px window's sheet (it was 880 px wide and the Cost column was cut at the edge; a phone gets cards, below) */
+.fl-table{display:flex;flex-direction:column;min-width:700px}
+.fl-tr{--c:var(--accent);display:grid;grid-template-columns:minmax(110px,1.6fr) repeat(5,minmax(50px,.7fr)) minmax(90px,1.1fr) repeat(2,minmax(58px,.8fr));gap:10px;align-items:center;padding:12px 14px;border-top:1px solid var(--glass-line);font:500 13px/1.2 var(--mono);font-variant-numeric:tabular-nums}
+.fl-th{border-top:0;font:600 10.5px/1 var(--sans);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);background:rgba(255,255,255,.03)}
+.fl-td-name{display:flex;align-items:center;gap:9px;min-width:0}
+.fl-td-name b{font:600 14px/1.2 var(--sans);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fl-td-bar{display:flex;align-items:center;gap:8px}
+.fl-td-bar i{flex:1;height:6px;border-radius:3px;background:linear-gradient(90deg,var(--c) calc(var(--p,0) * 100%),rgba(255,255,255,.08) 0)}
+.fl-td-bar em{font-style:normal;min-width:36px;text-align:right}
+/* F04 (2026-10-19): on a phone the table is one card per printer, its figures labelled, not a wide table cut at the sheet's edge */
+@media (max-width:600px){
+ .fl-table-wrap{overflow:visible;border:0;border-radius:0}
+ .fl-table{min-width:0;gap:10px}
+ .fl-th{display:none}
+ .fl-tr{grid-template-columns:repeat(3,minmax(0,1fr));gap:12px 8px;padding:12px 14px;border:1px solid var(--glass-line);border-radius:var(--r-m);background:rgba(255,255,255,.025)}
+ .fl-tr>.fl-td-name{grid-column:1/-1}
+ .fl-tr>span[data-l]{display:flex;flex-direction:column;align-items:stretch;gap:5px;min-width:0}
+ .fl-tr>span[data-l]::before{content:attr(data-l);font:600 10px/1 var(--sans);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3)}
+ .fl-tr>.fl-td-bar{gap:5px}.fl-tr>.fl-td-bar i{flex:none;width:100%}.fl-tr>.fl-td-bar em{text-align:left;min-width:0}
+}
+.nx-al-hook{display:grid;grid-template-columns:72px minmax(0,1fr) auto auto;gap:10px;align-items:center;margin-bottom:10px}
+.nx-al-hook b{font:600 14px/1 var(--sans)}
+@media (max-width:600px){.nx-al-hook{grid-template-columns:1fr 1fr}.nx-al-hook b,.nx-al-hook .nx-input{grid-column:1/-1}}
+
+.fl-slicer{display:flex;flex-direction:column;gap:12px}
+.fl-keyrow{display:grid;grid-template-columns:96px minmax(0,1fr) auto;gap:10px;align-items:center;padding:10px 12px;border-radius:var(--r-m);border:1px solid var(--glass-line);background:rgba(255,255,255,.03)}
+.fl-keyrow span{font:600 11px/1 var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3)}
+.fl-keyrow code{font:500 14px/1.3 var(--mono);color:var(--ink-1);overflow-wrap:anywhere;user-select:all}
+@media (max-width:600px){.fl-keyrow{grid-template-columns:1fr auto}.fl-keyrow span{grid-column:1/-1}}
+/* F04 (2026-10-19): on a phone the Copy button is the icon alone, so the address and the key have the room (the address broke in two: "127.0.0.1:74 / 24") */
+@media (max-width:600px){.fl-keyrow .nx-btn{width:44px;padding:0;justify-content:center}.fl-keyrow .nx-btn .nx-lbl{display:none}}
+.nx-plug-found{display:flex;flex-direction:column;gap:8px;margin-top:8px}
+
+/* ---------- getting the 3D models (polish WO-03, 2026-10-18) ---------- */
+.nx-gm-bar{flex:1 1 100%;height:6px;border-radius:3px;background:linear-gradient(90deg,var(--accent) calc(var(--p)*100%),rgba(255,255,255,.1) 0);transition:background .4s}
+.nx-gm-list{display:flex;flex-direction:column;gap:6px;margin:10px 0;max-height:min(46vh,420px);overflow:auto}
+.nx-gm-row{display:grid;grid-template-columns:1fr auto;gap:2px 10px;align-items:center;padding:8px 10px;border-radius:10px;background:rgba(255,255,255,.04)}
+.nx-gm-row b{font:600 14px/1.3 var(--sans);color:var(--ink-1)}
+.nx-gm-row small{grid-column:1/-1;font:500 12px/1.3 var(--mono);color:var(--ink-3);overflow-wrap:anywhere}
+.nx-gm-notice{margin:10px 0;padding:10px 12px;border-radius:10px;background:rgba(255,255,255,.04);font:500 12px/1.5 var(--mono);color:var(--ink-2);white-space:pre-wrap;overflow-wrap:anywhere;max-height:min(46vh,380px);overflow:auto}
+/* F03 (2026-10-19): what is happening to a wall tile's 3D model. A strip along the bottom of the tile's picture: getting it (its own percentage and bar),
+   waiting for its turn, failed in plain words with Try again (orange: it needs a press), or not asked for yet. The demo card's licence line sits above its button. */
+.fm-mdl{position:absolute;left:12px;right:12px;top:50%;transform:translateY(-50%);z-index:5;display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;padding:8px 10px;border-radius:10px;background:rgba(7,9,12,.86);border:1px solid rgba(255,255,255,.14)}
+.fm-mdl[hidden]{display:none}
+.fm-mdl[data-state=failed],.fm-mdl[data-state=hand]{border-color:rgba(255,106,0,.55)}
+.fm-mdl-t{flex:1 1 150px;min-width:0;font:600 12px/1.35 var(--sans);color:var(--ink-1)}
+.fm-mdl .fm-mdl-bar{flex:1 1 100%;height:5px}
+.fm-mdl .nx-btn{flex:0 0 auto;min-height:32px}
+.fm-grid:not([data-size=s]) .fm-media:has(>.fm-mdl:not([hidden])) .fm-nocam{display:none}
+.fm-grid[data-size=s] .fm-mdl{display:none}   /* a small tile has no 3D picture to wait for: the banner says what is happening */
+.fm-democard .fm-democard-lic{max-width:52ch;font:500 12.5px/1.5 var(--sans);color:var(--ink-3)}
+.nx-demo-lic{color:var(--ink-3);font-size:12.5px;line-height:1.5}
+/* A narrow phone (360 wide): the position capsule with its source label stays inside the screen. */
+@media (max-width:380px){body[data-layout=phone] .nx-pos{gap:8px;padding:0 10px}body[data-layout=phone] .nx-axis{gap:4px}body[data-layout=phone] .nx-pos-src span{font-size:11px}}
+/* ---- polish WO-05 (2026-10-18): choosing a printer's model. A choice that reads in full (a native select clips a long label on a phone),
+   the machine named in the model dialog, the files step, the calibration's quick row. ---- */
+.nx-choice{position:relative;min-width:0}
+.nx-choice-btn{width:100%;min-height:44px;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 12px;border-radius:12px;border:1px solid var(--glass-line);background:rgba(0,0,0,.3);color:var(--ink-1);font:600 13px/1.35 var(--sans);text-align:left;cursor:pointer}
+.nx-choice-btn:focus-visible,.nx-choice-opt:focus-visible{outline:2px solid var(--accent);outline-offset:0}
+.nx-choice-text{flex:1;min-width:0;overflow-wrap:anywhere}
+.nx-choice-caret{flex:none;width:14px;height:14px;opacity:.7;transition:transform .15s}
+.nx-choice-btn[aria-expanded=true] .nx-choice-caret{transform:rotate(180deg)}
+.nx-choice-list{display:flex;flex-direction:column;gap:2px;margin-top:6px;max-height:min(40vh,320px);overflow:auto;padding:4px;border-radius:12px;border:1px solid var(--glass-line);background:rgba(0,0,0,.34)}
+.nx-choice-list[hidden]{display:none}
+.nx-choice-opt{min-height:40px;padding:8px 10px;border-radius:9px;border:0;background:transparent;color:var(--ink-2);font:500 13px/1.35 var(--sans);text-align:left;cursor:pointer;overflow-wrap:anywhere}
+.nx-choice-opt:hover{background:rgba(255,255,255,.06)}
+.nx-choice-opt[aria-selected=true]{background:rgba(var(--accent-rgb),.14);color:var(--accent)}
+.nx-md-machine{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;justify-content:space-between;padding:10px 12px;border-radius:var(--r-l);border:1px solid var(--glass-line);background:rgba(255,255,255,.03)}
+.nx-md-machine .nx-md-mid{flex:1 1 220px}
+.nx-md-row--fit{grid-template-columns:72px minmax(0,1fr)}
+.nx-md-row--none{grid-template-columns:72px minmax(0,1fr)}
+.nx-fm-prusa{display:flex;flex-direction:column;gap:8px}
+.nx-gm-row--about{display:flex;flex-direction:column;align-items:flex-start;gap:6px}
+.nx-gm-row .nx-md-link{overflow-wrap:anywhere;font:500 12px/1.3 var(--mono)}
+.nx-md-folder{display:flex;flex-direction:column;gap:8px}
+.nx-md-folder[hidden]{display:none}
+.nx-md-hand{border-top:1px solid var(--glass-line);padding-top:10px}
+.nx-md-hand>summary{cursor:pointer;font:600 13px/1.4 var(--sans);color:var(--ink-2)}
+.nx-md-hand[open]>summary{margin-bottom:8px}
+.nx-md-hand>*+*{margin-top:10px}
+.nx-md-opts .nx-md-opt--pick{margin-bottom:6px}
+@container (max-width:520px){.nx-md-axis .nx-choice{grid-column:2/-1}}
+.nx-md-empty{flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;padding:16px}
+.nx-md-empty>b{font:650 16px/1.3 var(--sans);color:var(--ink-1)}
+.nx-md-empty .nx-note{max-width:46ch}
+.nx-md-empty .nx-btn{width:auto}
+@media (max-width:600px){.nx-md-install .nx-md-btns .nx-btn{flex:1 1 100%}}
+/* while the model's nozzle is being slid to the printer's, the picture stays in view above the sliders (a phone scrolls the dialog) */
+.nx-md-matching .nx-md-stage{position:sticky;top:0;z-index:3;height:min(34vh,300px);min-height:180px;background:radial-gradient(circle at 50% 38%,rgba(255,255,255,.07),rgba(0,0,0,.34)),#0b1013}
+
+/* F06 (2026-10-19): the page of a printer that is not on the farm (removed, or an old link). */
+.nx-gone{position:relative;z-index:2;max-width:460px;margin:18vh auto 0;padding:28px;display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center}
+.nx-gone h2{margin:0;font-size:22px;font-weight:600;line-height:1.25}
+/* F06 (2026-10-19): the ask to read a PrusaLink file's settings spans the settings list, instead of squeezing its button beside the words. */
+.nx-specs .nx-file-read{grid-column:1/-1;display:flex;flex-direction:column;align-items:stretch;gap:10px}
+
+/* ================= U02 (2026-10-20, UI board): the printer page on the LED controls =================
+   The gauges are the kit's controls (next-control.css). They fold down into ONE bottom bar that holds the position, this state's
+   square keys and a Gauges key. The machine (or the camera) is the whole background; one click grows it. Over the camera the glass is light. */
+body{--barh:78px;--dockzone:calc(var(--barh) + var(--edge) + 22px)}
+#nx-gauges{display:contents}
+/* PC: heat on the left, speed, flow and the fans on the right; the size follows the window's height so two columns of three always fit */
+.nx-cluster .nxctl{--nxctl-size:clamp(104px,calc((100vh - 300px) / 3.2),212px)}
+.nx-cluster{gap:14px}
+#nx-right{display:grid;grid-template-columns:repeat(2,auto);gap:14px 12px;justify-items:center}
+#nx-right .nx-fans{display:contents}
+/* the bar */
+.nx-dock{left:50%;bottom:calc(var(--edge) + var(--safe-b));transform:translateX(-50%);display:flex;align-items:stretch;gap:16px;padding:8px 10px;border-radius:14px;
+ max-width:calc(100vw - 32px - var(--safe-l) - var(--safe-r))}
+.nx-dock .nx-pos{position:static;transform:none;height:auto;min-height:64px;padding:0 18px 0 10px;border-radius:0;background:none;border:0;border-right:1px solid var(--glass-line);box-shadow:none;
+ -webkit-backdrop-filter:none;backdrop-filter:none;gap:20px;flex:none}
+.nx-keyrow{display:flex;align-items:center;gap:10px;flex:1 1 auto;min-width:0}
+.nx-keys{display:flex;align-items:center;gap:10px;min-width:0;flex:1 1 auto}
+.nx-keygroup{display:flex;align-items:center;gap:6px;flex:1 1 auto}
+.nx-keyrow .nxkey{flex:1 1 0;flex-direction:column;gap:5px;min-width:60px;max-width:84px;height:64px;padding:6px 6px}
+.nx-keyrow .nxkey .nx-lbl{font:600 10.5px/1.1 var(--sans);letter-spacing:.07em;text-transform:uppercase;text-align:center;white-space:nowrap}
+.nx-keyrow .nxkey svg.nx-ico{width:26px;height:26px}
+.nxkey[data-kind=primary]{color:var(--accent-ink);border-color:rgba(var(--accent-hi-rgb),.55);background:linear-gradient(180deg,var(--accent-hi),var(--accent) 55%,var(--accent-lo));
+ box-shadow:inset 0 1px 0 rgba(255,255,255,.5),0 3px 0 var(--accent-lo),0 6px 20px rgba(var(--accent-rgb),.3)}
+.nxkey[data-kind=primary] .nx-lbl{color:var(--accent-ink)}
+.nxkey[data-kind=primary]:active{box-shadow:inset 0 2px 6px rgba(0,0,0,.3)}
+.nxkey[data-kind=danger]{color:var(--alarm);border-color:rgba(255,45,146,.4);background:linear-gradient(180deg,rgba(255,45,146,.13),rgba(255,45,146,.03))}
+.nxkey[data-kind=danger] .nx-lbl{color:#FF8CC4}
+.nxkey[data-showing]{color:var(--accent);background:rgba(var(--accent-rgb),.12);transform:translateY(3px);box-shadow:inset 0 0 0 1px rgba(var(--accent-rgb),.45),0 0 18px rgba(var(--accent-rgb),.18)}
+.nxkey[data-showing] .nx-lbl{color:var(--accent)}
+.nxkey[data-busy]{pointer-events:none}
+.nxkey[data-busy] svg.nx-ico{opacity:0}
+.nxkey[data-busy]::before{content:"";position:absolute;top:calc(50% - 20px);left:calc(50% - 11px);width:22px;height:22px;border-radius:50%;border:2px solid rgba(255,255,255,.18);border-top-color:var(--accent);animation:nx-spin .8s linear infinite}
+.nxkey[data-hold]{--hold:0}
+.nxkey[data-hold] .nx-hold{position:absolute;inset:-3px;pointer-events:none;background:conic-gradient(var(--alarm) calc(var(--hold) * 360deg),transparent 0);
+ -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;padding:3px;opacity:calc(var(--hold) * 1.4)}
+.nxkey[data-attention]::after{content:"";position:absolute;inset:-4px;border:2px solid var(--accent);opacity:0;animation:nx-attn 2.4s var(--ease) infinite;pointer-events:none}
+.nx-keys .nxkey{animation:nx-slot-in var(--t-sheet) var(--ease) both}
+.nx-dock[data-msg] .nx-keys{justify-content:center}
+.nx-bar-mini{display:none;align-items:center;gap:18px;padding:0 6px;font:600 11px/1 var(--sans);letter-spacing:.12em;color:var(--ink-3)}
+.nx-bar-mini span{display:flex;flex-direction:column;gap:5px}
+.nx-bar-mini b{font:600 15px/1 var(--mono);letter-spacing:0;color:var(--ink-1)}
+body[data-gauges=folded] .nx-bar-mini{display:flex}
+/* a gauge that is folded flies to the middle of the bar (the offset is measured open, placeFold in next.js) and is gone from the screen and from the tab order */
+#nx-left,#nx-right,#nx-gauges{transition:transform .55s var(--ease),opacity .4s var(--ease),visibility 0s}
+body[data-gauges=folded] #nx-left,body[data-gauges=folded] #nx-right{transform:translateY(-50%) translate(var(--fx,0px),var(--fy,0px)) scale(.12);opacity:0;visibility:hidden;pointer-events:none;transition:transform .55s var(--ease),opacity .4s .12s var(--ease),visibility 0s .55s}
+body[data-gauges=folded] #nx-gauges{transform:translate(var(--fx,0px),var(--fy,0px)) scale(.12);opacity:0;visibility:hidden;pointer-events:none;transition:transform .55s var(--ease),opacity .4s .12s var(--ease),visibility 0s .55s}
+body.nx-still *,body.nx-still *::before,body.nx-still *::after{transition:none!important}
+/* a gauge that is held rises above the dim; the dim sits inside the page so only the page behind it is dimmed */
+.nx-cluster:has(.nxctl.live),#nx-gauges:has(.nxctl.live){z-index:41}
+#nx-ui>#nxctl-dim{position:absolute}
+/* the way back to the farm */
+#nx-back{flex:none;height:44px;min-height:44px;padding:0 14px 0 10px;gap:8px}
+#nx-back .nx-lbl{font:600 11px/1.15 var(--sans);letter-spacing:.07em;text-transform:uppercase;white-space:nowrap}
+body:not([data-layout=phone]) #nx-back .nx-lbl{white-space:normal;width:6.4em;text-align:left}
+/* the stage: the camera picture is the whole background; the model of a catalogue machine fills it too */
+#nx-bgcam{position:fixed;inset:0;z-index:1;overflow:hidden;background:#05070a;touch-action:none;cursor:grab}
+#nx-bgcam .nx-bgcam-z{position:absolute;inset:0;transform:translate(var(--px,0px),var(--py,0px)) scale(calc(var(--z,1) * var(--g,1)));transition:transform .5s var(--ease)}
+#nx-bgcam .nx-bgcam-z[data-drag]{transition:none}
+body[data-grown] #nx-bgcam .nx-bgcam-z{--g:1.3}
+#nx-bgcam .nx-cam-img{position:absolute;inset:0;width:100%;height:100%;min-height:0;border:0;border-radius:0;object-fit:cover;pointer-events:none;user-select:none;-webkit-user-drag:none}
+body[data-bg=camera] #nx-scene,body[data-bg=camera] .nx-stagecard,body[data-bg=camera] #nx-backdrop,body[data-bg=camera] #nx-loading{visibility:hidden}
+.nx-stagecard{position:absolute;inset:0;z-index:-1;padding:0;border-radius:0;background:none;border:0;box-shadow:none;-webkit-backdrop-filter:none;backdrop-filter:none}
+body:not([data-layout=phone]) .nx-stagecard,body[data-layout=phone] .nx-stagecard,body[data-layout=tablet-port] .nx-stagecard{left:0;right:0;top:0;bottom:0}
+.nx-stagecard .nx-md-stage{transition:transform .5s var(--ease)}
+body[data-grown] .nx-stagecard .nx-md-stage{transform:scale(1.28)}
+/* grown: everything but the state chip and STOP falls away */
+#nx-ui>*,#nx-top>*,.nx-top-right>*{transition:opacity .35s var(--ease),visibility 0s}
+body[data-grown] #nx-ui>*:not(#nx-top):not(.nx-stagecard),body[data-grown] #nx-top>*:not(.nx-top-right),body[data-grown] .nx-top-right>*:not(#nx-state):not(#nx-estop){opacity:0;visibility:hidden;pointer-events:none;transition:opacity .35s var(--ease),visibility 0s .35s}
+body[data-grown] #nx-ui::before,body[data-grown] #nx-ui::after{opacity:0}
+#nx-ui::before,#nx-ui::after{transition:opacity .4s}
+.nx-grown-hint{position:fixed;left:50%;bottom:calc(18px + var(--safe-b));transform:translateX(-50%);z-index:3;max-width:calc(100vw - 32px);text-align:center;padding:9px 16px;border:1px solid var(--glass-line);
+ background:var(--glass-1);-webkit-backdrop-filter:var(--blur-1);backdrop-filter:var(--blur-1);font:600 10.5px/1.4 var(--mono);letter-spacing:.12em;color:var(--ink-2);opacity:0;pointer-events:none;transition:opacity .4s var(--ease)}
+body[data-grown] .nx-grown-hint{opacity:1;transition-delay:.45s}
+/* over the camera the glass is light: frosted white, dark text, so the picture stays bright (2026-10-20) */
+body[data-bg=camera]{--glass-1:rgba(255,255,255,.7);--glass-2:rgba(255,255,255,.84);--glass-edge:rgba(255,255,255,.8);--glass-line:rgba(14,19,25,.16);
+ --ink-1:#0E1319;--ink-2:#26313C;--ink-3:#44505C;--neutral-arc:rgba(14,19,25,.2);--accent-ink:#031A17;color-scheme:light}
+body[data-bg=camera] #nx-ui::before,body[data-bg=camera] #nx-ui::after{background:none}
+body[data-bg=camera] .nx-glass,body[data-bg=camera] .nx-glass--raised{background:var(--glass-1);box-shadow:0 8px 26px rgba(14,19,25,.16),inset 0 1px 0 rgba(255,255,255,.9)}
+body[data-bg=camera] .nxkey{background:linear-gradient(180deg,#FFFFFF,#E7EDF0);border-color:rgba(14,19,25,.2);box-shadow:inset 0 1px 0 #fff,0 3px 0 rgba(14,19,25,.22),0 6px 12px rgba(14,19,25,.14)}
+body[data-bg=camera] .nxkey[data-kind=primary]{background:linear-gradient(180deg,var(--accent-hi),var(--accent) 55%,var(--accent-lo));border-color:rgba(2,165,150,.6)}
+body[data-bg=camera] .nxkey[data-kind=danger]{background:linear-gradient(180deg,#FFE3F0,#FFC9E2);border-color:rgba(214,20,120,.45);color:#B80F62}
+body[data-bg=camera] .nxkey[data-kind=danger] .nx-lbl{color:#B80F62}
+body[data-bg=camera] .nxkey[aria-pressed=true]{background:linear-gradient(180deg,var(--accent-hi),var(--accent));color:var(--accent-ink)}
+body[data-bg=camera] .nx-btn{border-color:var(--glass-line)}
+body[data-bg=camera] .nx-btn[data-kind=default],body[data-bg=camera] .nx-btn:not([data-kind]){background:linear-gradient(180deg,rgba(255,255,255,.9),rgba(235,240,243,.7))}
+body[data-bg=camera] .nx-pos-x[data-state=ok] span{color:#0B8F46}
+body[data-bg=camera] .nx-axis[data-homed] b{color:#0B8F46}
+body[data-bg=camera] .nx-pos-src span{color:#B24A00}
+body[data-bg=camera] .nx-state-label,body[data-bg=camera] .nx-id-text b,body[data-bg=camera] .nx-job-title{color:var(--ink-1)}
+body[data-bg=camera] .nx-rail .nx-btn[data-size=icon]{background:none}
+/* phone and the tablet held upright: the same parts at a smaller size. The gauges are one bank, four across, over the bottom of the scene, above the one bar (position on top, keys under it) */
+body:is([data-layout=phone],[data-layout=tablet-port]){--barh:124px}
+body:is([data-layout=phone],[data-layout=tablet-port]) #nx-scene{top:0;height:100%}
+body:is([data-layout=phone],[data-layout=tablet-port]) #nx-gauges{position:absolute;left:0;right:0;bottom:calc(var(--edge) + var(--safe-b) + var(--barh) + 12px);display:grid;grid-template-columns:repeat(4,1fr);justify-items:center;row-gap:12px;padding:0 8px}
+body:is([data-layout=phone],[data-layout=tablet-port]) :is(#nx-left,#nx-right,.nx-fans){display:contents}
+body:is([data-layout=phone],[data-layout=tablet-port]) .nx-cluster .nxctl{--nxctl-size:clamp(64px,calc((100vw - 24px) / 4),104px)}
+body:is([data-layout=phone],[data-layout=tablet-port]) .nx-dock{left:calc(8px + var(--safe-l));right:calc(8px + var(--safe-r));transform:none;flex-direction:column;gap:6px;padding:8px;max-width:none}
+body:is([data-layout=phone],[data-layout=tablet-port]) .nx-dock .nx-pos{min-height:0;height:auto;padding:0 4px 8px;border-right:0;border-bottom:1px solid var(--glass-line);justify-content:center;gap:14px}
+body:is([data-layout=phone],[data-layout=tablet-port]) .nx-keyrow{width:100%}
+body:is([data-layout=phone],[data-layout=tablet-port]) .nx-keyrow .nxkey{min-width:0;max-width:none;height:56px;padding:5px 1px;gap:4px}
+body:is([data-layout=phone],[data-layout=tablet-port]) .nx-keyrow .nxkey .nx-lbl{font-size:9.5px;letter-spacing:.03em}
+body:is([data-layout=phone],[data-layout=tablet-port]) .nx-keygroup{gap:4px}
+body:is([data-layout=phone],[data-layout=tablet-port]) .nx-keys{gap:4px}
+body:is([data-layout=phone],[data-layout=tablet-port]) .nx-keyrow{gap:4px}
+body:is([data-layout=phone],[data-layout=tablet-port]) .nx-bar-mini{justify-content:center;padding:0 0 6px}
+body[data-layout=phone] #nx-ui::after,body[data-layout=tablet-port] #nx-ui::after{height:55%}
+/* U03 d (2026-10-20): the phone's header never runs off the screen. the owner saw something at the top right he could not read: the failure-watch chip ("WATCH · LEARNING") and the state chip
+   side by side were wider than the row. Every item here may shrink, the name and the state give way (an ellipsis, the full words are in the tooltip), the watch chip is its icon, and the
+   camera key sits over the corner of the scene instead of in the row. */
+body[data-layout=phone] #nx-top{gap:6px;padding:0 calc(8px + var(--safe-r)) 0 calc(8px + var(--safe-l))}
+body[data-layout=phone] .nx-top-right{gap:6px;min-width:0;flex:0 1 auto}
+body[data-layout=phone] .nx-state{min-width:0;flex:0 1 auto;padding:0 10px;gap:7px;overflow:hidden}
+body[data-layout=phone] .nx-state-label{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;letter-spacing:.06em}
+body[data-layout=phone] #nx-eye{width:44px;padding:0;justify-content:center}
+body[data-layout=phone] #nx-eye .nx-lbl{display:none}
+body[data-layout=phone] #nx-camtoggle{position:absolute;right:calc(8px + var(--safe-r));top:calc(var(--top) + 66px + var(--safe-t));z-index:2;background:var(--glass-1);-webkit-backdrop-filter:var(--blur-1);backdrop-filter:var(--blur-1);border:1px solid var(--glass-line);border-radius:12px}
+@media (max-width:370px){body[data-layout=phone] #nx-camtoggle{display:inline-flex}}
+body[data-layout=phone] #nx-back{padding:0 10px 0 6px;gap:4px}
+body[data-layout=phone] .nx-id{min-width:0;flex:1 1 0}
+body[data-layout=phone] #nx-back .nx-lbl{font-size:10.5px}
+/* the top bar still has to fit at 1366 with the Back key in it: the identity and the Back key tighten, the command bar gives the rest (its own shrink rule, min 96 px, is kept) */
+@media (min-width:900px) and (max-width:1500px){.nx-cmd-box kbd{display:none}body[data-layout=desktop] .nx-id{min-width:236px}body[data-layout=desktop] .nx-id-text b{letter-spacing:.22em}#nx-back{padding:0 12px 0 8px}#nx-back .nx-lbl{font-size:10.5px}}
+/* while one gauge is held the others in its cluster step back with the rest of the page */
+.nx-cluster:has(.nxctl.live) .nxctl:not(.live),#nx-gauges:has(.nxctl.live) .nxctl:not(.live){opacity:.3;transition:opacity .3s}
+/* the bar has to fit at 1366: the acceleration and top speed give way first (they were already dropped at 1100), then the rail stops above the bar */
+@media (max-width:1700px){.nx-dock .nx-pos-x[data-k=acc],.nx-dock .nx-pos-x[data-k=vmax]{display:none}}
+#nx-rail{bottom:calc(var(--barh) + var(--edge) + 14px);max-height:calc(100% - var(--top) - 8px - var(--barh) - var(--edge) - 14px)}
+body[data-layout=kiosk] #nx-rail,body:is([data-layout=phone],[data-layout=tablet-port]) #nx-rail{display:none}
+body[data-bg=camera] .nx-id{background:var(--glass-1);-webkit-backdrop-filter:var(--blur-1);backdrop-filter:var(--blur-1);border:1px solid var(--glass-line);border-radius:12px;padding:0 14px 0 8px;box-shadow:0 8px 26px rgba(14,19,25,.16)}
+body[data-bg=camera] .nx-reticle{display:none}
+/* U03 f (2026-10-20): the readings sat low in their boxes on the PC. The strip that reads "24° 23° no prints yet…" kept a hidden second row by padding its top (7px) and not its bottom,
+   which pushed every reading 4 px under the middle of the pill. Its items now fill the pill's height, so each reading is centred in it and the second row is still out of sight. */
+.nx-idle{padding:0 8px;row-gap:0}
+.nx-idle-item{height:42px}
+/* the model of a catalogue machine (the CORE One L and the rest) fills the background like the Voron's: its own frame, border and note come away, its view buttons sit under the header */
+.nx-stagecard .nx-md-host--stage{position:absolute;inset:0;display:block;width:auto}
+.nx-stagecard .nx-md-stage{position:absolute;inset:0;height:auto;min-height:0;border:0;border-radius:0;background:none}
+.nx-stagecard .nx-md-tools{position:absolute;left:50%;top:calc(var(--top) + var(--safe-t) + 70px);transform:translateX(-50%);z-index:1;width:min(440px,calc(100vw - 32px));flex-wrap:nowrap}
+.nx-stagecard .nx-md-read{display:none}
+.nx-stagecard .nx-md-scene{position:absolute;left:50%;top:calc(var(--top) + var(--safe-t) + 124px);transform:translateX(-50%);width:min(440px,calc(100vw - 32px));z-index:1}
+.nx-stagecard .nx-md-cam{position:absolute;inset:0}
+.nx-stagecard .nx-md-tabs{position:absolute;left:50%;top:calc(var(--top) + var(--safe-t) + 70px);transform:translateX(-50%);z-index:2;width:min(300px,calc(100vw - 32px))}
+body[data-layout=phone] .nx-stagecard .nx-md-tools,body[data-layout=tablet-port] .nx-stagecard .nx-md-tools{left:8px;right:64px;width:auto;transform:none;top:calc(var(--top) + var(--safe-t) + 66px)}
+body[data-layout=phone] .nx-stagecard .nx-md-tabs{left:8px;transform:none}
+body:not([data-layout=phone]):not([data-layout=tablet-port]) .nx-stagecard .nx-md-tools{left:auto;right:calc(24px + var(--safe-r));transform:none;top:calc(var(--top) + var(--safe-t) + 8px);width:min(400px,calc(100vw - 32px))}
+body:not([data-layout=phone]):not([data-layout=tablet-port]) .nx-stagecard .nx-md-scene{left:auto;right:calc(24px + var(--safe-r));transform:none;top:calc(var(--top) + var(--safe-t) + 66px)}
+body:not([data-layout=phone]):not([data-layout=tablet-port]) .nx-stagecard .nx-md-tabs{left:auto;right:calc(24px + var(--safe-r));transform:none;top:calc(var(--top) + var(--safe-t) + 8px)}
+/* the other sizes. A tablet (1024 wide): the Back key is its arrow and "FARM", the bar drops the extras beside the position and its keys narrow, so STOP and CANCEL stay on the screen. */
+body[data-layout=tablet] #nx-back .nx-lbl{font-size:10px;width:auto}
+@media (max-width:1100px){body[data-layout=tablet] .nx-dock .nx-pos-x,body[data-layout=tablet] .nx-dock .nx-pos-speed,body[data-layout=tablet] .nx-dock .nx-pos-sep{display:none}
+ body[data-layout=tablet] .nx-keyrow .nxkey{min-width:50px;padding:6px 3px}body[data-layout=tablet] .nx-keyrow .nxkey .nx-lbl{font-size:9.5px;letter-spacing:.04em}body[data-layout=tablet] .nx-dock{gap:10px}body[data-layout=tablet] .nx-dock .nx-pos{padding:0 12px 0 6px;gap:14px}}
+/* an upright tablet: the keys keep a sensible width instead of stretching across the whole bar */
+body[data-layout=tablet-port] .nx-keyrow{justify-content:center}
+body[data-layout=tablet-port] .nx-keys{flex:0 1 auto}
+body[data-layout=tablet-port] .nx-keyrow .nxkey{max-width:104px}
+/* a phone on its side (844 x 390): the machine fills the window, the gauges are one row of seven over the bar, the bar is its keys alone */
+body[data-layout=phone-land]{--barh:76px}
+body[data-layout=phone-land] #nx-scene{top:0;height:100%;width:100%}
+body[data-layout=phone-land] #nx-gauges{position:absolute;left:0;right:0;bottom:calc(var(--edge) + var(--safe-b) + var(--barh) + 6px);display:grid;grid-template-columns:repeat(7,1fr);justify-items:center;padding:0 8px}
+body[data-layout=phone-land] :is(#nx-left,#nx-right,.nx-fans){display:contents}
+body[data-layout=phone-land] .nx-cluster .nxctl{--nxctl-size:clamp(48px,calc((100vw - 24px) / 7),66px)}
+body[data-layout=phone-land] .nx-dock{left:calc(8px + var(--safe-l));right:calc(8px + var(--safe-r));top:auto;bottom:calc(var(--edge) + var(--safe-b));transform:none;flex-direction:column;gap:4px;padding:6px 8px;max-width:none}
+body[data-layout=phone-land] .nx-keyrow{width:100%}
+body[data-layout=phone-land] .nx-keyrow .nxkey{max-width:none;min-width:0;height:50px;padding:4px 2px;gap:2px}
+body[data-layout=phone-land] .nx-keyrow .nxkey .nx-lbl{font-size:9px}
+body[data-layout=phone-land] .nx-dock-pod{flex-direction:row}
+body[data-layout=phone-land] .nx-bar-mini{justify-content:center;padding:0}
+body[data-layout=phone-land]{--dockzone:calc(var(--barh) + var(--edge) + 6px)}
+body[data-layout=phone-land] .nx-dock .nxkey .nx-lbl{display:block}
+body[data-layout=phone-land] .nx-keyrow{justify-content:center}
+body[data-layout=phone-land] .nx-keys{flex:0 1 auto}
+body[data-layout=phone-land] .nx-keyrow .nxkey{max-width:104px;height:56px;gap:3px}
+body[data-layout=phone-land] .nx-keyrow .nxkey svg.nx-ico{width:22px;height:22px}
+body[data-layout=tablet] #nx-back{padding:0;width:44px;min-width:44px}
+body[data-layout=tablet] #nx-back .nx-lbl{display:none}
+/* over the camera the identity sits on its own glass plate: it needs a little more width than bare text, or the model line is cut ("VORON 2.4 350 · DEMO") */
+@media (min-width:900px) and (max-width:1500px){body[data-bg=camera][data-layout=desktop] .nx-id{min-width:258px}}
+/* found by looking at the 360 px header with the failure-watch chip: the printer's name broke to "STELL / A". On a phone the watch chip is its icon on its own place beside the camera key, not in the row */
+body[data-layout=phone] #nx-eye{position:absolute;right:calc(8px + 44px + 8px + var(--safe-r));top:calc(var(--top) + 66px + var(--safe-t));z-index:2;background:var(--glass-1);-webkit-backdrop-filter:var(--blur-1);backdrop-filter:var(--blur-1);border:1px solid var(--glass-line);border-radius:12px}
+/* with a message in the bar (Stella Scope not answering, connecting) the Gauges key and the numbers wait */
+.nx-dock[data-msg] .nxkey[data-key=gauges],.nx-dock[data-msg] .nx-bar-mini{display:none}
+.nx-dock[data-msg] .nx-keyrow{justify-content:center}
+.nx-dock .nx-dock-msg{height:auto;min-height:44px;padding:0 8px;flex-wrap:wrap;justify-content:center;text-align:center}
+/* the empty stage (a printer with no model yet) sits in the free band of the screen, between the header and the gauges and bar, and not under them */
+.nx-stagecard{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:calc(var(--top) + var(--safe-t) + 70px) calc(300px + var(--safe-r)) calc(var(--barh) + var(--edge) + 16px + var(--safe-b)) calc(300px + var(--safe-l))}
+body:is([data-layout=phone],[data-layout=tablet-port]) .nx-stagecard{padding:calc(var(--top) + var(--safe-t) + 130px) 16px calc(var(--barh) + var(--edge) + 270px + var(--safe-b)) 16px}
+body[data-layout=phone-land] .nx-stagecard{padding:calc(var(--top) + 8px) 16px calc(var(--barh) + var(--edge) + 90px) 16px}
+.nx-stagecard>*{pointer-events:auto}
+.nx-stagecard{pointer-events:none}
+body[data-layout=phone] .nx-id{min-width:100px}
+body[data-layout=phone] .nx-state{flex-shrink:1;min-width:64px}
+/* the state's word shortens on a phone ("NO LINK") so it is never cut with an ellipsis; the name keeps its room (U03 d) */
+body[data-layout=phone] .nx-id{min-width:96px}
+
+/* the line above a key that has to be held (2026-10-22): what holding does, and "not sent" if the hand lets go early */
+.nx-holdline{position:fixed;z-index:90;max-width:min(320px,calc(100vw - 16px));padding:10px 14px;font:600 13px/1.3 var(--sans);color:var(--ink-1);pointer-events:none;border-left:3px solid var(--alarm)}
+.nx-holdline[data-tone=warn]{border-left-color:var(--heat)}
+
+/* ---- filament board (2026-10-22): the picker, the settings, the longer step list ---- */
+.nx-filsteps{grid-template-columns:repeat(auto-fit,minmax(112px,1fr))}
+.nx-fil-set{display:flex;flex-wrap:wrap;align-items:flex-start;gap:18px 22px}
+.nx-fil-set>.nxkey{align-self:center}
+.nx-fil-set .nxctl{--nxctl-size:104px}
+.nx-filpick{display:flex;flex-direction:column;gap:14px}
+.nx-filpick .nx-matcards{grid-template-columns:repeat(auto-fill,minmax(132px,1fr))}
+.nx-filpick-heat{display:flex;align-items:center;gap:14px;min-height:48px}
+.nx-filpick-heat small{font:700 11px/1 var(--sans);letter-spacing:.14em;color:var(--ink-3)}
+.nx-filpick-none{font:600 18px/1 var(--mono);color:var(--ink-3)}
+/* Polish P2: OTHER, typed. Two LED fields and a name, in one row that wraps on a phone */
+.nx-filpick-other{display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px 18px;padding:14px;border:1px solid var(--rule);background:var(--plate-lo,#07090c)}
+.nx-filpick-other[hidden]{display:none}
+.nx-filpick-namew{display:flex;flex-direction:column-reverse;gap:6px;flex:1 1 180px;min-width:0}
+.nx-filpick-name{height:44px;padding:0 12px;border:1px solid var(--rule);border-radius:0;background:#05070a;color:var(--ink-1);font:600 15px/1 var(--sans);min-width:0}
+.nx-filpick-name:focus{outline:2px solid var(--accent);outline-offset:1px}
+.nx-matcard-other{border-style:dashed}
+/* a phone keeps nozzle and bed side by side: each field shares the row, its figure narrows */
+@media (max-width:520px){.nx-filpick-other{gap:12px 8px;padding:10px}.nx-filpick-other .nx-numi{flex:1 1 0;min-width:0}.nx-filpick-other .nx-numi-row{width:100%}
+ .nx-filpick-other .nx-numi-v{flex:1;width:auto;min-width:0;padding:0 2px;font-size:17px;letter-spacing:-.02em}.nx-filpick-other .nx-numi .nx-numi-k{min-width:36px;width:36px}.nx-filpick-namew{flex-basis:100%}
+ .nx-filpick.nx-u06 .nx-matcards,.nx-filpick .nx-matcards{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.nx-filpick.nx-u06 .nx-matcard,.nx-filpick .nx-matcard{min-height:78px;padding:11px 11px 10px}}

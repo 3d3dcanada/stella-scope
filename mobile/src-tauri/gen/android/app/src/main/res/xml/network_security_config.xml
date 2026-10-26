@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Stella: the only plain-HTTP address the app loads is its own tunnel on the phone's loopback.
-   Everything leaving the phone is QUIC with TLS, inside stella-link. -->
+     Everything leaving the phone is QUIC with TLS, inside stella-link. -->
 <network-security-config>
     <base-config cleartextTrafficPermitted="false" />
     <domain-config cleartextTrafficPermitted="true">

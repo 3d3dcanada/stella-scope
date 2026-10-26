@@ -1,0 +1,337 @@
+{
+ "schema": "stella-scope.printer-models-extra.v1",
+ "about": "Machines, option files and options added by hand beside the 3D Print Rig catalogue: the Prusa CORE One L, CORE One, MK3S+ and MINI (their converted CAD ships inside the build, F09 2026-10-19), and the Trident R2 gantry and carriage modules (F03 2026-10-19).",
+ "machines": [
+  {
+   "id": "prusa_core_one_l",
+   "label": "Prusa CORE One L / Native CAD",
+   "family": "prusa-core-one",
+   "basis": [
+    [
+     1,
+     0,
+     0
+    ],
+    [
+     0,
+     0,
+     1
+    ],
+    [
+     0,
+     -1,
+     0
+    ]
+   ],
+   "files": {
+    "model.glb": {
+     "bytes": 10225282,
+     "decoded_sha256": "f068e1b72dfd41eaa3bc5350225044cc03482c57a5a8ba97b8cab2530beb1539",
+     "path": "prusa-core-one-l/model.glb.gz",
+     "sha256": "5c0e2bd142d015e9a48421b4c3c3736d014ef8c4db9edcb4bf467b58a98aa796"
+    }
+   },
+   "pin": {
+    "stored_model_sha256": "5c0e2bd142d015e9a48421b4c3c3736d014ef8c4db9edcb4bf467b58a98aa796",
+    "model_sha256": "f068e1b72dfd41eaa3bc5350225044cc03482c57a5a8ba97b8cab2530beb1539",
+    "stored_bytes": 10225282
+   },
+   "licence": {
+    "author": "Prusa Research",
+    "class": "ocl",
+    "text": "Open Community License (OCL v1)",
+    "source": "https://www.printables.com/model/1520379-prusa-core-one-l-full-cad-assembly",
+    "basis": "Prusa's own CAD release (Printables 1520379, CORE_One_L_assembly.step, sha256 2f46bccb098bd8da...), converted for display with tools/printer-cad/step_to_glb.py. Shared under the same licence, free of charge, with Prusa's notice (docs/notices) and the OCL text (docs/OCL-v1-LICENSE.txt)."
+   },
+   "location": {
+    "kind": "bundled",
+    "upstream": "https://www.printables.com/model/1520379-prusa-core-one-l-full-cad-assembly",
+    "convert": "tools/printer-cad/build-model.sh prusa-core-one-l CORE_One_L_assembly.step",
+    "file": "models/prusa-core-one-l.glb.gz"
+   },
+   "parts": 717,
+   "triangles": 1383687,
+   "printers": [
+    "CORE One L"
+   ],
+   "note": "Prusa's own full CAD assembly of the CORE One L."
+  },
+  {
+   "id": "prusa_core_one",
+   "label": "Prusa CORE One / Native CAD",
+   "family": "prusa-core-one",
+   "basis": [
+    [
+     1,
+     0,
+     0
+    ],
+    [
+     0,
+     0,
+     1
+    ],
+    [
+     0,
+     -1,
+     0
+    ]
+   ],
+   "files": {
+    "model.glb": {
+     "bytes": 8832438,
+     "decoded_sha256": "4d226bc6ce3f93f031d9d78fd3d0b8a80473bdc5d9706eb8d01ea7d33a1c42ae",
+     "path": "prusa-core-one/model.glb.gz",
+     "sha256": "242164e8e45089d569031cdb2820355e6d2a55b9b2a34419bb584e7c580ed14a"
+    }
+   },
+   "pin": {
+    "stored_model_sha256": "242164e8e45089d569031cdb2820355e6d2a55b9b2a34419bb584e7c580ed14a",
+    "model_sha256": "4d226bc6ce3f93f031d9d78fd3d0b8a80473bdc5d9706eb8d01ea7d33a1c42ae",
+    "stored_bytes": 8832438
+   },
+   "licence": {
+    "author": "Prusa Research",
+    "class": "ocl",
+    "text": "Open Community License (OCL v1)",
+    "source": "https://www.printables.com/model/1520471-prusa-core-one-full-cad-assembly",
+    "basis": "Prusa's own CAD release (Printables 1520471, CORE_One_assembly.step, sha256 4ead8073806c86df...), converted for display with tools/printer-cad/step_to_glb.py. Shared under the same licence, free of charge, with Prusa's notice (docs/notices) and the OCL text (docs/OCL-v1-LICENSE.txt)."
+   },
+   "location": {
+    "kind": "bundled",
+    "upstream": "https://www.printables.com/model/1520471-prusa-core-one-full-cad-assembly",
+    "convert": "tools/printer-cad/build-model.sh prusa-core-one CORE_One_assembly.step",
+    "file": "models/prusa-core-one.glb.gz"
+   },
+   "parts": 541,
+   "triangles": 1145746,
+   "printers": [
+    "CORE One",
+    "CORE One+"
+   ],
+   "note": "Prusa's own full CAD assembly of the CORE One, as released in December 2025. The Gen 2 changes (belts, nozzle wiper, top panel) are small parts and are not drawn."
+  },
+  {
+   "id": "prusa_mk3s",
+   "label": "Prusa i3 MK3S+ / Community CAD",
+   "family": "prusa-i3",
+   "basis": [
+    [
+     1,
+     0,
+     0
+    ],
+    [
+     0,
+     0,
+     1
+    ],
+    [
+     0,
+     -1,
+     0
+    ]
+   ],
+   "files": {
+    "model.glb": {
+     "bytes": 4361256,
+     "decoded_sha256": "5a1a71a2d6396f1e6ef3a4ba66fb812856863d8a60f10bd1d19a359dfc9a1639",
+     "path": "prusa-mk3s/model.glb.gz",
+     "sha256": "7abfce12ad0775db4d842ce598923c64a5126437e1333bf14a22e08d2072fb3b"
+    }
+   },
+   "pin": {
+    "stored_model_sha256": "7abfce12ad0775db4d842ce598923c64a5126437e1333bf14a22e08d2072fb3b",
+    "model_sha256": "5a1a71a2d6396f1e6ef3a4ba66fb812856863d8a60f10bd1d19a359dfc9a1639",
+    "stored_bytes": 4361256
+   },
+   "licence": {
+    "author": "Swesen (Fusion model), jzkmath (SolidWorks assembly), Leto (STEP), Prusa Research (the design)",
+    "class": "gpl",
+    "text": "GNU GPL (Prusa Research's MK3S design, through jzkmath's assembly), CC BY (Swesen), CC0 (Leto's STEP)",
+    "source": "https://www.printables.com/model/563056-original-prusa-i3-mk3-step",
+    "basis": "Printables 563056 \"Original Prusa i3 MK3 STEP\" by Leto (00Fusion360Export.step, sha256 c2ea1cafa2f71175...), a STEP made from Swesen's Fusion model (Printables 179638, CC BY), itself made from jzkmath's SolidWorks assembly of Prusa's i3 MK3S (Thingiverse 3434917, GNU GPL, \"the same licence as the Prusa i3 MK3S itself\"). Credit to all three and to Prusa Research; the strictest of the licences in the chain (GPL) is the class. Converted for display with tools/printer-cad/step_to_glb.py; the STEP is the source to this file."
+   },
+   "location": {
+    "kind": "bundled",
+    "upstream": "https://www.printables.com/model/563056-original-prusa-i3-mk3-step",
+    "convert": "tools/printer-cad/build-model.sh prusa-mk3s 00Fusion360Export.step",
+    "file": "models/prusa-mk3s.glb.gz"
+   },
+   "parts": 130,
+   "triangles": 565411,
+   "printers": [
+    "i3 MK3S+",
+    "i3 MK3S",
+    "i3 MK3"
+   ],
+   "note": "A community assembly of the MK3 as Prusa published it (131 parts, with its own colours). The MK3S+ has the same frame, axes and plate; its IR sensor and filament sensor are small parts the model shows as the MK3's."
+  },
+  {
+   "id": "prusa_mini",
+   "label": "Prusa MINI+ / Community CAD",
+   "family": "prusa-mini",
+   "basis": [
+    [
+     -1,
+     0,
+     0
+    ],
+    [
+     0,
+     1,
+     0
+    ],
+    [
+     0,
+     0,
+     -1
+    ]
+   ],
+   "files": {
+    "model.glb": {
+     "bytes": 1319342,
+     "decoded_sha256": "24f7bf7c030922de8baf0fd1d13d941ba420843d84821bd71e5bc4db32899fb3",
+     "path": "prusa-mini/model.glb.gz",
+     "sha256": "44e72e3dbf68a39039d0304d7382ceea329ab4e33a016778a6a7159391839b40"
+    }
+   },
+   "pin": {
+    "stored_model_sha256": "44e72e3dbf68a39039d0304d7382ceea329ab4e33a016778a6a7159391839b40",
+    "model_sha256": "24f7bf7c030922de8baf0fd1d13d941ba420843d84821bd71e5bc4db32899fb3",
+    "stored_bytes": 1319342
+   },
+   "licence": {
+    "author": "Luis (STEP), Prusa Research (the MINI's printed parts, GPL-3.0)",
+    "class": "gpl",
+    "text": "CC0 as stated by the uploader; the printed parts in it are Prusa Research's GPL-3.0 files",
+    "source": "https://www.printables.com/model/307054-step-file-for-prusa-mini",
+    "basis": "Printables 307054 \"STEP File for Prusa Mini\" by Luis (Prusa Mini Assembly.STEP, sha256 26d3bad51186ba7b...), stated CC0. Its printed parts carry the names of Prusa's own STEP files (github.com/prusa3d/Original-Prusa-MINI, GPL-3.0), so the GPL notice is kept; the standard hardware in it (motors, bearings, fans, hotend) comes from other makers' public models whose licences the uploader does not state. Converted for display with tools/printer-cad/step_to_glb.py; the STEP is the source to this file."
+   },
+   "location": {
+    "kind": "bundled",
+    "upstream": "https://www.printables.com/model/307054-step-file-for-prusa-mini",
+    "convert": "tools/printer-cad/build-model.sh prusa-mini \"Prusa Mini Assembly.STEP\"",
+    "file": "models/prusa-mini.glb.gz"
+   },
+   "parts": 95,
+   "triangles": 186746,
+   "printers": [
+    "MINI",
+    "MINI+"
+   ],
+   "note": "A community assembly of the MINI (95 parts). Its STEP is written Y-up; the conversion turns it upright."
+  }
+ ],
+ "parts": {
+  "trident_r2_gantry_300": {
+   "bytes": 5178163,
+   "id": "trident_r2_gantry_300",
+   "kind": "part",
+   "label": "Trident R2 gantry 300",
+   "licence": {
+    "author": "VoronDesign",
+    "basis": "3D Print Rig docs/THIRD_PARTY_NOTICES.md, VORON Trident R2 (the 6 mm XY gantry): author VoronDesign, GPL-3.0; the carriage frame is VoronDesign/Voron-Stealthburner (GPL-3.0) placed on the Trident gantry. Module record: viewer-models.zip modules/trident_r2_gantry_300.json",
+    "class": "gpl",
+    "source": "https://github.com/VoronDesign/Voron-Trident/tree/a8628f48546948ce1fc15511b7765b7f31f80722",
+    "text": "GPL-3.0"
+   },
+   "location": {
+    "kind": "release_zip",
+    "mirror": {
+     "entry": "modules/trident_r2_gantry_300.glb.gz",
+     "zip": "releases/3d-print-rig/viewer-trident-deck-103/viewer-models.zip"
+    },
+    "upstream": "https://psych0h3ad.github.io/3d-print-rig/modules/trident_r2_gantry_300.glb.gz"
+   },
+   "parts": 377,
+   "pin": {
+    "model_sha256": "76c742c7832cde422eab6aa193ff3a4fea2565894b18aa83524eab97fda8916f",
+    "stored_model_sha256": "887d1259635f1d204f8276e417d97ed8df7851d4d22b3b683a7c011bdc563542"
+   }
+  },
+  "trident_r2_sb_carriage": {
+   "bytes": 305491,
+   "id": "trident_r2_sb_carriage",
+   "kind": "part",
+   "label": "Trident R2 X carriage",
+   "licence": {
+    "author": "VoronDesign",
+    "basis": "3D Print Rig docs/THIRD_PARTY_NOTICES.md, VORON Trident R2 (the 6 mm XY gantry): author VoronDesign, GPL-3.0; the carriage frame is VoronDesign/Voron-Stealthburner (GPL-3.0) placed on the Trident gantry. Module record: viewer-models.zip modules/trident_r2_sb_carriage.json",
+    "class": "gpl",
+    "source": "https://github.com/VoronDesign/Voron-Trident/tree/a8628f48546948ce1fc15511b7765b7f31f80722",
+    "text": "GPL-3.0"
+   },
+   "location": {
+    "kind": "release_zip",
+    "mirror": {
+     "entry": "modules/trident_r2_sb_carriage.glb.gz",
+     "zip": "releases/3d-print-rig/viewer-trident-deck-103/viewer-models.zip"
+    },
+    "upstream": "https://psych0h3ad.github.io/3d-print-rig/modules/trident_r2_sb_carriage.glb.gz"
+   },
+   "parts": 18,
+   "pin": {
+    "model_sha256": "e91d0d08b09bd8134142c80d4d33ba7611189788d5cb396351bad1068be73892",
+    "stored_model_sha256": "5b783a2e59d58787fc11d72ca3df381bdb883d12965bf9d8ecb41be1a7b9b292"
+   }
+  }
+ },
+ "options": [
+  {
+   "id": "trident_r2_gantry",
+   "kind": "addon",
+   "category": "gantry",
+   "label": "Trident R2 gantry and X carriage",
+   "bytes": 5483654,
+   "attach": {
+    "exclusive_group": null,
+    "kind": "place",
+    "note": "The Trident base model has no gantry or toolhead; the rig keeps them as these two modules. With them the X beam moves with Y and the X carriage with X and Y (the part records in the files say which part moves how). The toolhead that hangs from the carriage is a separate option and is not drawn."
+   },
+   "fits": {
+    "voron_trident_300": {
+     "exclusive_group": null,
+     "hide_machine_keys": [],
+     "place": [
+      {
+       "hidden_keys": [],
+       "part": "trident_r2_gantry_300",
+       "translation_mm": [
+        0,
+        0,
+        0
+       ]
+      },
+      {
+       "hidden_keys": [],
+       "part": "trident_r2_sb_carriage",
+       "translation_mm": [
+        0,
+        0,
+        0
+       ]
+      }
+     ]
+    }
+   },
+   "licence": {
+    "author": "VoronDesign",
+    "basis": "strictest of its parts",
+    "class": "gpl",
+    "source": "https://github.com/VoronDesign/Voron-Trident/tree/a8628f48546948ce1fc15511b7765b7f31f80722",
+    "text": "GPL-3.0"
+   },
+   "parts": [
+    "trident_r2_gantry_300",
+    "trident_r2_sb_carriage"
+   ],
+   "scope": "Geometry at the registered place (both modules are written in the machine's own frame); motion is the part records of the files. Firmware, belts and collisions are not simulated.",
+   "source": [
+    {
+     "registry": "viewer-models.zip modules/trident_r2_gantry_300.json, trident_r2_sb_carriage.json"
+    }
+   ]
+  }
+ ]
+}

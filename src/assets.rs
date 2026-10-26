@@ -22,6 +22,34 @@ fn library(database: &str) -> PathBuf {
     PathBuf::from(format!("{database}.assets"))
 }
 
+/// True when this printer's managed library carries the full machine CAD the main 3D scene draws
+/// (WO-14 item 1, 2026-10-12: that scene doubles as the printer's farm-wall model; there is no
+/// separate setting for it). Same asset ids `web/hud-scene.js` looks for.
+pub fn has_reference_model(database: &str) -> bool {
+    let Ok(value) = manifest(database) else {
+        return false;
+    };
+    value["assets"]
+        .as_array()
+        .map(|assets| {
+            assets.iter().any(|a| {
+                let id = a.get("id").and_then(Value::as_str).unwrap_or("");
+                if id == "stella-printer" || id == "voron-r2-master-reference" {
+                    return true;
+                }
+                // hartk-voron-24r2-<size>-reference
+                let Some(mid) = id
+                    .strip_prefix("hartk-voron-24r2-")
+                    .and_then(|r| r.strip_suffix("-reference"))
+                else {
+                    return false;
+                };
+                mid.len() == 3 && mid.bytes().all(|b| b.is_ascii_digit())
+            })
+        })
+        .unwrap_or(false)
+}
+
 fn manifest(database: &str) -> Result<Value, String> {
     let root = library(database);
     match fs::symlink_metadata(&root) {

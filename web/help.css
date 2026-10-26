@@ -1,0 +1,46 @@
+/* Help (finish-2 F07, 2026-10-19): the user guide inside the app. Tokens and glass come from next.css; this only lays out a long document that scrolls
+   (next.css keeps the page itself still, as a printer's page and the farm wall are not documents). */
+body.hp{overflow:visible;height:auto;min-height:100%}
+html:has(body.hp){overflow:auto;height:auto;scroll-padding-top:96px}
+.hp-top{position:sticky;top:calc(var(--safe-t) + 8px);z-index:4;display:flex;align-items:center;justify-content:space-between;gap:10px 16px;flex-wrap:wrap;
+ margin:calc(var(--safe-t) + 8px) auto 0;max-width:1180px;width:calc(100% - 32px);padding:10px 14px;border-radius:var(--r-l);background:rgba(11,15,21,.97);box-shadow:0 0 0 9px var(--bg-0)}
+.hp-id{display:flex;align-items:center;gap:12px;color:var(--ink-1);text-decoration:none;min-height:44px}
+.hp-id img{width:34px;height:34px;flex:none}
+.hp-id b{display:block;font:700 15px/1 var(--sans);letter-spacing:.3em}
+.hp-id small{display:block;margin-top:5px;font:500 11px/1 var(--mono);letter-spacing:.1em;color:var(--ink-3)}
+.hp-nav{display:flex;gap:6px;flex-wrap:wrap}
+.hp-nav a{display:inline-flex;align-items:center;min-height:44px;padding:0 14px;border-radius:var(--r-m);border:1px solid var(--glass-line);color:var(--ink-1);text-decoration:none;font:600 13px/1 var(--sans);letter-spacing:.03em;background:rgba(255,255,255,.04)}
+.hp-nav a:hover,.hp-nav a:focus-visible{border-color:var(--accent);outline:none}
+.hp-nav .hp-back{background:linear-gradient(180deg,var(--accent-hi),var(--accent));color:var(--accent-ink);border-color:rgba(63,243,224,.6)}
+.hp-main{position:relative;z-index:2;display:grid;grid-template-columns:minmax(0,1fr);gap:16px;max-width:1180px;width:calc(100% - 32px);margin:16px auto calc(var(--safe-b) + 40px);align-items:start}
+@media (min-width:1000px){.hp-main{grid-template-columns:230px minmax(0,1fr)}.hp-toc{position:sticky;top:96px;max-height:calc(100vh - 120px);overflow:auto}}
+.hp-toc{display:flex;flex-direction:column;gap:2px;padding:14px;border-radius:var(--r-l);background:rgba(11,15,21,.9)}
+.hp-toc[hidden]{display:none}
+@media (min-width:1000px){.hp-main.hp-single{grid-template-columns:minmax(0,1fr)}}
+/* on a phone the four links take two rows: they scroll away with the page instead of covering it */
+@media (max-width:700px){.hp-top{position:static;box-shadow:none}html:has(body.hp){scroll-padding-top:12px}}
+.hp-toc b{font:600 var(--t-label)/1 var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2);padding:2px 8px 8px}
+.hp-toc a{color:var(--ink-1);text-decoration:none;padding:9px 8px;border-radius:var(--r-s);font:500 14px/1.25 var(--sans)}
+.hp-toc a:hover,.hp-toc a:focus-visible{background:rgba(255,255,255,.07);outline:none}
+@media (max-width:999px){.hp-toc{flex-direction:row;flex-wrap:wrap;gap:4px}.hp-toc b{flex-basis:100%}.hp-toc a{border:1px solid var(--glass-line);padding:8px 10px}}
+.hp-doc{padding:24px 28px 32px;border-radius:var(--r-l);background:rgba(11,15,21,.92);font:500 16px/1.6 var(--sans);color:var(--ink-1);min-width:0;overflow-wrap:anywhere}
+@media (max-width:600px){.hp-doc{padding:18px 16px 26px;font-size:15px}}
+.hp-doc h1{font:700 30px/1.15 var(--sans);margin:0 0 6px;letter-spacing:-.01em}
+.hp-doc h2{font:700 22px/1.25 var(--sans);margin:34px 0 8px;padding-top:14px;border-top:1px solid var(--glass-line);color:var(--accent-hi)}
+.hp-doc h3{font:650 17px/1.3 var(--sans);margin:22px 0 6px;color:var(--ink-1)}
+.hp-doc p{margin:10px 0;color:var(--ink-1)}
+.hp-doc ul,.hp-doc ol{margin:10px 0;padding-left:24px}
+.hp-doc li{margin:5px 0}
+.hp-doc a{color:var(--accent-hi)}
+.hp-doc code{font:500 .9em var(--mono);background:rgba(255,255,255,.08);padding:1px 6px;border-radius:6px}
+.hp-doc pre{margin:12px 0;padding:12px 14px;border-radius:var(--r-m);background:rgba(0,0,0,.4);border:1px solid var(--glass-line);overflow:auto}
+.hp-doc pre code{background:none;padding:0;font-size:13.5px;line-height:1.5;white-space:pre}
+.hp-doc hr{border:0;border-top:1px solid var(--glass-line);margin:26px 0}
+.hp-note{padding:10px 14px;border-left:3px solid var(--accent);background:rgba(4,217,196,.07);border-radius:0 var(--r-s) var(--r-s) 0}
+.hp-fig{margin:16px 0;display:flex;flex-direction:column;gap:8px}
+.hp-fig img{display:block;max-width:100%;height:auto;border-radius:var(--r-m);border:1px solid var(--glass-edge);background:var(--bg-1)}
+.hp-fig figcaption{font:500 13px/1.4 var(--sans);color:var(--ink-2)}
+.hp-table{overflow-x:auto;margin:12px 0}
+.hp-table table{border-collapse:collapse;min-width:100%;font-size:14px}
+.hp-table th,.hp-table td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--glass-line);vertical-align:top}
+.hp-table th{font:600 var(--t-label)/1.2 var(--sans);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2)}

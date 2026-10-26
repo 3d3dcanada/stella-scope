@@ -1,10 +1,10 @@
 use crate::Result;
+#[cfg(unix)]
+use std::os::unix::fs::MetadataExt;
 use std::{
     fs::File,
     io::{Read, Seek, SeekFrom},
 };
-#[cfg(unix)]
-use std::os::unix::fs::MetadataExt;
 
 /// Which file this is, so a rotated log starts again from the top. Unix: device and inode. Elsewhere
 /// the creation time stands in (a rotated log is a new file with a new creation time).
@@ -14,7 +14,12 @@ fn identity(meta: &std::fs::Metadata) -> (u64, u64) {
 }
 #[cfg(not(unix))]
 fn identity(meta: &std::fs::Metadata) -> (u64, u64) {
-    let born = meta.created().ok().and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok()).map(|d| d.as_nanos() as u64).unwrap_or(0);
+    let born = meta
+        .created()
+        .ok()
+        .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+        .map(|d| d.as_nanos() as u64)
+        .unwrap_or(0);
     (born, 0)
 }
 

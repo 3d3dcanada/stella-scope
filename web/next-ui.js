@@ -1,12 +1,16 @@
-// Stella Scope NEXT DOM components. No printer logic lives
+// Stella Scope NEXT DOM components (docs/next-ui/BLUEPRINT.md section 6). No printer logic lives
 // here: every component takes plain values and callbacks. Geometry and colour rules come from
 // next-core.js (C1), touch math from next-gesture.js (C2).
-import {arcPath,dialModel,heatColor,DIAL,polar} from './next-core.js';
-import {bindPress,bindHold,bindSwipe,bindLongPress,radialLayout,radialIndex} from './next-gesture.js';
+import {arcPath,dialModel,heatColor,DIAL,polar,paletteItems,accessibleName,holdWords,HOLD_NOT_SENT} from './next-core.js';
+import {bindPress,bindHold,bindSwipe,bindLongPress} from './next-gesture.js';
+import {click,control as kitControl} from './next-control.js';
 
 const SVGNS='http://www.w3.org/2000/svg';
 export const $=id=>document.getElementById(id);
 export function el(tag,cls='',text=''){const e=document.createElement(tag);if(cls)e.className=cls;if(text!=='')e.textContent=text;return e;}
+// Palette 2026-10-25: a canvas cannot read a CSS variable, so a drawing asks for the colour the page is wearing now (the accent follows the chosen palette).
+export const ink=(v,fb)=>{try{return getComputedStyle(document.documentElement).getPropertyValue(v).trim()||fb;}catch{return fb;}};
+export const inkA=a=>`rgba(${ink("--accent-rgb","4,217,196")},${a})`;
 function sv(tag,attrs={}){const e=document.createElementNS(SVGNS,tag);for(const[k,v]of Object.entries(attrs))e.setAttribute(k,v);return e;}
 export function icon(id,cls='nx-ico'){const s=sv('svg',{class:cls,'aria-hidden':'true'});s.append(sv('use',{href:'#'+id}));return s;}
 
@@ -51,13 +55,22 @@ export function initTips(){
 // ---------- 6.1 button ----------
 // kind: default|primary|danger|ghost. size: dock|row|icon|tile. cmd: the printer command it needs,
 // so lockControls() can disable it with the reason. hold: press-and-hold to confirm (6.1).
+// The line that says what a held key does: above the key from the first touch, and "not sent" if the hand lets go early.
+let holdTimer=0;
+export function holdLine(near,text,tone='',ms=0){clearTimeout(holdTimer);let h=document.getElementById('nx-holdline');if(!h){h=el('div','nx-holdline nx-glass');h.id='nx-holdline';h.setAttribute('role','status');document.body.append(h);}
+ h.textContent=text;h.dataset.tone=tone;h.hidden=false;const r=near.getBoundingClientRect(),w=h.offsetWidth,hh=h.offsetHeight;
+ h.style.left=Math.max(8,Math.min(innerWidth-w-8,r.left+r.width/2-w/2))+'px';h.style.top=Math.max(8,r.top-hh-12)+'px';if(ms)holdTimer=setTimeout(()=>{h.hidden=true;},ms);}
+export function holdLineOff(){clearTimeout(holdTimer);const h=document.getElementById('nx-holdline');if(h)h.hidden=true;}
 export function button({icon:ico,label='',kind='default',size='row',cmd=null,onPress,hold=false,attention=false,title,does='',sub=null}={}){
  const b=el('button','nx-btn');b.type='button';b.dataset.kind=kind;b.dataset.size=size;if(cmd)b.dataset.cmd=cmd;if(attention)b.dataset.attention='';
  if(ico)b.append(icon(ico));if(label&&size!=='icon')b.append(el('span','nx-lbl',label));if(sub!==null){const s=el('span','nx-sub',sub);b.append(s);b.sub=s;}
- tip(b,title||label,does);bindPress(b);
- if(hold){b.dataset.hold='';b.append(el('i','nx-hold'));bindHold(b,{ms:900,onConfirm:()=>onPress?.(b),onCancel:()=>{}});
+ // finish-2 F07: the name a screen reader gives holds the words on the button (the plate check button showed "Set up the plate check" and was called "Plate check")
+ b.setAttribute('aria-label',accessibleName(size!=='icon'?label:'',title||label));tip(b,title||label,does);bindPress(b);
+ // Opus polish 2026-10-22: pages rewrite a key's words ("Pick a material" becomes "Heat to 265° and load"); its spoken name follows them
+ const span=b.querySelector('.nx-lbl');if(span)new MutationObserver(()=>b.setAttribute('aria-label',accessibleName(span.textContent,title||span.textContent))).observe(span,{childList:true,characterData:true,subtree:true});
+ if(hold){b.dataset.hold='';b.append(el('i','nx-hold'));bindHold(b,{ms:900,onStart:()=>holdLine(b,holdWords(cmd,title||label)),onConfirm:()=>{holdLineOff();click(true);onPress?.(b);},onCancel:()=>holdLine(b,HOLD_NOT_SENT,'warn',3500)});
   b.dataset.tipDoes=(does?does+' ':'')+'Press and hold to confirm.';}
- else if(onPress)b.addEventListener('click',()=>{if(!b.disabled&&b.getAttribute('aria-disabled')!=='true')onPress(b);});
+ else if(onPress)b.addEventListener('click',()=>{if(!b.disabled&&b.getAttribute('aria-disabled')!=='true'){click(false);onPress(b);}});   // U05: a key clicks (the kit's click: sound, and a buzz on a phone)
  return b;}
 export function busy(b,on){if(on)b.dataset.busy='';else delete b.dataset.busy;}
 
@@ -118,9 +131,10 @@ export function dial({label,icon:ico,unit='',min=0,max=100,kind='thermal',heatKi
  tip(root,label,onDrag?'Tap for details and presets. Drag around the ring to set a new target.':'Tap for details.');
  return {el:root,set};}
 
-// ---------- fan ring ---------- Fan ring. With onSet the ring is a control: drag round it (top
-// is 0, clockwise to 100 %), it snaps to 5 % and sends on release; a tap opens its panel.
-// Without onSet (automatic fans) a tap opens the panel only.
+// ---------- fan ring ----------
+// Fan ring (2026-09-24: "you should be able to change the speed on the fly"). With onSet the
+// ring is a control: drag round it (top is 0, clockwise to 100 %), it snaps to 5 % and sends on
+// release; a tap opens its panel. Without onSet (automatic fans) a tap opens the panel only.
 export function fanRing({label,onOpen,onSet=null,title=null,does=null}={}){
  const b=el('button','nx-fan');b.type='button';const disc=el('div','nx-fan-disc'),C=2*Math.PI*33;
  const s=sv('svg',{class:'ring',viewBox:'0 0 76 76'});const tr=sv('circle',{cx:38,cy:38,r:33,class:'track'}),fl=sv('circle',{cx:38,cy:38,r:33,class:'fill','stroke-dasharray':C,'stroke-dashoffset':C});
@@ -137,7 +151,7 @@ export function fanRing({label,onOpen,onSet=null,title=null,does=null}={}){
   b.addEventListener('pointerup',()=>{if(!drag)return;const d=drag;drag=null;if(d.moved&&pending!==null){const v=pending;Promise.resolve(onSet(v)).then(ok=>{if(!ok)pending=null;paint();});setTimeout(()=>{pending=null;paint();},6000);}else if(!d.moved)onOpen?.();});
   b.addEventListener('pointercancel',()=>{drag=null;pending=null;paint();});}
  else if(onOpen)b.addEventListener('click',onOpen);
- tip(b,title||label+' fan',does||'The speed Klipper was told to run, as a percent. No tachometer is fitted, so this is the command, not a measured RPM.');
+ tip(b,title||label+' fan',does||'The speed the printer was told to run, as a percent. It is the command, not a measured speed.');
  function set({speed=null,rpm=null}={}){model={speed,rpm};if(pending!==null&&speed!==null&&Math.abs(speed-pending)<0.02)pending=null;paint();}
  return {el:b,set,lock(why){b.toggleAttribute('data-locked',!!why);setWhy(b,why||'');}};}
 
@@ -156,15 +170,61 @@ export function renderDock(host,slots,{press,message}={}){
 // ---------- 6.4 sheet ----------
 let sheetClose=null;
 // A dock button that opened a sheet, pop-up or radial carries data-showing while it is open, so a
-// second press on it closes the thing instead of opening it again.
+// second press on it closes the thing instead of opening it again (2026-09-24).
 export function markOpener(btn){clearOpener();btn?.setAttribute('data-showing','');}
 export function clearOpener(){for(const b of document.querySelectorAll('[data-showing]'))b.removeAttribute('data-showing');}
+// Keyboard users (polish WO-06 item 5, 2026-10-18): a panel or dialog takes focus when it opens, a modal one keeps Tab inside, and focus goes
+// back to what opened it when it closes. Returns {restore, release}: release only lets go of the Tab trap (a panel replaced by another).
+function takeFocus(host,{trap=false}={}){
+ const opener=document.activeElement;host.tabIndex=-1;try{host.focus({preventScroll:true});}catch{}
+ const key=e=>{if(!trap||e.key!=='Tab')return;
+  const f=[...host.querySelectorAll('a[href],button:not(:disabled),input:not(:disabled),select:not(:disabled),textarea:not(:disabled),[tabindex="0"]')].filter(x=>x.getClientRects().length);
+  if(!f.length){e.preventDefault();return;}const a=document.activeElement,i=f.indexOf(a);
+  if(e.shiftKey&&(a===host||i===0)){e.preventDefault();f.at(-1).focus();}else if(!e.shiftKey&&i===f.length-1){e.preventDefault();f[0].focus();}};
+ host.addEventListener('keydown',key);
+ const release=()=>host.removeEventListener('keydown',key);
+ return {release,restore(){release();if(opener&&opener!==document.body&&opener.isConnected&&(host.contains(document.activeElement)||document.activeElement===document.body||document.activeElement===host))try{opener.focus({preventScroll:true});}catch{}}};}
+// ---------- U05 (2026-10-20: "nothing pops up"): a sheet or a dialog grows out of the key or tile that opened it and folds back into it ----------
+// The spring is the kit's own (next-control.css --nxctl-spring). What a panel grows out of is what was pressed last (recorded when the press began, so it is still known
+// when the press closed the menu that held it). A panel opened from inside another one grows out of the pressed item but folds back into the key that opened the first.
+const SPRING='cubic-bezier(.34,1.56,.64,1)',FOLD='cubic-bezier(.5,-.18,.2,1)';
+const calm=()=>matchMedia('(prefers-reduced-motion: reduce)').matches;
+let lastPress=null;
+const noteKey=n=>{if(n&&n!==document.body&&n.getBoundingClientRect)lastPress={el:n,rect:n.getBoundingClientRect().toJSON(),at:performance.now()};};
+if(typeof document!=='undefined'){   // (the pure modules that import this file are tested in node, where there is no page)
+ document.addEventListener('pointerdown',e=>noteKey(e.target?.closest?.('button,a[href],[role=button],.nxctl,.fm-tile,[data-fm-act]')),true);
+ document.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&!e.repeat)noteKey(document.activeElement);},true);}
+const homeRect=h=>h&&(h.el?.isConnected&&h.el.getClientRects().length?h.el.getBoundingClientRect():h.rect);
+function openedBy(){const p=lastPress&&performance.now()-lastPress.at<3000?lastPress:null;if(!p)return {from:null,home:null};
+ const host=p.el.closest?.('.nx-sheet,.nx-modal-card');return {from:p.rect,home:host?host._home||null:{el:p.el,rect:p.rect}};}
+const spot=(node,r,from)=>{const cx=from?from.left+from.width/2:r.left+r.width/2,cy=from?from.top+from.height/2:r.top+r.height/2;
+ return {o:`${cx-r.left}px ${cy-r.top}px`,s:from?Math.max(.03,Math.min(.35,from.width/r.width,from.height/r.height)):.12};};
+/** Grow `node` out of the rectangle `from` (its own middle when there is none): a uniform scale about that point on the spring, so nothing stretches. */
+export function grow(node,from){node.getAnimations().forEach(a=>a.cancel());const r=node.getBoundingClientRect();if(!r.width||!r.height)return;
+ if(calm()){node.animate([{opacity:0},{opacity:1}],{duration:140});return;}
+ const {o,s}=spot(node,r,from);
+ node.animate([{opacity:0},{opacity:1,offset:.3},{opacity:1}],{duration:560,easing:'linear'});   // the fade does not ride the spring
+ node.animate([{transformOrigin:o,transform:`scale(${s})`},{transformOrigin:o,transform:'scale(1)'}],{duration:560,easing:SPRING});}
+/** A full-screen view that is not a sheet (the cameras) grows out of what was pressed; `.back(after)` folds it into that. */
+export function emerge(node){const o=openedBy();grow(node,o.from);return {back:after=>fold(node,homeRect(o.home),after)};}
+/** Fold `node` back into `to`, then call `after`. */
+export function fold(node,to,after){const r=node.getBoundingClientRect();
+ if(!r.width||!r.height||calm()){const a=node.animate([{opacity:1},{opacity:0}],{duration:140,fill:'forwards'});a.onfinish=a.oncancel=()=>after?.();return;}
+ const {o,s}=spot(node,r,to),cur=getComputedStyle(node).transform;
+ node.animate([{opacity:1},{opacity:1,offset:.55},{opacity:0}],{duration:360,easing:'linear',fill:'forwards'});
+ const a=node.animate([{transformOrigin:o,transform:cur==='none'?'scale(1)':cur},{transformOrigin:o,transform:`scale(${s})`}],{duration:360,easing:FOLD,fill:'forwards'});
+ a.onfinish=a.oncancel=()=>after?.();}
+const SHEET_SIZE={'Heat':'compact','Look':'compact','Calibrate':'wide','Materials':'wide','Print report':'wide','Timelapses':'wide','Health':'wide','Alerts':'compact','Build plates':'compact','Pages':'compact','Camera':'regular','Messages':'compact','Fan':'compact','Speed':'compact','Flow':'compact','Macros':'compact','Exclude objects':'compact',
+ 'Levelling':'wide','Things to print':'wide','Signals':'wide','Parts':'wide','Timeline':'wide','Assembly':'wide','Motion & motors':'wide','Electronics':'wide'};
 export function openSheet({title,icon:ico='i-more',build,onClose,wide=false,eyebrow=''}){
- const host=$('nx-sheet');closeSheet(true);host.className='nx-sheet nx-glass nx-glass--raised'+(wide?' nx-sheet--wide':'');host.hidden=false;host.replaceChildren();
+ const host=$('nx-sheet');const wasFocus=document.activeElement;const open=openedBy();closeSheet(true);host.className='nx-sheet nx-glass nx-glass--raised'+(wide?' nx-sheet--wide':'');host.hidden=false;host._home=open.home;host.replaceChildren();
+ // 2026-10-25: "these should be responsive to the size of what they're needed for". A panel's width follows what it holds: a short list is narrow,
+ // a page of figures is regular, a map or a grid of files is wide. Its height follows its content (next-pro.css).
+ host.dataset.size=SHEET_SIZE[title]||'regular';
  const grip=el('div','nx-sheet-grip');grip.append(el('i'));
  const head=el('div','nx-sheet-head');const x=()=>button({icon:'i-close',size:'icon',kind:'ghost',title:'Close',does:'Closes this panel.',onPress:()=>closeSheet()});const tt=el('div','nx-sheet-title',title);
- // Panels drag, resize, pin. Drag the header to float it anywhere (the corner resizes it); Dock
- // puts it back on the right; Pin keeps it on screen while other panels open.
+ // 2026-09-25: panels drag, resize, pin. Drag the header to float it anywhere (the corner
+ // resizes it); Dock puts it back on the right; Pin keeps it on screen while other panels open.
  const tools=el('div','nx-sheet-tools');tools.append(button({icon:'i-dock-right',size:'icon',kind:'ghost',title:'Dock to the side',does:'Puts this panel back on the right edge.',onPress:()=>{panelDock(host,title);}}),
   button({icon:'i-pin',size:'icon',kind:'ghost',title:'Pin',does:'Keeps this panel on screen while you open others. Drag it by its header, resize it from the corner.',onPress:()=>pinSheet(host,title)}));
  if(eyebrow){const w=el('div','nx-sheet-titles');w.append(el('div','nx-sheet-eyebrow',eyebrow),tt);head.append(icon(ico),w,tools,x());}else head.append(icon(ico),tt,tools,x());
@@ -172,8 +232,11 @@ export function openSheet({title,icon:ico='i-more',build,onClose,wide=false,eyeb
  const body=el('div','nx-sheet-body');host.append(grip,head,body);
  const unbind=bindSwipe(host,grip,{onDismiss:()=>closeSheet()});
  const esc=e=>{if(e.key==='Escape')closeSheet();};document.addEventListener('keydown',esc);
- sheetClose=()=>{unbind?.();document.removeEventListener('keydown',esc);onClose?.();};
- build(body,host);document.body.dataset.sheet=wide?'wide':'';requestAnimationFrame(()=>requestAnimationFrame(()=>host.dataset.open=''));host.setAttribute('aria-label',title);
+ // focus goes back to what opened the panel, not to whatever it replaced
+ const opener=wasFocus&&host.contains(wasFocus)?null:wasFocus;
+ let focus=null;sheetClose=(restore)=>{unbind?.();document.removeEventListener('keydown',esc);onClose?.();if(restore)focus?.restore();else focus?.release();};
+ build(body,host);document.body.dataset.sheet=wide?'wide':'';requestAnimationFrame(()=>requestAnimationFrame(()=>host.dataset.open=''));host.setAttribute('aria-label',title);grow(host,open.from);if(open.home?.el?.matches?.('.nx-btn,.nxkey')&&open.home.el.isConnected)markOpener(open.home.el);   // the key stays pressed while its sheet is open
+ if(opener){document.activeElement===opener||opener.focus?.({preventScroll:true});}focus=takeFocus(host);
  return {body,host,close:closeSheet};}
 // ---------- floating, resizable and pinned panels ----------
 const PANEL_KEY=t=>'nx-panel-'+t;
@@ -200,31 +263,100 @@ function pinSheet(host,title){if(host.id!=='nx-sheet')return;const r=host.getBou
  // its close button now closes this pinned panel only
  const xBtn=host.querySelector('.nx-sheet-head > .nx-btn:last-child');if(xBtn){const nx=xBtn.cloneNode(true);xBtn.replaceWith(nx);nx.addEventListener('click',()=>{close?.();host.remove();});}
  host.querySelector('.nx-sheet-tools')?.remove();host.style.zIndex=String(6+pinCount);panelSave(host,title);}
-export function closeSheet(instant=false){const host=$('nx-sheet');if(!host||host.hidden)return;const done=sheetClose;sheetClose=null;done?.();if(!instant)clearOpener();
- delete host.dataset.open;delete document.body.dataset.sheet;host.style.removeProperty('--drag');if(instant){host.hidden=true;return;}setTimeout(()=>{if(!host.dataset.open)host.hidden=true;},260);}
+export function closeSheet(instant=false){const host=$('nx-sheet');if(!host||host.hidden)return;if(!instant&&host.dataset.closing!==undefined)return;const done=sheetClose;sheetClose=null;done?.(!instant);if(!instant)clearOpener();
+ delete host.dataset.open;delete document.body.dataset.sheet;
+ if(instant){host.getAnimations().forEach(a=>a.cancel());delete host.dataset.closing;host.style.removeProperty('--drag');host.hidden=true;return;}
+ host.dataset.closing='';   // folds back into the key it grew from (U05); nothing under it answers while it folds
+ fold(host,homeRect(host._home),()=>{if(host.dataset.closing===undefined)return;delete host.dataset.closing;host.getAnimations().forEach(a=>a.cancel());host.style.removeProperty('--drag');if(!host.dataset.open)host.hidden=true;});}
 export function section(title,...children){const s=el('section','nx-section');if(title)s.append(el('h3','',title));s.append(...children);return s;}
 
-// ---------- 6.5 radial ----------
-export function openRadial(items,{x,y,onPick}){
- const host=$('nx-radial');host.hidden=false;host.replaceChildren();host.className='nx-radial';
- const touch=matchMedia('(pointer: coarse)').matches,rad=Math.min(touch?128:150,innerWidth/2-52,innerHeight/2-70),layout=radialLayout(items.length,rad);
- const cx=Math.max(rad+46,Math.min(innerWidth-rad-46,x)),cy=Math.max(rad+60,Math.min(innerHeight-rad-80,y));
- const hub=el('div','nx-radial-hub');hub.style.left=cx+'px';hub.style.top=cy+'px';
- const close=()=>{clearOpener();host.hidden=true;host.replaceChildren();document.removeEventListener('keydown',esc);};
- const esc=e=>{if(e.key==='Escape')close();};document.addEventListener('keydown',esc);
- const btns=items.map((it,i)=>{const b=button({icon:it.icon,label:it.label,size:'dock',kind:it.danger?'danger':'default',cmd:it.cmd,hold:it.hold,title:it.title||it.label,does:it.does||'',onPress:()=>{close();onPick(it);}});
-  if(it.sub){const sb=el('span','nx-radial-sub',it.sub);b.append(sb);}if(it.tone)b.dataset.tone=it.tone;
-  b.style.left=layout[i].x+'px';b.style.top=layout[i].y+'px';b.style.setProperty('--i',i);b.style.setProperty('--x',layout[i].x+'px');b.style.setProperty('--y',layout[i].y+'px');hub.append(b);return b;});
- const x0=button({icon:'i-close',size:'icon',kind:'default',title:'Close',does:'Closes this menu.',onPress:close});x0.classList.add('nx-radial-close');hub.append(x0);
- host.append(hub);host.addEventListener('pointerdown',e=>{if(e.target===host)close();},{once:true});
- // Touch: press-drag-release from the hub selects by direction (Hopkins' pie menu, 1.5).
- let tracking=false;host.addEventListener('pointermove',e=>{if(e.pointerType==='mouse'&&!tracking)return;const i=radialIndex(e.clientX-cx,e.clientY-cy,items.length);btns.forEach((b,k)=>b.toggleAttribute('data-hot',k===i));});
- return {close,start:()=>{tracking=true;},release:e=>{if(!tracking)return;tracking=false;const i=radialIndex(e.clientX-cx,e.clientY-cy,items.length);if(i>=0&&!btns[i].disabled&&!items[i].hold){close();onPick(items[i]);}},btns};}
+// ---------- 6.5 radial: the wheel ----------
+// 2026-10-24: "I asked for radial menus in the beginning ... each one of these buttons could be radial menus. Think Skyrim." Every key's choices
+// open as a weapon wheel over the machine: the choices round a ring, the one under the pointer lit, its name and what it does in the hub, and the
+// key's own figures (where the head is, the gantry, the temperatures) in the hub when nothing is lit. Solid surfaces only: the desktop window's
+// WebKit draws no backdrop blur, so nothing here is see-through. Up to eight round the ring; a longer list pages round it (MORE, or the mouse wheel).
+// A choice that changes the printer and must be held (a cancel) asks for a second click. Arrows turn it, Enter picks, Escape or the hub closes it.
+export function openRadial(items,{x,y,from=null,onPick,title='',center=null}={}){
+ const host=$('nx-radial');clearTimeout(host._t);delete host.dataset.closing;host.getAnimations().forEach(a=>a.cancel());host.hidden=false;host.replaceChildren();host.className='nx-radial nx-wheel-host';
+ // centred between the top bar and the deck; placed again when the window changes size
+ const room=()=>{const top=document.getElementById('nx-top')?.getBoundingClientRect(),dock=document.getElementById('nx-dock')?.getBoundingClientRect();
+  const y0=(top?.bottom||0)+10,y1=(dock&&dock.height?dock.top:innerHeight)-10;return {cx:innerWidth/2,cy:(y0+y1)/2,R:Math.max(130,Math.min(270,(y1-y0)/2-6,innerWidth/2-14))};};
+ const {cx,cy,R}=room(),r=R*.44,PAGE=8;
+ const pages=[];if(items.length<=PAGE)pages.push(items);else for(let i=0;i<items.length;i+=PAGE-1)pages.push(items.slice(i,i+PAGE-1));
+ let page=0,hot=-1,armed=-1,list=[];
+ const ring=el('div','nx-wheel');Object.assign(ring.style,{left:cx+'px',top:cy+'px',width:2*R+'px',height:2*R+'px'});
+ const svg=sv('svg',{class:'nx-wheel-svg',viewBox:`${-R} ${-R} ${2*R} ${2*R}`,'aria-hidden':'true'});ring.append(svg);
+ const hub=el('div','nx-wheel-hub');Object.assign(hub.style,{width:2*r-12+'px',height:2*r-12+'px'});
+ const hIco=el('div','nx-wheel-hub-ico'),hT=el('b','nx-wheel-hub-t'),hD=el('p','nx-wheel-hub-d'),hC=el('div','nx-wheel-hub-c');hub.append(hIco,hT,hD,hC);ring.append(hub);
+ const pager=el('div','nx-wheel-page');ring.append(pager);host.append(ring);if(R<200)ring.dataset.small='';   // a small wheel (a phone) keeps its hub to the name and the figures
+ const arc=(a0,a1,ro,ri)=>{const p=(a,rr)=>[(rr*Math.cos(a)).toFixed(2),(rr*Math.sin(a)).toFixed(2)],big=a1-a0>Math.PI?1:0,[x0,y0_]=p(a0,ro),[x1,y1_]=p(a1,ro),[x2,y2]=p(a1,ri),[x3,y3]=p(a0,ri);
+  return `M${x0} ${y0_}A${ro} ${ro} 0 ${big} 1 ${x1} ${y1_}L${x2} ${y2}A${ri} ${ri} 0 ${big} 0 ${x3} ${y3}Z`;};
+ const words=it=>({t:it.title||it.label,d:it.does||''});
+ const centreText=()=>{const c=typeof center==='function'?center():center;return c||'';};
+ function showHub(i){const it=list[i];hIco.replaceChildren();if(!calm()&&hub.isConnected)hub.animate([{opacity:.55},{opacity:1}],{duration:160,easing:'ease-out'});
+  if(!it){hIco.append(icon(items[0]?.icon||'i-more'));hT.textContent=title||'Choose';hD.textContent=pages.length>1?`Page ${page+1} of ${pages.length}`:'';hC.textContent=centreText();hub.dataset.tone='';return;}
+  const w=words(it);hIco.append(icon(it.icon||'i-more'));hT.textContent=it.page?'More choices':w.t;hD.textContent=armed===i?'Click again to confirm.':it.page?`Page ${page+2>pages.length?1:page+2} of ${pages.length}`:(it.sub?it.sub+'. ':'')+w.d;hC.textContent=it.page?'':centreText();hub.dataset.tone=it.tone||'';}
+ function build(){svg.replaceChildren();for(const b of ring.querySelectorAll('.nx-wheel-key'))b.remove();
+  list=[...pages[page]];if(pages.length>1)list.push({key:'__page',page:true,icon:'i-arrow-right',label:'MORE'});
+  // a short list still makes a whole wheel: the unused slots stand empty and dim, as a game's do
+  while(list.length<6)list.push({key:'__empty'+list.length,empty:true,label:''});
+  const n=list.length,step=2*Math.PI/n,gap=Math.min(.035,step*.08);
+  list.forEach((it,i)=>{const a0=-Math.PI/2-step/2+i*step+gap,a1=a0+step-2*gap,mid=(a0+a1)/2;
+   const path=sv('path',{d:arc(a0,a1,R,r),class:'nx-wheel-seg'});path.dataset.i=i;if(it.tone)path.dataset.tone=it.tone;if(it.empty)path.dataset.empty='';svg.append(path);
+   // 2026-10-25 ("the radial menu is not animated as well as it could be"): a lit choice lifts out along its own line from the middle
+   const ox=(6*Math.cos(mid)).toFixed(1),oy=(6*Math.sin(mid)).toFixed(1);path.style.setProperty('--dx',ox+'px');path.style.setProperty('--dy',oy+'px');
+   if(!calm())path.animate([{opacity:0,transform:'scale(.55) rotate(-14deg)'},{opacity:1,transform:'scale(1) rotate(0deg)'}],{duration:320,delay:30+i*28,easing:'cubic-bezier(.2,.9,.25,1.15)',fill:'backwards'});
+   if(it.empty)return;
+   const lr=(R+r)/2,bx=lr*Math.cos(mid),by=lr*Math.sin(mid);
+   const b=button({icon:it.icon,label:it.label,size:'dock',kind:it.danger?'danger':'default',cmd:it.page?null:it.cmd,title:it.title||it.label,does:it.does||'',onPress:()=>pick(i)});
+   b.classList.add('nx-wheel-key');if(it.sub)b.append(el('span','nx-radial-sub',it.sub));if(it.num)b.classList.add('nx-radial-num');if(it.tone)b.dataset.tone=it.tone;
+   b.style.left=`calc(50% + ${bx.toFixed(1)}px)`;b.style.top=`calc(50% + ${by.toFixed(1)}px)`;b.style.setProperty('--seg',Math.min(2*lr*Math.sin(step/2)-14,150).toFixed(0)+'px');b.style.setProperty('--dx',ox+'px');b.style.setProperty('--dy',oy+'px');b.dataset.i=i;ring.append(b);
+   if(!calm())b.animate([{opacity:0,transform:`translate(-50%,-50%) translate(${(-bx*.55).toFixed(1)}px,${(-by*.55).toFixed(1)}px) scale(.6)`},{opacity:1,transform:'translate(-50%,-50%)'}],{duration:340,delay:60+i*28,easing:'cubic-bezier(.2,.9,.25,1.1)',fill:'backwards'});});
+  pager.textContent=pages.length>1?`${page+1} / ${pages.length}`:'';hot=-1;armed=-1;paint();showHub(-1);}
+ function paint(){const keys=[...ring.querySelectorAll('.nx-wheel-key')],by=i=>keys.find(b=>+b.dataset.i===i);svg.querySelectorAll('.nx-wheel-seg').forEach((p,i)=>{p.toggleAttribute('data-hot',i===hot);p.toggleAttribute('data-off',!!by(i)?.disabled);});keys.forEach(b=>b.toggleAttribute('data-hot',+b.dataset.i===hot));}
+ const sync=setInterval(paint,400);
+ function pick(i){const it=list[i];if(!it||it.empty)return;if(it.page){page=(page+1)%pages.length;build();return;}
+  const b=[...ring.querySelectorAll('.nx-wheel-key')].find(x=>+x.dataset.i===i);if(b?.disabled){hot=i;paint();showHub(i);hD.textContent=(b.dataset.why||b.title||'')||'Not available right now.';return;}
+  if(it.hold&&armed!==i){armed=i;hot=i;paint();showHub(i);return;}
+  close();onPick?.(it);}
+ const place=()=>{const p=room();ring.style.left=p.cx+'px';ring.style.top=p.cy+'px';};addEventListener('resize',place);
+ const close=()=>{clearInterval(sync);removeEventListener('resize',place);clearOpener();document.removeEventListener('keydown',key);if(host.dataset.closing!==undefined)return;
+  if(calm()){host.hidden=true;host.replaceChildren();return;}host.dataset.closing='';
+  svg.querySelectorAll('.nx-wheel-seg').forEach((p,k)=>p.animate([{opacity:1,transform:'scale(1)'},{opacity:0,transform:'scale(.7) rotate(10deg)'}],{duration:170,delay:k*12,easing:'ease-in',fill:'forwards'}));
+  ring.animate([{transform:'translate(-50%,-50%) scale(1)',opacity:1},{transform:'translate(-50%,-50%) scale(.9)',opacity:0}],{duration:200,delay:60,easing:'ease-in',fill:'forwards'});
+  host.animate([{opacity:1},{opacity:0}],{duration:260,easing:'ease-in',fill:'forwards'});
+  host._t=setTimeout(()=>{delete host.dataset.closing;host.getAnimations().forEach(a=>a.cancel());host.hidden=true;host.replaceChildren();},280);};
+ const at=e=>{const b=ring.getBoundingClientRect(),dx=e.clientX-(b.left+b.width/2),dy=e.clientY-(b.top+b.height/2),d=Math.hypot(dx,dy);
+  if(d<r*.92)return {zone:'hub'};if(d>R+70)return {zone:'out'};const n=list.length,step=2*Math.PI/n;let a=Math.atan2(dy,dx)+Math.PI/2+step/2;a=((a%(2*Math.PI))+2*Math.PI)%(2*Math.PI);return {zone:'ring',i:Math.floor(a/step)%n};};
+ host.addEventListener('pointermove',e=>{const z=at(e),i=z.zone==='ring'&&!list[z.i]?.empty?z.i:-1;if(i!==hot){hot=i;if(armed!==i)armed=-1;paint();showHub(i);}});
+ host.addEventListener('click',e=>{if(e.target.closest('.nx-wheel-key'))return;const z=at(e);if(z.zone==='ring')pick(z.i);else close();});
+ host.addEventListener('wheel',e=>{if(pages.length<2)return;e.preventDefault();page=(page+(e.deltaY>0?1:pages.length-1))%pages.length;build();},{passive:false});
+ const key=e=>{if(e.key==='Escape'){e.preventDefault();close();return;}const n=list.length;
+  const step=d=>{let i=hot;for(let k=0;k<n;k++){i=(i+d+n)%n;if(!list[i].empty)break;}hot=i;paint();showHub(hot);};
+  if(['ArrowRight','ArrowDown'].includes(e.key)){e.preventDefault();step(1);}
+  else if(['ArrowLeft','ArrowUp'].includes(e.key)){e.preventDefault();step(-1);}
+  else if(e.key==='Enter'&&hot>=0){e.preventDefault();pick(hot);}};
+ document.addEventListener('keydown',key);
+ if(!calm()){ring.animate([{transform:'translate(-50%,-50%) scale(.82)',opacity:0},{transform:'translate(-50%,-50%) scale(1)',opacity:1}],{duration:220,easing:'cubic-bezier(.2,.9,.3,1.1)'});host.animate([{opacity:0},{opacity:1}],{duration:180});}
+ build();
+ const btns=()=>[...ring.querySelectorAll('.nx-wheel-key')];
+ // Touch: press on the key, drag onto a choice, let go (the pie menu gesture the old radial had).
+ let tracking=false;
+ return {close,start:()=>{tracking=true;},release:e=>{if(!tracking)return;tracking=false;const z=at(e);if(z.zone==='ring'&&!list[z.i]?.hold)pick(z.i);},get btns(){return btns();}};}
 
 // ---------- 6.9 toast ----------
-export function toast(text,tone='info'){const host=$('nx-toasts');if(!host||!text)return;const t=el('div','nx-toast nx-glass nx-glass--raised');t.dataset.tone=tone;
- t.append(icon(tone==='alarm'?'i-warn':tone==='ok'?'i-check':'i-live'),el('span','',text));host.append(t);while(host.children.length>2)host.firstChild.remove();
- setTimeout(()=>t.remove(),tone==='alarm'?7000:4000);}
+// U07 (2026-10-20: every message grows from where it belongs and settles back): a toast grows out of what it is about (`opts.from`: a tile, a key or a rectangle) or,
+// when the page does not say, out of the key that was just pressed, and folds back into it when it goes. With neither (a message nobody asked for) it grows from its own place.
+// 2026-10-24: notifications never sit over the machine. On a computer they slide into the bottom deck's lane; every one is kept for the bell (notices).
+export const notices=[];let noticeHook=null;export function onNotice(f){noticeHook=f;}
+export function toast(text,tone='info',opts={}){if(text){notices.push({text:String(text),tone,at:Date.now()});if(notices.length>60)notices.shift();noticeHook?.();}
+ const lane=document.body.dataset.layout!=='phone'?$('nx-lane-toasts'):null,host=lane||$('nx-toasts');if(!host||!text)return;const t=el('div','nx-toast nx-glass nx-glass--raised');t.dataset.tone=tone;
+ t.append(icon(tone==='alarm'?'i-warn':tone==='ok'?'i-check':'i-live'),el('span','',text));host.append(t);
+ const src=opts.from||(lastPress&&performance.now()-lastPress.at<6000?lastPress.el:null),keep=src?.getBoundingClientRect?.().toJSON?.()||(lastPress&&!opts.from?lastPress.rect:null);
+ const where=()=>(src&&src.isConnected&&src.getClientRects?.().length?src.getBoundingClientRect():keep)||null;
+ const gone=()=>{if(t._out)return;t._out=true;fold(t,where(),()=>t.remove());};t._gone=gone;
+ for(let live=[...host.children].filter(c=>!c._out);live.length>2;live.shift())live[0]._gone();   // two at most: the oldest folds away
+ grow(t,where());setTimeout(gone,tone==='alarm'?7000:4000);}
 
 // ---------- small widgets used by sheets ----------
 export function segmented(values,current,onPick,fmt=v=>String(v)){const s=el('div','nx-seg');for(const v of values){const b=el('button','',fmt(v));b.type='button';b.setAttribute('aria-pressed',String(v===current));
@@ -235,11 +367,20 @@ export function stepper({value,unit='',step=5,min=0,max=300,onChange}){const w=e
  const plus=button({icon:'i-plus',size:'icon',title:'Raise',does:`Raises by ${step}${unit}.`,onPress:()=>{cur=Math.min(max,cur+step);paint();onChange?.(cur);}});
  w.append(minus,v,plus);w.get=()=>cur;w.setValue=x=>{cur=x;paint();};return w;}
 export {bindLongPress};
+// ---------- U05 (2026-10-20): a number that is set in a sheet or a dialog is the kit's control, never a typed field ----------
+// An LED gauge at rest (in a panel it is smaller than on the printer page), a black knob when held, the new value sent once on release (`onSet`). The caption is ours
+// because the kit's own label is too small at this size. `get()` is the value now; `set(v)` is the page moving it (never calls onSet).
+export function numberField({label,unit='',prefix='',min=0,max=100,step=1,value=0,turn=300,color='var(--accent)',color2='var(--accent-2)',size=92,onSet,onChange}={}){
+ const w=el('div','nx-numf'),c=kitControl({label,unit,prefix,min,max,step,value,turn,color,color2,onSet,onChange});c.el.setAttribute('aria-label',label);
+ w.style.setProperty('--nsz',size+'px');w.append(c.el,el('small','nx-numf-l',label));w.get=()=>c.spec.value;w.set=w.setValue=v=>c.set(v);w.kit=c;return w;}
+/** An LED figure: the value lit over a ghost of unlit digits (the panel language of the farm wall's counts); `unit` is a small word after it. */
+export function led(value,unit='',cls=''){const b=el('b','nx-fig'+(cls?' '+cls:'')),n=el('i','nx-fig-n',String(value));n.dataset.ghost='8'.repeat(Math.max(2,String(value).length));b.append(n);if(unit)b.append(el('small','',unit));return b;}
 
-// ---------- instrument gauge ---------- A real instrument: machined bezel, numbered scale over a
-// 240° sweep, value band, red zone, a tapered needle on a hub, digital readout under the hub,
-// glass sheen. The needle rotates with a CSS transition, so it eases between readings without a
-// JS animation loop.
+// ---------- instrument gauge (NEXT review 2026-09-24: "the gauges look half done; speed and
+// flow definitely belong in a round gauge") ----------
+// A real instrument: machined bezel, numbered scale over a 240° sweep, value band, red zone, a
+// tapered needle on a hub, digital readout under the hub, glass sheen. The needle rotates with a
+// CSS transition, so it eases between readings without a JS animation loop.
 const G0=150,GS=240;
 const gAng=f=>G0+GS*Math.max(0,Math.min(1,f));
 export function gauge({label,icon:ico,unit='',min=0,max=100,major=6,redFrom=null,onOpen,title,does}={}){
@@ -328,40 +469,35 @@ export function closePopover(){popClose?.();}
 // ---------- G-code command bar ----------
 // Always in the top bar. Type G-code or search: Klipper's own commands (with their help), your
 // macros, your history and the app's actions, filtered as you type; arrows to move, Enter to run.
-// Anything typed that is not an action is sent as a console line through the reviewed path.
-export function commandBar({host,source,run,locked}){
+// Polish WO-06 (2026-10-18): free text is never sent from here (next-core.js paletteItems); typed G-code
+// goes through the Console (`openConsole`). A command the printer lists, with its arguments, still runs.
+export function commandBar({host,source,run,locked,openConsole,hasConsole}){
  const wrap=el('div','nx-cmd'),box=el('label','nx-cmd-box'),input=el('input','nx-cmd-input'),kbd=el('kbd','','/');
- input.type='text';input.spellcheck=false;input.autocomplete='off';input.placeholder='G-code or command…';input.setAttribute('aria-label','G-code or command');input.setAttribute('role','combobox');input.setAttribute('aria-expanded','false');
+ input.type='text';input.spellcheck=false;input.autocomplete='off';input.placeholder='Find a command…';input.setAttribute('aria-label','Find a command');input.setAttribute('role','combobox');input.setAttribute('aria-expanded','false');
  box.append(icon('i-console'),input,kbd);const list=el('div','nx-cmd-list nx-glass nx-glass--raised');list.setAttribute('role','listbox');list.hidden=true;wrap.append(box,list);host.append(wrap);
  let items=[],active=0,data=null;
- const score=(q,s)=>{s=s.toLowerCase();if(!q)return 1;if(s.startsWith(q))return 3;if(s.includes(q))return 2;return 0;};
- async function refresh(){data=data||await source();const q=input.value.trim().toLowerCase(),first=q.split(/\s+/)[0]||'';
-  const pool=[...data.actions.map(a=>({...a,kind:'action'})),...data.history.map(h=>({label:h,kind:'history',script:h})),...data.commands.map(c=>({label:c.name,help:c.help,kind:c.macro?'macro':'gcode',script:c.name}))];
-  const seen=new Set();items=pool.map(it=>({it,s:Math.max(score(first,it.label),score(q,it.label)*1.1,it.help?score(q,it.help)*.5:0)})).filter(x=>x.s>0&&!seen.has(x.it.kind+x.it.label)&&seen.add(x.it.kind+x.it.label))
-   .sort((a,b)=>b.s-a.s||(a.it.kind==='action'?-1:0)).slice(0,9).map(x=>x.it);
-  if(q&&!items.some(i=>i.label.toLowerCase()===q))items.push({label:input.value.trim(),kind:'send',script:input.value.trim()});
-  active=0;paint();}
+ async function refresh(){data=data||await source();items=paletteItems(data,input.value,{console:!!openConsole&&(hasConsole?hasConsole():true)}).map(it=>it.consoleText!==undefined?{...it,go:()=>openConsole(it.consoleText)}:it);active=0;paint();}
  function paint(){list.replaceChildren();list.hidden=!items.length||document.activeElement!==input;input.setAttribute('aria-expanded',String(!list.hidden));
   items.forEach((it,i)=>{const row=el('div','nx-cmd-item');row.setAttribute('role','option');row.setAttribute('aria-selected',String(i===active));
-   row.append(icon(it.icon||(it.kind==='history'?'i-rewind':it.kind==='macro'?'i-macro':it.kind==='send'?'i-play':'i-console')),el('span','nx-cmd-name',it.label),el('span','nx-cmd-help',it.kind==='send'?'send this line · reviewed once':it.help||(it.kind==='history'?'from your history':it.kind==='macro'?'your macro':it.kind==='action'?'action':'')));
+   row.append(icon(it.icon||(it.kind==='history'?'i-rewind':it.kind==='macro'?'i-macro':'i-console')),el('span','nx-cmd-name',it.label),el('span','nx-cmd-help',it.help||(it.kind==='history'?'from your history':it.kind==='macro'?'your macro':it.kind==='action'?'action':'')));
    row.addEventListener('pointerdown',e=>{e.preventDefault();pick(it);});list.append(row);});}
- async function pick(it){if(!it)return;if(it.kind==='action'){input.value='';list.hidden=true;input.blur();return run(it);}
+ async function pick(it){if(!it||it.kind==='none')return;if(it.kind==='action'){input.value='';list.hidden=true;input.blur();return run(it);}
   if(it.kind==='gcode'||it.kind==='macro'){if(input.value.trim().split(/\s+/)[0].toUpperCase()!==it.label.toUpperCase()){input.value=it.label+' ';refresh();return;}}
-  const line=(it.kind==='send'||it.kind==='gcode'||it.kind==='macro')?input.value.trim()||it.script:it.script;input.blur();list.hidden=true;
+  const line=(it.kind==='gcode'||it.kind==='macro')?input.value.trim()||it.script:it.script;input.blur();list.hidden=true;
   const ok=await run({kind:'script',script:line});if(ok){input.value='';data=null;}}
- input.addEventListener('focus',()=>{const why=locked();if(why){wrap.dataset.locked='';tip(box,'G-code console',why);}else{delete wrap.dataset.locked;}refresh();});
+ input.addEventListener('focus',()=>{const why=locked();if(why){wrap.dataset.locked='';tip(box,'Command search',why);}else{delete wrap.dataset.locked;}refresh();});
  input.addEventListener('input',refresh);input.addEventListener('blur',()=>setTimeout(()=>{list.hidden=true;input.setAttribute('aria-expanded','false');},120));
  input.addEventListener('keydown',e=>{if(e.key==='ArrowDown'){active=Math.min(items.length-1,active+1);paint();e.preventDefault();}
   else if(e.key==='ArrowUp'){active=Math.max(0,active-1);paint();e.preventDefault();}
   else if(e.key==='Enter'){e.preventDefault();pick(items[active]);}
-  else if(e.key==='Tab'&&items[active]&&items[active].kind!=='action'){e.preventDefault();input.value=items[active].label+' ';refresh();}
+  else if(e.key==='Tab'&&items[active]&&!['action','none'].includes(items[active].kind)){e.preventDefault();input.value=items[active].label+' ';refresh();}
   else if(e.key==='Escape'){input.value='';input.blur();}});
  document.addEventListener('keydown',e=>{if(e.key==='/'&&!/input|textarea|select/i.test(document.activeElement?.tagName||'')){e.preventDefault();input.focus();}});
- tip(box,'G-code console','Type G-code or search commands, macros, your history and actions. Enter runs; anything sent to the printer is shown for review first. Press / to jump here.');
+ tip(box,'Command search','Find any control or page by its name, such as Heat, Speed, Move, Failure watch or Motors off. Enter opens or runs the one picked; anything sent to the printer is shown for review first. G-code you type goes in the Console. Press / to jump here.');
  return {focus:()=>input.focus(),el:wrap};}
 
-// ---------- instrument controls, style A (knob) and B (bar) ---------- the
-// user picked the climate knob (A) and wants the Control-Center bar (B) as a switchable style: one
+// ---------- instrument controls, style A (knob) and B (bar) — NEXT review 2026-09-24 ----------
+// the owner picked the climate knob (A) and wants the Control-Center bar (B) as a switchable style: one
 // input model for both. value = what you set (target / factor); cur = the live reading for heaters
 // (white marker); live = the actual use for speed and flow (a thin bright bar inside the lit part:
 // actual speed or flow against 100%); act = 0..1 how much is happening, driving the face's ghost glow.
@@ -377,8 +513,8 @@ const knob=style==='knob',root=el('div',(knob?'nxk':'nxb')+(cls?' '+cls:''));if(
   parts.big=el('div','nxb-big');parts.lab=el('div','nxb-label');parts.now=el('div','nxb-now');top.append(parts.big);bot.append(parts.lab,parts.now);
   root.append(parts.fill,parts.live,parts.cur,top,bot);}
  if(ico)parts.lab.append(icon(ico));parts.lab.append(label);
- // Detents: common stops marked on the ring or bar; a drag within `pull` of one snaps to it, the
- // mark lights and touch devices tick.
+ // Detents (the owner: "hard locks where it clicks into place and glows"): common stops marked on the
+ // ring or bar; a drag within `pull` of one snaps to it, the mark lights and touch devices tick.
  const marks=detents.map(d=>{const m=el('i',knob?'nxk-mark':'nxb-mark');m.dataset.v=d;m.style.setProperty('--mf',((d-min)/(max-min)).toFixed(4));
   m.style.setProperty('--mdeg',(225+270*(d-min)/(max-min)).toFixed(2)+'deg');if(d===100)m.dataset.home='';root.append(m);return m;});
  let lastDetent=null;
@@ -415,15 +551,84 @@ const knob=style==='knob',root=el('div',(knob?'nxk':'nxb')+(cls?' '+cls:''));if(
 
 // ---------- stat tile: one reading, big, with its label and a note ----------
 export function stat(label,{value='—',note='',tone=''}={}){const w=el('div','nx-stat'),v=el('div','nx-stat-v'),n=el('div','nx-stat-n');w.append(el('div','nx-stat-l',label),v,n);
- const set=(x,{note:t=note,tone:k=tone}={})=>{v.textContent=x===null||x===undefined||x===''?'—':String(x);n.textContent=t||'';if(k)w.dataset.tone=k;else delete w.dataset.tone;};set(value);return {el:w,set};}
+ // 2026-10-23: a figure with nothing to show never stands as a bare dash: it is dimmed and says why (its own note, else that nothing came yet).
+ const set=(x,{note:t=note,tone:k=tone}={})=>{const empty=x===null||x===undefined||x===''||x==='—';v.textContent=empty?'—':String(x);n.textContent=t||(empty?'nothing reported yet':'');w.toggleAttribute('data-empty',empty);if(k)w.dataset.tone=k;else delete w.dataset.tone;};set(value);return {el:w,set};}
 
-// ---------- modal: a question over whatever is open (the command review) ---------- A sheet would
-// replace the page that asked, so a review opens on top instead and the page underneath carries on
-// when it closes. anchor: the review opens as a drop-down under that element (the command bar)
-// instead of over the whole screen.
-export function openModal({title,icon:ico='i-console',build,onClose,anchor=null}){const back=el('div','nx-modal'+(anchor?' nx-modal--anchored':'')),card=el('div','nx-modal-card nx-glass nx-glass--raised');card.setAttribute('role','dialog');card.setAttribute('aria-modal','true');card.setAttribute('aria-label',title);
- const head=el('div','nx-sheet-head'),body=el('div','nx-modal-body');let done=false;
- const close=()=>{if(done)return;done=true;document.removeEventListener('keydown',esc,true);back.remove();onClose?.();};
+// ---------- modal: a question over whatever is open (the command review) ----------
+// A sheet would replace the page that asked (our filament wizard lost its place), so a review
+// opens on top instead and the page underneath carries on when it closes.
+// anchor: the review opens as a drop-down under that element (the command bar) instead of over the
+// whole screen (2026-09-25).
+export function openModal({title,icon:ico='i-console',build,onClose,anchor=null}){const open=openedBy(),from=anchor?anchor.getBoundingClientRect():open.from;
+ const back=el('div','nx-modal'+(anchor?' nx-modal--anchored':'')),card=el('div','nx-modal-card nx-glass nx-glass--raised');card.setAttribute('role','dialog');card.setAttribute('aria-modal','true');card.setAttribute('aria-label',title);card._home=anchor?{el:anchor,rect:from}:open.home;
+ const head=el('div','nx-sheet-head'),body=el('div','nx-modal-body');let done=false,focus=null;
+ // U05: the dialog folds back into the key it grew from; the page behind it answers again at once
+ const close=()=>{if(done)return;done=true;document.removeEventListener('keydown',esc,true);focus?.restore();onClose?.();back.dataset.closing='';
+  back.animate([{opacity:1},{opacity:0}],{duration:300,easing:'ease-in',fill:'forwards'});fold(card,homeRect(card._home),()=>back.remove());};
  const esc=e=>{if(e.key==='Escape'){e.stopPropagation();close();}};document.addEventListener('keydown',esc,true);
  head.append(icon(ico),el('div','nx-sheet-title',title),button({icon:'i-close',size:'icon',kind:'ghost',title:'Close',does:'Closes this without sending anything.',onPress:close}));
- card.append(head,body);back.append(card);if(anchor){const r=anchor.getBoundingClientRect(),w=Math.min(Math.max(r.width,440),innerWidth-24);card.style.width=w+'px';card.style.left=Math.max(12,Math.min(r.left,innerWidth-w-12))+'px';card.style.top=(r.bottom+8)+'px';}back.addEventListener('pointerdown',e=>{if(e.target===back)close();});document.body.append(back);build(body,close);card.querySelector('.nx-btn[data-kind=primary]')?.focus();return {close};}
+ card.append(head,body);back.append(card);if(anchor){const r=anchor.getBoundingClientRect(),w=Math.min(Math.max(r.width,440),innerWidth-24);card.style.width=w+'px';card.style.left=Math.max(12,Math.min(r.left,innerWidth-w-12))+'px';card.style.top=(r.bottom+8)+'px';}
+ back.addEventListener('pointerdown',e=>{if(e.target===back)close();});document.body.append(back);focus=takeFocus(card,{trap:true});build(body,close);card.querySelector('.nx-btn[data-kind=primary]:not(:disabled)')?.focus({preventScroll:true});
+ // U05: it opens over the key it grew from (as near to it as the window allows), not in the middle of the screen, and the dim gathers there
+ if(!anchor){const r=card.getBoundingClientRect(),cx=from?from.left+from.width/2:innerWidth/2,cy=from?from.top+from.height/2:innerHeight/2;
+  card.style.width=r.width+'px';card.style.position='fixed';card.style.left=Math.max(12,Math.min(innerWidth-r.width-12,cx-r.width/2))+'px';card.style.top=Math.max(12,Math.min(innerHeight-r.height-12,cy-r.height/2))+'px';
+  back.style.setProperty('--ox',cx+'px');back.style.setProperty('--oy',cy+'px');}
+ // Opus polish 2026-10-22: a panel placed once at open time slid off the bottom of the window when its content grew (the filament picker's OTHER
+ // fields), and its own primary key could not be reached. It moves up as it grows, never above the window's top; past that it scrolls inside.
+ const keepIn=()=>{if(done)return ro.disconnect();const h=card.offsetHeight,t=parseFloat(card.style.top);if(isFinite(t)&&t+h>innerHeight-12)card.style.top=Math.max(12,innerHeight-h-12)+'px';};
+ const ro=new ResizeObserver(keepIn);ro.observe(card);
+ grow(card,from);back.animate([{opacity:0},{opacity:1}],{duration:260,easing:'ease-out'});
+ return {close};}
+
+// ---------- Review 2026-10-20 (Opus): a number that is typed, not turned ----------
+// the owner: dials only where a dial is the right input. A price, a weight, a bed size, a nozzle in millimetres or a number of copies is
+// typed: an LED-figure field with square − and + keys either side (one step a press, held repeats). Same interface as numberField
+// (`get`, `set`, `onSet` once when the value settles) so a page swaps one for the other.
+export function numberInput({label,unit='',prefix='',min=0,max=100,step=1,value=0,onSet}={}){
+ const d=String(step).includes('.')?String(step).split('.')[1].length:0,clamp=v=>Math.min(max,Math.max(min,+(+v).toFixed(d)));
+ let cur=clamp(value),t=0;const w=el('div','nx-numi'),cap=el('small','nx-numi-l',label),row=el('div','nx-numi-row');
+ const inp=el('input','nx-numi-v');inp.type='text';inp.inputMode=d?'decimal':'numeric';inp.setAttribute('aria-label',label);
+ const show=()=>{inp.value=(prefix||'')+cur.toFixed(d)+(unit?unit:'');};
+ const commit=()=>{clearTimeout(t);t=setTimeout(()=>{if(onSet)onSet(cur);},500);};
+ const to=v=>{const n=clamp(v);if(n!==cur){cur=n;show();commit();}else show();};
+ const k=(ic,dir)=>{const b=button({icon:ic,label:'',size:'icon',title:dir>0?'More':'Less',does:`${dir>0?'Adds':'Takes off'} ${step}${unit}.`,onPress:()=>to(cur+dir*step)});b.classList.add('nx-numi-k');
+  let rep=0;b.addEventListener('pointerdown',()=>{rep=setTimeout(function r(){to(cur+dir*step);rep=setTimeout(r,70);},450);});
+  for(const e of ['pointerup','pointerleave','pointercancel'])b.addEventListener(e,()=>clearTimeout(rep));return b;};
+ inp.addEventListener('focus',()=>{inp.value=cur.toFixed(d);inp.select();});
+ inp.addEventListener('blur',()=>{const n=parseFloat(String(inp.value).replace(/[^0-9.\-]/g,''));to(isFinite(n)?n:cur);});
+ inp.addEventListener('keydown',e=>{if(e.key==='Enter')inp.blur();if(e.key==='ArrowUp'){e.preventDefault();to(cur+step);}if(e.key==='ArrowDown'){e.preventDefault();to(cur-step);}});
+ row.append(k('i-minus',-1),inp,k('i-plus',1));w.append(row,cap);show();
+ w.get=()=>cur;w.set=w.setValue=v=>{cur=clamp(v);show();};return w;}
+
+// rc9 WO-01 (2026-10-23: "you should be able to choose what to add, what to take away"): every list that has a
+// standard one (materials, build sheets, maintenance) offers the standard entries it does not hold, one at a time or all.
+let standardLists=null;
+export async function addFromStandard(anchor,kind,have,onAdd,{noun='entry',detail=()=> ''}={}){
+ try{standardLists||=await (await fetch('/api/presets/standard')).json();}catch{toast('The standard list did not load. Try again.','alarm');return;}
+ const taken=new Set(have.map(n=>String(n).trim().toLowerCase())),missing=(standardLists[kind]||[]).filter(x=>!taken.has(String(x.name).toLowerCase()));
+ if(!missing.length){toast(`Every standard ${noun} is already in the list.`,'ok');return;}
+ const items=[...(missing.length>1?[{icon:'i-plus',label:`Add all ${missing.length}`,all:true,does:`Adds every standard ${noun} you do not have.`}]:[]),
+  ...missing.map(x=>({icon:'i-plus',label:x.name+(detail(x)?' · '+detail(x):''),entry:x,does:`Adds ${x.name}. You can change it or take it away again.`}))];
+ openPopover(anchor,items,{title:`Add from the standard list`,onPick:it=>onAdd(it.all?missing.map(x=>({...x})):[{...it.entry}])});}
+
+// ---------- the Look panel (2026-10-25: "be able to change the colour palette and how everything looks on the fly") ----------
+// The colour, the finish and the dial style, kept on this device (stella-paint) and put on <html> at once; paint.js puts them back before the next page draws.
+export const PAINT={
+ accent:[['silver','Silver','#D9DEE3'],['racing-yellow','Racing Yellow','#FFC21A'],['guards-red','Guards Red','#E8323A'],['miami-blue','Miami Blue','#16AEE6'],
+  ['python-green','Python Green','#58C46A'],['lava-orange','Lava Orange','#FF6A2A'],['ultraviolet','Ultraviolet','#9B7BFF'],['stella-teal','Stella Teal','#04D9C4']],
+ finish:[['graphite','Graphite','linear-gradient(180deg,#22262b,#111316)'],['carbon','Carbon','repeating-linear-gradient(45deg,#1a1a1c 0 3px,#0b0b0c 3px 6px)'],['midnight','Midnight','linear-gradient(180deg,#1b2633,#0c1219)']],
+ dials:[['led','LED'],['smooth','Smooth']],
+ chips:[['on','Readings on the machine'],['off','Gauges only']]};
+export function paintGet(){const d=document.documentElement.dataset;return {accent:d.accent||'silver',finish:d.finish||'graphite',dials:d.dials||'led',chips:d.chips||'on'};}
+export function paintSet(k,v){const d=document.documentElement;d.dataset[k]=v;const p=paintGet();try{localStorage.setItem('stella-paint',JSON.stringify(p));}catch{}
+ document.dispatchEvent(new CustomEvent('stella-paint',{detail:p}));return p;}
+const dialPic=smooth=>{const s=sv('svg',{viewBox:'-60 -60 120 120','aria-hidden':'true'}),n=18;for(let i=0;i<n;i++){const a0=(-135+i*15+(smooth?0:2))*Math.PI/180,a1=(-135+(i+1)*15-(smooth?0:2))*Math.PI/180,p=(a,r)=>[(Math.sin(a)*r).toFixed(1),(-Math.cos(a)*r).toFixed(1)];
+  const [x0,y0]=p(a0,50),[x1,y1]=p(a1,50),[x2,y2]=p(a1,40),[x3,y3]=p(a0,40);s.append(sv('path',{d:`M${x0} ${y0}A50 50 0 0 1 ${x1} ${y1}L${x2} ${y2}A40 40 0 0 0 ${x3} ${y3}Z`,class:i<12?(i===11?'tip':'on'):'off'}));}return s;};
+export function lookPanel(){const root=el('div','nx-paint'),cur=paintGet();
+ const group=(cls,list,k,make)=>{const g=el('div',cls);for(const it of list){const b=el('button');b.type='button';b.setAttribute('aria-pressed',String(cur[k]===it[0]));make(b,it);b.title=it[1];
+  b.addEventListener('click',()=>{paintSet(k,it[0]);cur[k]=it[0];for(const x of g.children)x.setAttribute('aria-pressed',String(x===b));});g.append(b);}return g;};
+ const sw=group('nx-paint-sw',PAINT.accent,'accent',(b,[,name,c])=>{const i=el('i');i.style.setProperty('--sw',c);b.append(i,name);});
+ const fin=group('nx-paint-fin',PAINT.finish,'finish',(b,[,name,bg])=>{const i=el('i');i.style.setProperty('--sw',bg);b.append(i,name);});
+ const dial=group('nx-paint-dial',PAINT.dials,'dials',(b,[key,name])=>{b.append(dialPic(key==='smooth'),name);});
+ const chips=group('nx-paint-dial nx-paint-chips',PAINT.chips,'chips',(b,[,name])=>{b.append(name);});
+ root.append(section('Colour',sw),section('Finish',fin),section('Dials',dial),section('On the machine',chips),el('p','','Kept on this screen. Every page follows it at once.'));return root;}

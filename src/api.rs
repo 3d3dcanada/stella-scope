@@ -41,10 +41,15 @@ pub fn asset(method: &str, path: &str) -> Option<Response> {
             json!({"error":"read-only service; only GET is allowed"}),
         ));
     }
+    // Finish-2 F07 (2026-10-19): Help, the user guide, and the notices About points to (src/help.rs).
+    if let Some(r) = crate::help::asset(path) {
+        return Some(r);
+    }
     match path {
         "/classic-hud" | "/service" | "/service/machine" | "/service/signals" | "/service/electronics" | "/service/parts" | "/service/diagnostics" | "/service/maintenance" | "/service/timeline" | "/service/thermal" | "/service/leveling" | "/service/assembly" => Some(Response::text(200,"text/html; charset=utf-8",include_str!("../web/service.html"))),
-        // Stella Scope NEXT: the rebuilt HUD, beside the old one until the user approves the switch.
-        // NEXT is the app. "/" opens it; the previous HUD stays at /classic-hud.
+        // Stella Scope NEXT (docs/next-ui/BLUEPRINT.md): the rebuilt HUD, beside the old one until the owner
+        // approves the switch (BOARD N14).
+        // 2026-09-24: NEXT is the app. "/" opens it; the previous HUD stays at /classic-hud.
         "/" | "/index.html" | "/next" | "/next/" => Some(Response::text(200,"text/html; charset=utf-8",include_str!("../web/next.html"))),
         "/next.css" => Some(Response::text(200,"text/css; charset=utf-8",include_str!("../web/next.css"))),
         "/next.js" => Some(Response::text(200,"text/javascript; charset=utf-8",include_str!("../web/next.js"))),
@@ -52,10 +57,49 @@ pub fn asset(method: &str, path: &str) -> Option<Response> {
         "/next/lab" => Some(Response::text(200,"text/html; charset=utf-8",include_str!("../web/next-lab.html"))),
         "/next-lab.js" => Some(Response::text(200,"text/javascript; charset=utf-8",include_str!("../web/next-lab.js"))),
         "/next-lab.css" => Some(Response::text(200,"text/css; charset=utf-8",include_str!("../web/next-lab.css"))),
+        // UI board U01 (2026-10-20): the control kit, the one module every page imports.
+        "/next-control.js" => Some(Response::text(200,"text/javascript; charset=utf-8",include_str!("../web/next-control.js"))),
+        "/next-stage.js" => Some(Response::text(200,"text/javascript; charset=utf-8",include_str!("../web/next-stage.js"))),
+        "/next-pages.css" => Some(Response::text(200,"text/css; charset=utf-8",include_str!("../web/next-pages.css"))),
+        "/next-control.css" => Some(Response::text(200,"text/css; charset=utf-8",include_str!("../web/next-control.css"))),
+        // UI board U05 (2026-10-20): the frame every sheet and dialog opens in (grows from its key), square keys, LED figures.
+        "/next-alarm.js" => Some(Response::text(200,"text/javascript; charset=utf-8",include_str!("../web/next-alarm.js"))),
+        "/next-frame.css" => Some(Response::text(200,"text/css; charset=utf-8",include_str!("../web/next-frame.css"))),
+        "/next-look.css" => Some(Response::text(200,"text/css; charset=utf-8",include_str!("../web/next-look.css"))),
+        "/legacy-look.css" => Some(Response::text(200,"text/css; charset=utf-8",include_str!("../web/legacy-look.css"))),
+        "/next-hud.css" => Some(Response::text(200,"text/css; charset=utf-8",include_str!("../web/next-hud.css"))),
+        "/next-pro.css" => Some(Response::text(200,"text/css; charset=utf-8",include_str!("../web/next-pro.css"))),
+        "/next-calibrate.js" => Some(Response::text(200,"text/javascript; charset=utf-8",include_str!("../web/next-calibrate.js"))),
+        "/next-report.js" => Some(Response::text(200,"text/javascript; charset=utf-8",include_str!("../web/next-report.js"))),
+        "/next-health.js" => Some(Response::text(200,"text/javascript; charset=utf-8",include_str!("../web/next-health.js"))),
         "/next-pages.js" => Some(Response::text(200,"text/javascript; charset=utf-8",include_str!("../web/next-pages.js"))),
+        // The farm wall: every printer of this service on one page (farm board WO-07).
+        "/farm" | "/farm/" => Some(Response::text(200,"text/html; charset=utf-8",include_str!("../web/farm.html"))),
+        "/farm.js" => Some(Response::text(200,"text/javascript; charset=utf-8",include_str!("../web/farm.js"))),
+        // Polish WO-04: the wall's pure logic (what a tile means, sort, filter, search, the WebGL budget), node-tested.
+        "/farm-wall.js" => Some(Response::text(200,"text/javascript; charset=utf-8",include_str!("../web/farm-wall.js"))),
+        "/farm.css" => Some(Response::text(200,"text/css; charset=utf-8",include_str!("../web/farm.css"))),
+        "/next-switch.js" => Some(Response::text(200,"text/javascript; charset=utf-8",include_str!("../web/next-switch.js"))),
+        "/next-queue.js" => Some(Response::text(200,"text/javascript; charset=utf-8",include_str!("../web/next-queue.js"))),
+        "/next-notify.js" => Some(Response::text(200,"text/javascript; charset=utf-8",include_str!("../web/next-notify.js"))),
+        "/next-fleet.js" => Some(Response::text(200,"text/javascript; charset=utf-8",include_str!("../web/next-fleet.js"))),
+        "/next-models.js" => Some(Response::text(200,"text/javascript; charset=utf-8",include_str!("../web/next-models.js"))),
+        // Polish WO-05: what choosing a printer's model needs (the files a choice fetches, the licence gate), node-tested.
+        "/model-pick.js" => Some(Response::text(200,"text/javascript; charset=utf-8",include_str!("../web/model-pick.js"))),
+        "/model-view.js" => Some(Response::text(200,"text/javascript; charset=utf-8",include_str!("../web/model-view.js"))),
+        "/model-glb.js" => Some(Response::text(200,"text/javascript; charset=utf-8",include_str!("../web/model-glb.js"))),
+        // Polish WO-03: a model follows its G-code (the head's pose and path, the print on the plate, the frame loop).
+        "/model-follow.js" => Some(Response::text(200,"text/javascript; charset=utf-8",include_str!("../web/model-follow.js"))),
+        "/model-print.js" => Some(Response::text(200,"text/javascript; charset=utf-8",include_str!("../web/model-print.js"))),
+        "/model-run.js" => Some(Response::text(200,"text/javascript; charset=utf-8",include_str!("../web/model-run.js"))),
+        "/gcode-worker.js" => Some(Response::text(200,"text/javascript; charset=utf-8",include_str!("../web/gcode-worker.js"))),
+        "/next-getmodels.js" => Some(Response::text(200,"text/javascript; charset=utf-8",include_str!("../web/next-getmodels.js"))),
+        "/next-farm.js" => Some(Response::text(200,"text/javascript; charset=utf-8",include_str!("../web/next-farm.js"))),
         "/pair" => Some(Response::text(200,"text/html; charset=utf-8",include_str!("../web/pair.html"))),
         "/pair.js" => Some(Response::text(200,"text/javascript; charset=utf-8",include_str!("../web/pair.js"))),
         "/manifest.webmanifest" => Some(Response::text(200,"application/manifest+json",include_str!("../web/manifest.webmanifest"))),
+        "/printer-scope.js" => Some(Response::text(200,"text/javascript; charset=utf-8",include_str!("../web/printer-scope.js"))),
+        "/paint.js" => Some(Response::text(200,"text/javascript; charset=utf-8",include_str!("../web/paint.js"))),
         "/next-core.js" => Some(Response::text(200,"text/javascript; charset=utf-8",include_str!("../web/next-core.js"))),
         "/next-gesture.js" => Some(Response::text(200,"text/javascript; charset=utf-8",include_str!("../web/next-gesture.js"))),
         "/next-icons.svg" => Some(Response::text(200,"image/svg+xml",include_str!("../web/next-icons.svg"))),
@@ -68,6 +112,7 @@ pub fn asset(method: &str, path: &str) -> Option<Response> {
         "/hud-core.js" => Some(Response::text(200,"text/javascript; charset=utf-8",include_str!("../web/hud-core.js"))),
         "/hud-graphs.js" => Some(Response::text(200,"text/javascript; charset=utf-8",include_str!("../web/hud-graphs.js"))),
         "/hud-gcode.js" => Some(Response::text(200,"text/javascript; charset=utf-8",include_str!("../web/hud-gcode.js"))),
+        "/gcode-follow.js" => Some(Response::text(200,"text/javascript; charset=utf-8",include_str!("../web/gcode-follow.js"))),
         "/hud.css" => Some(Response::text(200,"text/css; charset=utf-8",include_str!("../web/hud.css"))),
         "/vendor/STLLoader.js" => Some(Response::text(200,"text/javascript; charset=utf-8",include_str!("../web/vendor/STLLoader.js"))),
         "/assembly.js" => Some(Response::text(200,"text/javascript; charset=utf-8",include_str!("../web/assembly.js"))),
@@ -175,11 +220,24 @@ pub fn handle(
     if path == "/api/assets" || path.starts_with("/api/assets/") {
         return crate::assets::handle(method, path, &cfg.database);
     }
-    // A replay instance shows a recording and never asks the printer for a print file. The recording
-    // keeps each print's slicer metadata and Orca settings (print_context), not its G-code or
-    // thumbnails, so the answer is a plain "not stored" and Moonraker is not contacted.
-    if status.mode == "replay" && ["/api/print/gcode", "/api/print/thumbnail", "/api/print/file"].contains(&path) {
-        let what = if path.ends_with("gcode") { "G-code" } else if path.ends_with("file") { "File details" } else { "Thumbnail" };
+    // WO-21 (2026-09-24): a replay instance shows a recording and never asks the printer for a print
+    // file. The recording keeps each print's slicer metadata and Orca settings (print_context), not
+    // its G-code or thumbnails, so the answer is a plain "not stored" and Moonraker is not contacted.
+    if status.mode == "replay"
+        && [
+            "/api/print/gcode",
+            "/api/print/thumbnail",
+            "/api/print/file",
+        ]
+        .contains(&path)
+    {
+        let what = if path.ends_with("gcode") {
+            "G-code"
+        } else if path.ends_with("file") {
+            "File details"
+        } else {
+            "Thumbnail"
+        };
         return Response::json(
             404,
             json!({"error":format!("{what} not stored in the recording"),"stored":false}),
@@ -194,6 +252,10 @@ pub fn handle(
     if path == "/api/camera" {
         if status.mode == "replay" {
             return Response::json(404, json!({"error":"a saved recording has no camera"}));
+        }
+        // A service with no printer has no camera to look for (finish-2 F01): say so, ask nothing.
+        if cfg.driver != "demo" && cfg.moonraker_url.trim().is_empty() {
+            return Response::json(404, json!({"error":crate::config::NO_PRINTER}));
         }
         return match crate::camera::list(cfg) {
             Ok(v) => Response::json(200, v),
@@ -212,6 +274,10 @@ pub fn handle(
     if path == "/api/workspace" {
         return workspace::handle(method, target, db, cfg, status);
     }
+    // Timelapse and print reports (2026-10-26): the pictures of each print, read-only.
+    if path == "/api/timelapse" || path.starts_with("/api/timelapse/") {
+        return crate::timelapse::handle(method, path, cfg);
+    }
     // L1: resonance runs. Results live in their own SQLite file beside the recording, so the
     // handler takes the config rather than the recorder's read-only Store.
     if path == "/api/resonance" || path.starts_with("/api/resonance/") {
@@ -223,6 +289,22 @@ pub fn handle(
     }
     if path == "/api/eye" {
         return Response::json(200, crate::remote::eye(cfg));
+    }
+    // Finish-2 F05 (2026-10-19): the failure watch asks a Moonraker for `print_stats` to know when a print runs. Asked of a
+    // PrusaLink or a FlashForge it never learned of a print, so it never watched. It asks this instead: the same answer, for
+    // every brand, from the tick this service already holds (nothing more is asked of the printer).
+    if path == "/api/printer/objects/query" {
+        if method != "GET" {
+            return Response::json(405, json!({"error":"read-only; use GET"}));
+        }
+        let job = status
+            .last_tick
+            .as_ref()
+            .map_or(Value::Null, |t| t["job"].clone());
+        return Response::json(
+            200,
+            json!({"result":{"status":{"print_stats":{"state":job["state"],"filename":job["name"],"total_duration":job["duration"]}}}}),
+        );
     }
     if path == "/api/tick" {
         return workspace::tick_handle(method, db, cfg, status);
@@ -290,12 +372,14 @@ pub fn handle(
             "/api/meta" => {
                 let (first, last) = db.bounds()?;
                 let g = db.context_at(last.unwrap_or(clock), "scope_geometry")?;
-                Ok(json!({"service":"stella-scope","version":env!("CARGO_PKG_VERSION"),"read_only":true,
+                Ok(
+                    json!({"service":"stella-scope","version":env!("CARGO_PKG_VERSION"),"read_only":true,
                     "instance":{"moonraker_url":cfg.moonraker_url,"database":cfg.database},
                     "first_ts":first,"last_ts":last,"server_time":clock,"collector":status,
                     "series_max_points":cfg.series_max_points,"investigation_limits":cfg.investigation,
                     "geometry_recorded":g.is_some(),"geometry":g.unwrap_or_else(||model::geometry(cfg)),
-                    "printer":{"name":cfg.printer_name,"model":cfg.printer_model}}))
+                    "printer":{"name":cfg.printer_name,"model":cfg.printer_model,"driver":cfg.driver}}),
+                )
             }
             "/api/live" | "/api/at" => {
                 let sample = db.at(if path == "/api/live" {

@@ -1,25 +1,28 @@
-// L1: resonance capture, Welch PSD and input-shaper fitting, computed here rather than read back
-// from Klippain Shake&Tune's PNGs. The maths is a line-by-line port of Klipper
-// `klippy/extras/shaper_calibrate.py` + `shaper_defs.py` (v0.13.0-535 as installed on the test
-// printer 2026-09-20), so the numbers this returns are comparable with SHAPER_CALIBRATE's own
-// output. Deviations from that source, deliberate, and why: * the API returns a 0..200 Hz / 0.5
-// Hz display grid. Klipper's bin width is fs/nfft (1.5625 Hz at 3200 Hz), so the PSD is COMPUTED
-// on Klipper's native bins — the shaper fit uses those untouched — and only the JSON `psd` block
-// is resampled onto the 0.5 Hz grid. Fitting on a resampled PSD would change the answer;
-// displaying a resampled one does not. * `peak_hz` is refined by three-point parabolic
-// interpolation on log power, so the reported peak is not quantised to a 1.5625 Hz bin. Klipper
-// never reports a peak frequency at all. * `max_smoothing` is always unset (Klipper's default),
-// so `fit_shaper`'s early-return on excessive smoothing is not ported. If a max_smoothing knob
-// is ever wanted, that branch comes back with it. * The window is Kaiser(beta=6), exactly as
-// Klipper's `_psd` uses, NOT the Hann that the design note named. Matching Klipper
-// matters more than matching the parenthetical: the whole point is that these numbers can be
-// checked against SHAPER_CALIBRATE. The window in force is reported as `psd.window` in the JSON
-// so nobody has to guess. Capture rides Moonraker's Klippy bridge
-// (`ws://host:7125/klippysocket`), where each websocket message is one complete Klippy API JSON
-// document — Moonraker appends and strips the 0x03 terminator itself
-// (moonraker/components/websockets.py, BridgeSocket). The subscription is Klipper's mux endpoint
-// `adxl345/dump_adxl345`; batches arrive as the `response_template` we supplied with
-// `params.data` = [[time, ax, ay, az],...] (klippy/extras/bulk_sensor.py).
+// L1: resonance capture, Welch PSD and input-shaper fitting, computed here rather than read
+// back from Klippain Shake&Tune's PNGs. The maths is a line-by-line port of Klipper
+// `klippy/extras/shaper_calibrate.py` + `shaper_defs.py` (v0.13.0-535 as installed on Stella
+// 2026-09-20), so the numbers this returns are comparable with SHAPER_CALIBRATE's own output.
+//
+// Deviations from that source, deliberate, and why:
+//  * BOARD-4 asks for a 0..200 Hz / 0.5 Hz display grid. Klipper's bin width is fs/nfft
+//    (1.5625 Hz at 3200 Hz), so the PSD is COMPUTED on Klipper's native bins — the shaper fit
+//    uses those untouched — and only the JSON `psd` block is resampled onto the 0.5 Hz grid.
+//    Fitting on a resampled PSD would change the answer; displaying a resampled one does not.
+//  * `peak_hz` is refined by three-point parabolic interpolation on log power, so the reported
+//    peak is not quantised to a 1.5625 Hz bin. Klipper never reports a peak frequency at all.
+//  * `max_smoothing` is always unset (Klipper's default), so `fit_shaper`'s early-return on
+//    excessive smoothing is not ported. If a max_smoothing knob is ever wanted, that branch
+//    comes back with it.
+//  * The window is Kaiser(beta=6), exactly as Klipper's `_psd` uses, NOT the Hann that BOARD-4's
+//    parenthetical names. Matching Klipper matters more than matching the parenthetical: the
+//    whole point is that these numbers can be checked against SHAPER_CALIBRATE. The window in
+//    force is reported as `psd.window` in the JSON so nobody has to guess.
+//
+// Capture rides Moonraker's Klippy bridge (`ws://host:7125/klippysocket`), where each websocket
+// message is one complete Klippy API JSON document — Moonraker appends and strips the 0x03
+// terminator itself (moonraker/components/websockets.py, BridgeSocket). The subscription is
+// Klipper's mux endpoint `adxl345/dump_adxl345`; batches arrive as the `response_template` we
+// supplied with `params.data` = [[time, ax, ay, az], ...] (klippy/extras/bulk_sensor.py).
 use crate::{
     api::Response, config::Config, moonraker::Moonraker, store::db_error, ws::WsClient, Result,
 };
@@ -36,7 +39,7 @@ use std::{
 
 /// shaper_calibrate.MIN_FREQ
 const MIN_FREQ: f64 = 5.0;
-/// shaper_calibrate.MAX_FREQ — also the display ceiling.
+/// shaper_calibrate.MAX_FREQ — also BOARD-4's display ceiling.
 const MAX_FREQ: f64 = 200.0;
 /// shaper_calibrate.WINDOW_T_SEC
 const WINDOW_T_SEC: f64 = 0.5;
@@ -54,7 +57,7 @@ const FREQ_STEP: f64 = 0.2;
 const TARGET_SMOOTHING: f64 = 0.12;
 /// Klipper's default `square_corner_velocity`, used when the printer does not answer.
 const DEFAULT_SCV: f64 = 5.0;
-/// the display bin width.
+/// BOARD-4's display bin width.
 const BIN_HZ: f64 = 0.5;
 
 /// Klipper's AUTOTUNE_SHAPERS, in `shaper_defs.INPUT_SHAPERS` order (zvd is not autotuned), with
@@ -538,8 +541,12 @@ fn fit_shaper(
 }
 
 /// `ShaperCalibrate.find_best_shaper`. Returns the recommendation and the per-shaper table
-/// the API returns, one row per shaper in Klipper's own order.
-pub fn find_best_shaper(freq_bins: &[f64], psd: &[f64], scv: f64) -> Option<(ShaperFit, Vec<ShaperFit>)> {
+/// BOARD-4 asks for, one row per shaper in Klipper's own order.
+pub fn find_best_shaper(
+    freq_bins: &[f64],
+    psd: &[f64],
+    scv: f64,
+) -> Option<(ShaperFit, Vec<ShaperFit>)> {
     let mut best: Option<ShaperFit> = None;
     let mut all: Vec<ShaperFit> = Vec::new();
     for (name, min_freq) in SHAPERS {
@@ -583,7 +590,7 @@ pub fn find_best_shaper(freq_bins: &[f64], psd: &[f64], scv: f64) -> Option<(Sha
 // Display grid, peaks, belts similarity
 // ---------------------------------------------------------------------------------------------
 
-/// The 0..200 Hz / 0.5 Hz grid the API specifies for the JSON `psd` block.
+/// The 0..200 Hz / 0.5 Hz grid BOARD-4 specifies for the JSON `psd` block.
 fn display_grid() -> Vec<f64> {
     let n = (MAX_FREQ / BIN_HZ) as usize + 1;
     (0..n).map(|i| i as f64 * BIN_HZ).collect()
@@ -631,7 +638,11 @@ fn peaks(freq: &[f64], psd: &[f64], limit: usize) -> Vec<(f64, f64)> {
         if psd[i] <= psd[i - 1] || psd[i] < psd[i + 1] || psd[i] < max * 0.05 {
             continue;
         }
-        let (y1, y2, y3) = (psd[i - 1].max(1e-300).ln(), psd[i].max(1e-300).ln(), psd[i + 1].max(1e-300).ln());
+        let (y1, y2, y3) = (
+            psd[i - 1].max(1e-300).ln(),
+            psd[i].max(1e-300).ln(),
+            psd[i + 1].max(1e-300).ln(),
+        );
         let denominator = y1 - 2.0 * y2 + y3;
         let delta = if denominator.abs() > 1e-12 {
             (0.5 * (y1 - y3) / denominator).clamp(-0.5, 0.5)
@@ -667,7 +678,7 @@ pub fn similarity(a: &[f64], b: &[f64]) -> f64 {
     ab / (aa * bb).sqrt()
 }
 
-/// Everything `GET /api/resonance/<id>` needs for one leg.
+/// Everything BOARD-4's `GET /api/resonance/<id>` needs for one leg.
 struct Leg {
     name: &'static str,
     psd: Psd,
@@ -1113,14 +1124,18 @@ fn summary_row(
         "status": status,
         "error": error,
         "peak_hz": parsed.as_ref().map(|v| v["peak_hz"].clone()).unwrap_or(Value::Null),
-        "recommended": parsed.as_ref().map(|v| v["recommended"].clone()).unwrap_or(Value::Null)
+        "recommended": parsed.as_ref().map(|v| v["recommended"].clone()).unwrap_or(Value::Null),
+        // belt health over time (2026-10-26): how alike the two belts answer, from a belts run
+        "belts_similarity": parsed.as_ref().map(|v| v["belts"]["similarity"].clone()).unwrap_or(Value::Null)
     })
 }
 
 pub fn list(cfg: &Config) -> Result<Value> {
     let connection = open(&cfg.database)?;
     let mut statement = connection
-        .prepare("SELECT id,ts,axis,status,error,result FROM resonance_run ORDER BY id DESC LIMIT 100")
+        .prepare(
+            "SELECT id,ts,axis,status,error,result FROM resonance_run ORDER BY id DESC LIMIT 100",
+        )
         .map_err(db_error)?;
     let rows = statement
         .query_map([], |row| {
@@ -1165,7 +1180,9 @@ pub fn detail(cfg: &Config, id: i64) -> Result<Option<Value>> {
         .unwrap_or_else(|| {
             json!({"psd":Value::Null,"shapers":[],"belts":Value::Null,"peaks":[],"peak_hz":Value::Null,"recommended":Value::Null})
         });
-    let map = out.as_object_mut().ok_or("stored resonance result is not an object")?;
+    let map = out
+        .as_object_mut()
+        .ok_or("stored resonance result is not an object")?;
     map.insert("id".into(), json!(id));
     map.insert("ts".into(), json!(ts));
     map.insert("axis".into(), json!(axis));
@@ -1311,11 +1328,7 @@ mod tests {
         let psd = calc_psd(&data).unwrap();
         // 3200 Hz: nfft = 1 << (3200*0.5 - 1).bit_length() = 2048, exactly Klipper's choice.
         assert_eq!(psd.nfft, 2048);
-        assert!(
-            (psd.fs - 3200.0).abs() < 2.0,
-            "derived rate {} Hz",
-            psd.fs
-        );
+        assert!((psd.fs - 3200.0).abs() < 2.0, "derived rate {} Hz", psd.fs);
         let found = peaks(&psd.freq, &psd.sum, 6);
         assert!(!found.is_empty(), "no peak found in a planted spectrum");
         assert!(
@@ -1328,7 +1341,7 @@ mod tests {
             found.iter().any(|(hz, _)| (hz - 78.0).abs() < 0.5),
             "78 Hz companion missing from {found:?}"
         );
-        // Display grid: 0..200 Hz inclusive at 0.5 Hz, as the API specifies.
+        // Display grid: 0..200 Hz inclusive at 0.5 Hz, as BOARD-4 specifies.
         let grid = display_grid();
         assert_eq!(grid.len(), 401);
         assert_eq!(grid[0], 0.0);
@@ -1361,7 +1374,12 @@ mod tests {
                 s.name,
                 s.vibrs
             );
-            assert!(s.smoothing > 0.0 && s.smoothing < 1.0, "{} smoothing {}", s.name, s.smoothing);
+            assert!(
+                s.smoothing > 0.0 && s.smoothing < 1.0,
+                "{} smoothing {}",
+                s.name,
+                s.smoothing
+            );
             assert!(
                 s.max_accel > 200.0 && s.max_accel < 200_000.0,
                 "{} max_accel {}",
@@ -1401,7 +1419,10 @@ mod tests {
             assert_eq!(a.len(), t.len(), "{name}");
             assert!(a.iter().sum::<f64>() > 0.0, "{name}");
             assert!(t[0].abs() < 1e-12, "{name} does not start at t=0");
-            assert!(t.windows(2).all(|w| w[1] > w[0]), "{name} times not ascending");
+            assert!(
+                t.windows(2).all(|w| w[1] > w[0]),
+                "{name} times not ascending"
+            );
         }
         // The 3hump table's short first row is upstream's; k must follow it to 3.
         let (a, _) = shaper_impulses("3hump_ei", 50.0, 0.1);
@@ -1437,7 +1458,10 @@ mod tests {
     #[test]
     fn axis_legs_are_the_shake_and_tune_pair() {
         assert_eq!(legs("X").unwrap().len(), 1);
-        assert_eq!(legs("Y").unwrap()[0].1, "TEST_RESONANCES AXIS=Y OUTPUT=raw_data");
+        assert_eq!(
+            legs("Y").unwrap()[0].1,
+            "TEST_RESONANCES AXIS=Y OUTPUT=raw_data"
+        );
         let belts = legs("belts").unwrap();
         assert_eq!(belts.len(), 2);
         assert!(belts[0].1.contains("AXIS=1,1"));
@@ -1452,7 +1476,9 @@ mod tests {
         let flat: Vec<[f64; 4]> = (0..4000).map(|_| [1.0, 0.0, 0.0, 0.0]).collect();
         assert!(calc_psd(&flat).unwrap_err().contains("do not advance"));
         // Enough span, far too few samples for a 2048-point window.
-        let sparse: Vec<[f64; 4]> = (0..500).map(|i| [i as f64 / 3200.0, 0.0, 0.0, 0.0]).collect();
+        let sparse: Vec<[f64; 4]> = (0..500)
+            .map(|i| [i as f64 / 3200.0, 0.0, 0.0, 0.0])
+            .collect();
         assert!(calc_psd(&sparse).unwrap_err().contains("longer sweep"));
     }
 
@@ -1645,7 +1671,10 @@ mod tests {
         let request: Value = serde_json::from_str(&bridge.join().unwrap()).unwrap();
         assert_eq!(request["method"], "adxl345/dump_adxl345");
         assert_eq!(request["params"]["sensor"], "adxl345");
-        assert_eq!(request["params"]["response_template"]["method"], "stella_adxl");
+        assert_eq!(
+            request["params"]["response_template"]["method"],
+            "stella_adxl"
+        );
         // The sweep went out as an ordinary gcode script POST, exactly once.
         let posts = http.join().unwrap();
         assert_eq!(posts.len(), 1);
@@ -1654,7 +1683,11 @@ mod tests {
         // And the captured stream analyses back to the planted 45 Hz peak.
         let psd = calc_psd(&rows).unwrap();
         let found = peaks(&psd.freq, &psd.sum, 3);
-        assert!((found[0].0 - 45.0).abs() < 0.5, "captured peak {:?}", found[0]);
+        assert!(
+            (found[0].0 - 45.0).abs() < 0.5,
+            "captured peak {:?}",
+            found[0]
+        );
     }
 
     #[test]
@@ -1668,7 +1701,8 @@ mod tests {
             request_timeout_ms: 2000,
             ..Config::default()
         };
-        let error = capture_leg(&cfg, &host, port, "TEST_RESONANCES AXIS=X", "adxl345").unwrap_err();
+        let error =
+            capture_leg(&cfg, &host, port, "TEST_RESONANCES AXIS=X", "adxl345").unwrap_err();
         assert!(error.contains("refused"), "{error}");
         assert!(error.contains("nothing was moved"), "{error}");
         assert!(listener.accept().is_err(), "a sweep was sent anyway");
@@ -1732,7 +1766,10 @@ mod tests {
         assert!(detail(&cfg, run_id + 999).unwrap().is_none());
         assert_eq!(handle("POST", "/api/resonance", &cfg).code, 405);
         assert_eq!(handle("GET", "/api/resonance/not-a-number", &cfg).code, 400);
-        assert_eq!(handle("GET", &format!("/api/resonance/{run_id}"), &cfg).code, 200);
+        assert_eq!(
+            handle("GET", &format!("/api/resonance/{run_id}"), &cfg).code,
+            200
+        );
         assert_eq!(handle("GET", "/api/resonance/424242", &cfg).code, 404);
         cleanup(&database);
     }

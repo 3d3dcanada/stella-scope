@@ -17,48 +17,34 @@
  .card{background:var(--glass);border:1px solid var(--line);border-radius:24px;padding:22px;box-shadow:inset 0 1px 0 rgba(255,255,255,.14),0 18px 50px rgba(0,0,0,.5)}
  h2{margin:0 0 6px;font:700 18px/1.3 system-ui}
  p{margin:6px 0;color:var(--ink2)}
- .printer{display:flex;align-items:center;gap:14px;width:100%;padding:14px 16px;margin-top:10px;border-radius:16px;border:1px solid var(--line);background:rgba(255,255,255,.03);color:var(--ink);text-align:left;cursor:pointer}
- .printer:hover,.printer[aria-pressed=true]{border-color:rgba(63,243,224,.6);box-shadow:0 0 22px rgba(4,217,196,.25)}
- .printer b{display:block;font-size:16px}.printer span{color:var(--ink3);font:500 12px ui-monospace,monospace}
- .dot{width:10px;height:10px;border-radius:50%;background:var(--ok);box-shadow:0 0 10px var(--ok)}
  .row{display:flex;gap:10px;margin-top:12px}
  input{flex:1;min-height:48px;border-radius:14px;border:1px solid var(--line);background:rgba(0,0,0,.3);color:var(--ink);padding:0 14px;font:500 14px ui-monospace,monospace}
  button.btn{min-height:48px;border-radius:14px;border:1px solid var(--line);background:rgba(255,255,255,.06);color:var(--ink);font:650 14px system-ui;letter-spacing:.05em;padding:0 18px;cursor:pointer}
  button.primary{background:linear-gradient(180deg,#3FF3E0,var(--accent));color:#031A17;border-color:rgba(63,243,224,.6);box-shadow:0 0 26px rgba(4,217,196,.35)}
  .msg{min-height:1.4em;font-weight:600}.msg.err{color:var(--alarm)}.msg.ok{color:var(--ok)}
- .scan{display:flex;align-items:center;gap:10px;color:var(--ink2)}
- .spin{width:16px;height:16px;border-radius:50%;border:2px solid rgba(255,255,255,.15);border-top-color:var(--accent);animation:s 1s linear infinite}
- @keyframes s{to{transform:rotate(360deg)}}
 </style>
 </head>
 <body>
 <main>
- <header><img src="logo.svg" width="44" height="44" alt=""><div><b>STELLA SCOPE</b><small>SET UP IN ONE STEP</small></div></header>
+ <header><img src="logo.svg" width="44" height="44" alt=""><div><b>STELLA SCOPE</b><small>ONE STEP</small></div></header>
  <section class="card">
-  <h2>Which printer?</h2>
-  <p>Stella Scope looks for Klipper printers on this network. Pick yours.</p>
-  <div id="scan" class="scan"><i class="spin"></i><span>Looking on your network…</span></div>
-  <div id="list"></div>
-  <p>Not listed? Type its address (the one you open Mainsail or Fluidd with):</p>
-  <div class="row"><input id="addr" placeholder="192.168.1.50" autocomplete="off" spellcheck="false"><button class="btn primary" id="go">Connect</button></div>
+  <h2>Welcome</h2>
+  <p>Open Stella Scope, then add your printers there with Add a printer. Any brand, any number. You can also try the demo farm first.</p>
+  <div class="row"><button class="btn primary" id="go">Open Stella Scope</button></div>
   <p id="msg" class="msg"></p>
  </section>
- <p>Your printer's data stays on this computer. Your phone pairs with this computer directly, by scanning a code; there is no account.</p>
+ <p>Your printers' data stays on this computer. Your phone pairs with this computer directly, by scanning a code; there is no account.</p>
 </main>
 <script>
 const invoke=window.__TAURI__.core.invoke,$=id=>document.getElementById(id);
-async function go(printer,name){$('msg').className='msg';$('msg').textContent='Connecting and starting Stella Scope…';
- try{const url=await invoke('save_and_start',{printer,name:name||null});$('msg').className='msg ok';$('msg').textContent='Ready.';location.href=url;}
- catch(e){$('msg').className='msg err';$('msg').textContent=String(e);}}
-$('go').onclick=()=>go($('addr').value);$('addr').onkeydown=e=>{if(e.key==='Enter')go($('addr').value);};
+async function go(cmd){$('go').disabled=true;$('msg').className='msg';$('msg').textContent='Starting Stella Scope…';
+ try{location.href=await invoke(cmd);}
+ catch(e){$('go').disabled=false;$('go').textContent='Try again';$('msg').className='msg err';$('msg').textContent=String(e);}}
+$('go').onclick=()=>go('create_and_start');
 (async()=>{const st=await invoke('setup_state');
  // A Stella Scope already running on this computer (a service, or another window) opens as it is.
  if(st.running){location.href=st.url;return;}
- if(st.configured){$('msg').textContent='Starting Stella Scope…';try{location.href=await invoke('start');return;}catch(e){$('msg').className='msg err';$('msg').textContent=String(e)+' You can pick the printer again below.';}}
- try{const found=await invoke('find_printers');$('scan').hidden=true;
-  if(!found.length){$('list').innerHTML='<p>No printer answered. Is it switched on and on the same network?</p>';}
-  for(const p of found){const b=document.createElement('button');b.className='printer';b.innerHTML='<i class="dot"></i><div><b></b><span></span></div>';b.querySelector('b').textContent=p.host||'Klipper printer';b.querySelector('span').textContent=p.url.replace('http://','')+' · '+(p.state||'');b.onclick=()=>go(p.url,p.host);$('list').append(b);}}
- catch(e){$('scan').hidden=true;$('msg').className='msg err';$('msg').textContent=String(e);}})();
+ if(st.configured)go('start');})();
 </script>
 </body>
 </html>

@@ -1,6 +1,6 @@
 // BLTouch evidence parser: turns the console lines Klipper prints while probing into recorded
-// probe points and Z-offset change events. Every format below was taken from a real
-// printer\'s recording on 2026-09-17 (GET /server/gcode_store), not from documentation.
+// probe points and Z-offset change events. Every format below was taken from Stella's own
+// recording on 2026-09-17 (GET /server/gcode_store), not from documentation.
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct ProbePoint {
@@ -102,8 +102,8 @@ fn short_name(file: &str) -> String {
         .collect()
 }
 
-// Latest known homing-style zero reference: the test printer homes Z with the BLTouch
-// at nozzle X207.95 Y185.72, i.e. the probe reads bed centre 175,175.
+// Latest known homing-style zero reference: Stella homes Z with the BLTouch at nozzle
+// X207.95 Y185.72, i.e. the probe reads bed centre 175,175 (owner-verified 2026-09-17).
 pub fn is_zero_reference(x: f64, y: f64, context: &str) -> bool {
     context == "homing" && (x - 175.0).abs() <= 1.0 && (y - 175.0).abs() <= 1.0
 }

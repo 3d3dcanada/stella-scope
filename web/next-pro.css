@@ -1,0 +1,597 @@
+/* Stella Scope look (2026-10-25, after studying Bambu, Prusa Connect, Mainsail, Porsche, Rivian and the game wheels): "A, but a little like B. Clean, pro, a Euro sports car.
+   The teal is overused. Let me change the colour palette and how everything looks on the fly."
+   Loaded last on the printer page and the farm. The rules:
+   - Graphite, not blue-black: solid surfaces in steps, each lighter one standing on the darker with a hairline and a soft shadow. Nothing see-through (WebKit draws no blur).
+   - Colour only means something. Heat is amber, fans and cooling are blue, done is green, stop is red. Everything else is white on graphite.
+   - One accent, chosen by the person (the Look panel): the selected thing, the main key, progress, the dial's tip. Silver by default; Stella teal is one of the choices.
+   - The LED dials stay lit and alive (or smooth arcs, a choice). Numbers are white instrument figures; words are small, spaced capitals.
+   - The palette lives on <html>: data-accent, data-finish (graphite, carbon, midnight) and data-dials (led, smooth), set by paint.js before the page draws. */
+
+/* ---------- 1. the palette ---------- */
+:root,html[data-accent=silver]{--accent:#D9DEE3;--accent-hi:#FFFFFF;--accent-lo:#9AA3AC;--accent-ink:#0B0D10;--accent-2:#F2F5F7;--accent-rgb:217,222,227;--accent-hi-rgb:255,255,255}
+html[data-accent=racing-yellow]{--accent:#FFC21A;--accent-hi:#FFD75E;--accent-lo:#C99400;--accent-ink:#1A1400;--accent-2:#FFE59A;--accent-rgb:255,194,26;--accent-hi-rgb:255,215,94}
+html[data-accent=guards-red]{--accent:#E8323A;--accent-hi:#FF6168;--accent-lo:#A8161D;--accent-ink:#FFFFFF;--accent-2:#FFA3A7;--accent-rgb:232,50,58;--accent-hi-rgb:255,97,104}
+html[data-accent=miami-blue]{--accent:#16AEE6;--accent-hi:#55CBF5;--accent-lo:#0779A8;--accent-ink:#00141F;--accent-2:#A6E6FF;--accent-rgb:22,174,230;--accent-hi-rgb:85,203,245}
+html[data-accent=python-green]{--accent:#58C46A;--accent-hi:#86DC94;--accent-lo:#33914A;--accent-ink:#04160A;--accent-2:#BDF0C4;--accent-rgb:88,196,106;--accent-hi-rgb:134,220,148}
+html[data-accent=lava-orange]{--accent:#FF6A2A;--accent-hi:#FF9461;--accent-lo:#C5440E;--accent-ink:#1E0800;--accent-2:#FFC4A8;--accent-rgb:255,106,42;--accent-hi-rgb:255,148,97}
+html[data-accent=ultraviolet]{--accent:#9B7BFF;--accent-hi:#B9A2FF;--accent-lo:#6A47E0;--accent-ink:#FFFFFF;--accent-2:#DCD0FF;--accent-rgb:155,123,255;--accent-hi-rgb:185,162,255}
+html[data-accent=stella-teal]{--accent:#04D9C4;--accent-hi:#3FF3E0;--accent-lo:#02A596;--accent-ink:#031A17;--accent-2:#7FFFF0;--accent-rgb:4,217,196;--accent-hi-rgb:63,243,224}
+/* the finishes: the surfaces under everything */
+:root{--sp-bg:#0a0b0d;--sp-s1:#111316;--sp-s2:#171a1e;--sp-s3:#1f2328;--sp-s4:#292e34;--sp-line:rgba(255,255,255,.07);--sp-line2:rgba(255,255,255,.12);
+ --sp-t1:#F1F3F5;--sp-t2:#A9B0B8;--sp-t3:#6F7780;--sp-weave:linear-gradient(transparent,transparent);
+ --sp-rim:inset 0 1px 0 rgba(255,255,255,.08);--sp-drop:0 18px 40px -16px rgba(0,0,0,.9);--sp-r:12px;--sp-ease:cubic-bezier(.2,.8,.2,1);
+ --heat:#FF8A30;--heat-2:#FFC9A0;--cool:#5AA8FF;--cool-2:#B6D8FF;--gauge:#E9EDF1;--gauge-2:#FFFFFF;--sp-good:#3DDC84;--sp-stop:#EE3346;--sp-warn:#FFC24B}
+html[data-finish=carbon]{--sp-bg:#040404;--sp-s1:#0b0b0c;--sp-s2:#121213;--sp-s3:#1a1a1c;--sp-s4:#242427;
+ --sp-weave:repeating-linear-gradient(45deg,rgba(255,255,255,.022) 0 2px,transparent 2px 4px),repeating-linear-gradient(-45deg,rgba(0,0,0,.25) 0 2px,transparent 2px 4px)}
+html[data-finish=midnight]{--sp-bg:#06090e;--sp-s1:#0c1219;--sp-s2:#121a23;--sp-s3:#19232e;--sp-s4:#212d3a;--sp-line:rgba(160,200,255,.08);--sp-line2:rgba(160,200,255,.14)}
+
+/* ---------- 2. the room: a graphite floor, a soft light under the machine in the accent ---------- */
+body{background:var(--sp-bg)!important}
+#nx-backdrop{background:radial-gradient(70% 60% at 50% 48%,color-mix(in srgb,var(--sp-s3) 70%,transparent) 0,transparent 70%),var(--sp-bg)!important}
+#nx-backdrop::after{background:radial-gradient(closest-side,rgba(var(--accent-rgb),.10),transparent)!important;filter:none!important}
+
+/* ---------- 3. the top bar ---------- */
+#nx-top{background:var(--sp-s1)!important;background-image:var(--sp-weave)!important;border:0!important;box-shadow:inset 0 -1px 0 var(--sp-line),0 10px 24px -14px rgba(0,0,0,.9)!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+.nx-id-text b{color:var(--sp-t1)!important;letter-spacing:.32em!important;font-weight:600!important}
+.nx-id-text small{color:var(--sp-t3)!important}
+#nx-back,.nx-cmd-box,.nx-top-right .nx-btn:not(.nx-estop),.nx-state,.nx-idle,#nx-top>.nxkey{background:var(--sp-s2)!important;border:1px solid var(--sp-line)!important;box-shadow:var(--sp-rim)!important;border-radius:var(--sp-r)!important;color:var(--sp-t1)!important}
+.nx-top-right .nx-btn:not(.nx-estop) svg,#nx-back svg{color:var(--sp-t2)!important}
+.nx-state-label{color:var(--sp-t1)!important;letter-spacing:.14em!important}
+.nx-job{background:var(--sp-s2)!important;border:1px solid var(--sp-line)!important;border-radius:14px!important;box-shadow:var(--sp-rim),var(--sp-drop)!important;padding:7px 20px 11px 7px!important;overflow:hidden}
+.nx-job-thumb{width:46px!important;height:46px!important;border-radius:9px!important;background:var(--sp-s1)!important;box-shadow:inset 0 0 0 1px var(--sp-line)}
+.nx-job-title{font:600 15px/1.15 var(--sans)!important;color:var(--sp-t1)!important}
+.nx-job-meta{font:500 12px/1.3 var(--sans)!important;color:var(--sp-t2)!important;letter-spacing:.01em}
+.nx-job-pct{font:300 30px/1 var(--sans)!important;letter-spacing:-.02em;color:var(--sp-t1)!important;text-shadow:none!important;font-variant-numeric:tabular-nums}
+.nx-job-bar{height:3px!important;bottom:0!important;left:0;right:0;background:var(--sp-s4)!important}
+.nx-job-bar>i{background:var(--accent)!important;box-shadow:0 0 10px rgba(var(--accent-rgb),.6)!important}
+.nx-estop{background:linear-gradient(180deg,#F24A5A,#C81E31)!important;border:1px solid rgba(255,255,255,.16)!important;color:#fff!important;border-radius:var(--sp-r)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.3),0 8px 20px -8px rgba(238,51,70,.75)!important}
+.nx-estop svg.nx-ico{color:#fff!important}
+#nx-bell .nx-bell-n{background:var(--sp-stop)!important}
+
+/* ---------- 4. the rail: one slim column; the open page stands out in a lighter tile with the accent at its edge ---------- */
+#nx-rail{background:var(--sp-s1)!important;background-image:var(--sp-weave)!important;border:1px solid var(--sp-line)!important;border-radius:16px!important;box-shadow:var(--sp-rim),var(--sp-drop)!important;padding:7px!important;gap:3px!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+body:not([data-layout=phone]):not([data-layout=phone-land]) #nx-rail{top:calc(var(--top) + var(--safe-t) + 14px)!important;bottom:auto!important;margin:0!important;transform:none!important;height:auto!important}
+#nx-rail .nx-btn[data-size=icon]{width:62px!important;border-radius:10px!important;background:transparent!important;border:0!important;box-shadow:none!important;color:var(--sp-t2)!important}
+#nx-rail .nx-btn[data-size=icon] svg{color:var(--sp-t2)!important;width:21px;height:21px}
+#nx-rail .nx-btn[data-size=icon]::after{color:var(--sp-t3)!important;letter-spacing:.1em!important;opacity:1!important}
+@media (hover:hover){#nx-rail .nx-btn[data-size=icon]:hover{background:var(--sp-s2)!important}#nx-rail .nx-btn[data-size=icon]:hover svg{color:var(--sp-t1)!important}}
+#nx-rail .nx-btn[aria-current=page],#nx-rail .nx-btn[data-showing]{background:var(--sp-s3)!important;box-shadow:var(--sp-rim),inset 2px 0 0 var(--accent)!important}
+#nx-rail .nx-btn[aria-current=page] svg,#nx-rail .nx-btn[data-showing] svg{color:var(--accent-hi)!important}
+#nx-rail .nx-btn[aria-current=page]::after,#nx-rail .nx-btn[data-showing]::after{color:var(--sp-t1)!important}
+#nx-rail .nx-btn[aria-current=page]::before{display:none!important}
+#nx-rail hr{border:0!important;border-top:1px solid var(--sp-line)!important;width:64%;margin:4px auto!important}
+
+/* ---------- 5. the dials: instrument LEDs, white figures, the tip of the lit arc in the accent ---------- */
+.nxctl .nxc-seg:not(.on){fill:color-mix(in srgb,var(--sp-s4) 85%,transparent)!important;stroke:rgba(255,255,255,.05)!important}
+.nxctl .nxc-seg.on{fill:var(--c)!important;filter:url(#nxctl-glow)}
+.nxctl .nxc-seg.hot{fill:var(--tip,#fff)!important}
+#nx-right>.nxctl,.nx-cluster .nxctl[aria-label=SPEED],.nx-cluster .nxctl[aria-label=FLOW]{--tip:var(--accent-hi)}
+.nx-cluster .nxctl:not(.nxctl--lift)::before{content:''!important;position:absolute;inset:16%;border-radius:50%;pointer-events:none;background:radial-gradient(closest-side,color-mix(in srgb,var(--c) 13%,transparent),transparent)}
+.nx-cluster .nxctl:not(.nxctl--lift)>svg,.nx-cluster .nxctl:not(.nxctl--lift) .nxc-read{z-index:1}
+.nxctl .nxc-read b{font-family:var(--sans)!important;font-weight:300!important;letter-spacing:-.03em!important;color:var(--sp-t1)!important;text-shadow:0 0 18px color-mix(in srgb,var(--c) 45%,transparent),0 1px 2px #000!important}
+.nxctl .nxc-read b small{color:var(--sp-t2)!important;font-weight:400}
+.nxctl .nxc-read .nxc-n{font-family:var(--sans)!important;color:var(--sp-t2)!important;letter-spacing:.06em!important;text-shadow:0 1px 2px #000!important}
+.nxctl .nxc-read .nxc-l{color:color-mix(in srgb,var(--c) 55%,#fff)!important;letter-spacing:.24em!important;text-shadow:0 1px 2px #000!important}
+.nxctl[data-unknown] .nxc-read b{color:var(--sp-t3)!important;text-shadow:none!important}
+.nxctl .nxc-now circle{fill:#fff!important;filter:drop-shadow(0 0 4px rgba(255,255,255,.8))!important}
+body:is([data-layout=desktop],[data-layout=tablet],[data-layout=kiosk]) .nx-cluster .nxctl{--nxctl-size:clamp(104px,calc((100vh - 300px) / 4),156px)!important}
+/* smooth: the LED gaps closed into one arc (Porsche), no glow */
+html[data-dials=smooth] .nxctl .nxc-seg{stroke-width:3.4!important;stroke-linejoin:round}
+html[data-dials=smooth] .nxctl .nxc-seg:not(.on){stroke:color-mix(in srgb,var(--sp-s4) 85%,transparent)!important}
+html[data-dials=smooth] .nxctl .nxc-seg.on{stroke:var(--c)!important;filter:none!important}
+html[data-dials=smooth] .nxctl .nxc-seg.hot{stroke:var(--tip,#fff)!important}
+html[data-dials=smooth] .nxctl .nxc-read b{text-shadow:0 1px 3px #000!important}
+html[data-dials=smooth] .nx-cluster .nxctl:not(.nxctl--lift)::before{content:none!important}
+
+/* ---------- 6. the deck: a console of solid keys (the picture over the word); the lane says what is happening in plain words ---------- */
+#nx-dock{background:var(--sp-s1)!important;background-image:var(--sp-weave)!important;border:1px solid var(--sp-line)!important;border-radius:20px!important;
+ box-shadow:var(--sp-rim),0 0 0 1px rgba(0,0,0,.6),0 26px 50px -16px rgba(0,0,0,.95)!important;padding:9px 10px!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+.nx-lane{background:var(--sp-s2)!important;border:1px solid var(--sp-line)!important;border-radius:12px!important;box-shadow:var(--sp-rim)!important}
+.nx-lane-txt b{font:600 15px/1.2 var(--sans)!important;color:var(--sp-t1)!important;letter-spacing:.01em;text-shadow:none!important}
+.nx-lane-txt small{font:500 12px/1.3 var(--sans)!important;color:var(--sp-t2)!important}
+.nx-lane-ico svg.nx-ico{color:var(--accent-hi)!important}
+.nx-lane[data-tone=heat] .nx-lane-ico svg.nx-ico{color:var(--heat)!important}
+.nx-lane[data-tone=ok] .nx-lane-ico svg.nx-ico{color:var(--sp-good)!important}
+.nx-lane[data-tone=warn] .nx-lane-ico svg.nx-ico{color:var(--sp-warn)!important}
+.nx-lane-bar{height:3px!important;background:var(--accent)!important;box-shadow:0 0 10px rgba(var(--accent-rgb),.55)!important}
+.nx-lane[data-tone=heat] .nx-lane-bar{background:var(--heat)!important;box-shadow:0 0 10px var(--heat)!important}
+.nxkey{background:linear-gradient(180deg,var(--sp-s3),var(--sp-s2))!important;border:1px solid var(--sp-line)!important;color:var(--sp-t1)!important;border-radius:12px!important;
+ box-shadow:var(--sp-rim),0 0 0 1px rgba(0,0,0,.55),0 3px 0 rgba(0,0,0,.55),0 8px 14px -8px rgba(0,0,0,.9)!important;
+ transition:background .15s var(--sp-ease),transform .1s var(--sp-ease),box-shadow .1s var(--sp-ease)}
+.nxkey svg{color:var(--sp-t1)!important}
+.nxkey .nx-lbl{color:var(--sp-t2)!important;letter-spacing:.1em!important}
+@media (hover:hover){.nxkey:not(:disabled):hover{background:linear-gradient(180deg,var(--sp-s4),var(--sp-s3))!important}.nxkey:not(:disabled):hover .nx-lbl{color:var(--sp-t1)!important}}
+.nxkey:not(:disabled):active,.nxkey[data-pressed]{transform:translateY(2px);box-shadow:inset 0 2px 5px rgba(0,0,0,.6),0 0 0 1px rgba(0,0,0,.55),0 1px 0 rgba(0,0,0,.55)!important}
+#nx-dock .nxkey{border-radius:12px!important;min-width:76px}
+.nxkey[data-kind=primary],.nx-dock .nxkey[data-kind=primary]{background:linear-gradient(180deg,var(--sp-s4),var(--sp-s3))!important;border-color:rgba(var(--accent-rgb),.55)!important;
+ box-shadow:var(--sp-rim),inset 0 -2px 0 var(--accent),0 0 0 1px rgba(0,0,0,.55),0 3px 0 rgba(0,0,0,.55),0 0 22px -8px rgba(var(--accent-rgb),.7)!important}
+.nxkey[data-kind=primary] svg{color:var(--accent-hi)!important}
+.nxkey[data-kind=primary] .nx-lbl{color:var(--sp-t1)!important}
+.nxkey[data-showing]{background:var(--sp-s4)!important;border-color:rgba(var(--accent-rgb),.6)!important}
+.nxkey[data-showing] .nx-lbl{color:var(--sp-t1)!important}
+.nxkey[data-kind=danger],#nx-dock .nxkey[data-key=stop]{background:linear-gradient(180deg,#2c1418,#1d0d10)!important;border-color:rgba(238,51,70,.35)!important}
+.nxkey[data-kind=danger] svg,.nxkey[data-kind=danger] .nx-lbl,#nx-dock .nxkey[data-key=stop] svg,#nx-dock .nxkey[data-key=stop] .nx-lbl{color:#FF7482!important}
+#nx-dock .nxkey[data-key=cool] svg{color:var(--cool)!important}
+#nx-dock .nxkey[data-key*=heat] svg{color:var(--heat)!important}
+.nxkey:disabled{opacity:.4!important}
+.nxkey[aria-pressed=true]{background:linear-gradient(180deg,var(--sp-s4),var(--sp-s3))!important;border-color:rgba(var(--accent-rgb),.6)!important;box-shadow:var(--sp-rim),inset 0 -2px 0 var(--accent)!important}
+.nxkey[aria-pressed=true] .nx-lbl{color:var(--sp-t1)!important}
+
+/* ---------- 7. buttons, tabs, chips, inputs (every panel) ---------- */
+.nx-btn{background:var(--sp-s2)!important;border:1px solid var(--sp-line2)!important;color:var(--sp-t1)!important;box-shadow:var(--sp-rim)!important;border-radius:10px!important;
+ transition:background .15s var(--sp-ease),border-color .15s var(--sp-ease),transform .1s var(--sp-ease)}
+.nx-btn .nx-lbl{color:inherit!important}
+.nx-btn svg.nx-ico{color:var(--sp-t2)}
+@media (hover:hover){.nx-btn:not(:disabled):hover{background:var(--sp-s3)!important;border-color:rgba(255,255,255,.2)!important}}
+.nx-btn:not(:disabled):active{transform:translateY(1px)}
+.nx-btn[data-kind=primary]{background:var(--accent)!important;border-color:transparent!important;color:var(--accent-ink)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 6px 16px -8px rgba(var(--accent-rgb),.8)!important}
+.nx-btn[data-kind=primary] svg.nx-ico,.nx-btn[data-kind=primary] .nx-lbl{color:var(--accent-ink)!important}
+@media (hover:hover){.nx-btn[data-kind=primary]:not(:disabled):hover{background:var(--accent-hi)!important}}
+.nx-btn[data-kind=danger]{border-color:rgba(238,51,70,.45)!important;color:#FF9AA4!important}
+.nx-btn[data-kind=danger] svg.nx-ico{color:var(--sp-stop)}
+.nx-btn[data-kind=ghost]{background:transparent!important;border-color:transparent!important;box-shadow:none!important}
+.nx-btn:disabled{opacity:.45!important;filter:none!important}
+.nx-btn[data-size=row]{min-height:38px}
+.nx-seg,.nx-md-tabs{background:var(--sp-s1)!important;border:1px solid var(--sp-line)!important;border-radius:11px!important;padding:3px!important;gap:2px!important;box-shadow:none!important}
+.nx-seg button,.nx-md-tabs button{background:transparent!important;color:var(--sp-t2)!important;border:0!important;box-shadow:none!important;border-radius:8px!important}
+.nx-seg button[aria-pressed=true],.nx-md-tabs button[aria-pressed=true],.nx-md-tabs button[aria-selected=true],.nx-sheet .nx-seg button[aria-pressed=true],.nx-modal .nx-seg button[aria-pressed=true]{background:var(--sp-s3)!important;color:var(--sp-t1)!important;box-shadow:var(--sp-rim),inset 0 -2px 0 var(--accent)!important}
+.nx-chip{background:var(--sp-s2)!important;border:1px solid var(--sp-line2)!important;color:var(--sp-t1)!important;border-radius:999px!important;box-shadow:none!important}
+.nx-chip[aria-pressed=true]{border-color:var(--accent)!important;box-shadow:inset 0 0 0 1px var(--accent)!important}
+.nx-input{background:var(--sp-bg)!important;border:1px solid var(--sp-line2)!important;border-radius:8px!important;color:var(--sp-t1)!important}
+.nx-input:focus{border-color:var(--accent)!important;outline:none}
+:focus-visible{outline-color:var(--accent)!important}
+
+/* ---------- 8. panels: solid, sized to what they hold, floating over the machine ---------- */
+.nx-sheet,.nx-pop,.nx-modal-card,.nx-modal>.nx-glass{background:var(--sp-s1)!important;background-image:none!important;border:1px solid var(--sp-line2)!important;border-radius:16px!important;
+ box-shadow:var(--sp-rim),0 30px 70px -18px rgba(0,0,0,.95),0 0 0 1px rgba(0,0,0,.5)!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+body:is([data-layout=desktop],[data-layout=tablet]) .nx-sheet[data-size=compact]{width:min(380px,calc(100vw - 32px))!important}
+body:is([data-layout=desktop],[data-layout=tablet]) .nx-sheet[data-size=regular]{width:min(500px,calc(100vw - 32px))!important}
+body:is([data-layout=desktop],[data-layout=tablet]) .nx-sheet[data-size=wide]{width:min(700px,calc(100vw - var(--rail) - 120px))!important}
+.nx-sheet-head{border-bottom:1px solid var(--sp-line)!important;padding-bottom:10px}
+.nx-sheet-title{color:var(--sp-t1)!important}
+.nx-sheet-eyebrow{color:var(--sp-t3)!important;letter-spacing:.18em!important}
+.nx-sheet .nx-section h3,.nx-sheet h3{font:700 10.5px/1 var(--sans)!important;letter-spacing:.16em!important;color:var(--sp-t3)!important;text-transform:uppercase}
+.nx-sheet-body{gap:14px!important;padding:6px 16px 16px!important}
+.nx-sheet .nx-stat{background:var(--sp-s2)!important;border:1px solid var(--sp-line)!important;box-shadow:none!important;border-radius:10px!important}
+.nx-sheet .nx-stat[data-empty]{opacity:.7}
+.nx-note{color:var(--sp-t2)!important}
+.nx-sheet .nx-stat-v,.nx-u06 .nx-ht-figs .nx-stat b,.nx-u06 .nx-ht-figs .nx-stat .nx-stat-v{color:var(--sp-t1)!important;text-shadow:none!important}
+.nx-modal{background:rgba(0,0,0,.66)!important}
+.nx-toast{background:var(--sp-s2)!important;border:1px solid var(--sp-line2)!important;box-shadow:var(--sp-rim),var(--sp-drop)!important}
+.nx-tip{background:var(--sp-s3)!important;border:1px solid var(--sp-line2)!important;color:var(--sp-t1)!important}
+.nx-md-empty{background:transparent!important}
+.nx-md-empty .nx-btn[data-kind=primary]{min-height:40px;padding:0 18px!important}
+
+/* ---------- 9. Heat: presets are small buttons, the targets side by side (rc13, kept) ---------- */
+.nx-heat-chips{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.nx-heat-chip{display:flex;align-items:baseline;justify-content:space-between;gap:8px;min-height:40px;padding:0 12px;border-radius:10px;border:1px solid var(--sp-line2);background:var(--sp-s2);
+ color:var(--sp-t1);cursor:pointer;font:inherit;text-align:left;transition:background .15s var(--sp-ease),border-color .15s var(--sp-ease)}
+.nx-heat-chip b{font:700 13px/1 var(--sans);letter-spacing:.02em}
+.nx-heat-chip small{font:500 12px/1 var(--sans);color:var(--heat)}
+.nx-heat-chip[data-cool] small{color:var(--cool)}
+@media (hover:hover){.nx-heat-chip:not(:disabled):hover{background:var(--sp-s3);border-color:color-mix(in srgb,var(--heat) 55%,transparent)}.nx-heat-chip[data-cool]:not(:disabled):hover{border-color:color-mix(in srgb,var(--cool) 55%,transparent)}}
+.nx-heat-chip:disabled{opacity:.45;cursor:default}
+.nx-heat-tgts{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.nx-heat-tgt{display:flex;flex-direction:column;align-items:center;gap:8px;padding:10px 8px;border-radius:10px;background:var(--sp-s2);border:1px solid var(--sp-line)}
+.nx-heat-tgt small{font:700 10px/1 var(--sans);letter-spacing:.12em;color:var(--sp-t3)}
+.nx-heat-tgt .nx-btn{width:100%;justify-content:center}
+.nx-sheet[data-size=compact] .nx-stats{display:flex!important;flex-wrap:wrap;gap:6px!important;grid-template-columns:none!important}
+.nx-sheet[data-size=compact] .nx-stats .nx-stat{display:flex!important;flex-direction:row-reverse!important;align-items:baseline;justify-content:flex-end;gap:6px;padding:6px 10px!important;min-height:0!important;flex:0 0 auto}
+.nx-sheet[data-size=compact] .nx-stats .nx-stat-n{display:none}
+.nx-sheet[data-size=compact] .nx-stats .nx-stat-l{font:700 10px/1 var(--sans)!important;letter-spacing:.1em;color:var(--sp-t3)}
+.nx-sheet[data-size=compact] .nx-stats .nx-stat-v{font:600 15px/1 var(--sans)!important}
+.nx-sheet[data-size=compact] .nx-tl-row{grid-template-columns:76px 1fr!important;gap:8px;padding:6px 0;font-size:12px}
+.nx-sheet[data-size=compact] .nx-tl-row>*:nth-child(2),.nx-sheet[data-size=compact] .nx-tl-row>*:nth-child(3){grid-column:2}
+.nx-sheet[data-size=compact] .nx-tl-row>*:first-child{white-space:nowrap;color:var(--sp-t3)}
+.nx-sheet[data-size=compact] .nx-tl-day{margin:10px 0 4px}
+.nx-sheet[data-size=compact] .nx-note{font-size:12px!important}
+.nx-u06 .nx-tl-row,.nx-sheet .nx-tl-row{background:none!important;border:0!important;border-bottom:1px solid var(--sp-line)!important;box-shadow:none!important;border-radius:0!important;padding-inline:0!important}
+
+/* ---------- 10. Levelling: the bed from above, a reading at each corner, the gantry across it (rc13, kept) ---------- */
+.nx-u06 .nx-lv-now{display:flex!important;flex-direction:column!important;gap:12px!important}
+.nx-u06 .nx-lv-gantry{position:relative;display:grid!important;grid-template-columns:1fr 1fr;grid-template-rows:auto 1fr auto;gap:0;aspect-ratio:1.45;max-width:520px;width:100%;
+ padding:14px!important;border-radius:14px!important;border:1px solid var(--sp-line2)!important;background:var(--sp-s2)!important;box-shadow:inset 0 0 0 6px var(--sp-s1)!important}
+.nx-u06 .nx-lv-corner,.nx-u06 .nx-qgl-corner{all:unset;display:flex!important;flex-direction:column;gap:4px;padding:6px 8px!important;background:none!important;border:0!important;box-shadow:none!important}
+.nx-u06 .nx-lv-corner[data-k=z1]{grid-area:1/1}.nx-u06 .nx-lv-corner[data-k=z2]{grid-area:1/2;align-items:flex-end;text-align:right}
+.nx-u06 .nx-lv-corner[data-k=z0]{grid-area:3/1}.nx-u06 .nx-lv-corner[data-k=z3]{grid-area:3/2;align-items:flex-end;text-align:right}
+.nx-u06 .nx-lv-corner span{font:700 10px/1 var(--sans);letter-spacing:.14em;color:var(--sp-t3)}
+.nx-u06 .nx-lv-corner b{all:unset;font:500 17px/1.1 var(--sans)!important;color:var(--sp-t1);white-space:nowrap}
+.nx-u06 .nx-lv-corner[data-hit] b{color:var(--accent-hi)}
+.nx-u06 .nx-lv-corner[data-ok] b{color:#9FF5C2}
+.nx-u06 .nx-lv-corner[data-far] b{color:var(--heat-2)}
+.nx-u06 .nx-lv-corner::before,.nx-u06 .nx-lv-corner::after{content:none!important}
+.nx-u06 .nx-lv-dir{font:600 10px/1 var(--sans)!important;color:var(--sp-t3)!important;min-height:0!important}
+.nx-u06 .nx-lv-frame{grid-area:2/1/3/3;border:0!important;position:relative;display:flex;align-items:center;justify-content:center}
+.nx-u06 .nx-lv-beam{position:absolute;left:4%;right:4%;top:50%;height:4px;margin-top:-2px;border-radius:2px;background:linear-gradient(90deg,rgba(var(--accent-rgb),.6),rgba(var(--accent-rgb),.2),rgba(var(--accent-rgb),.6))!important;box-shadow:0 0 12px rgba(var(--accent-rgb),.35)!important}
+.nx-u06 .nx-lv-front{position:absolute;left:50%;bottom:-6px;transform:translateX(-50%);font:700 9.5px/1 var(--sans);letter-spacing:.2em;color:var(--sp-t3)}
+.nx-u06 .nx-lv-verdict{padding:10px 12px!important;font:600 13px/1.4 var(--sans)!important;background:var(--sp-s2)!important;border:1px solid var(--sp-line)!important;border-radius:10px!important;box-shadow:none!important}
+
+/* ---------- 11. the wheel (Horizon): solid graphite slices with a gap, the lit one slides out with the accent on its edge, the world behind dimmed ---------- */
+.nx-wheel-host{background:radial-gradient(circle at 50% 50%,rgba(0,0,0,.55) 0,rgba(0,0,0,.84) 64%)!important}
+.nx-wheel-seg{transform-box:view-box;transform-origin:0 0;fill:var(--sp-s2)!important;stroke:var(--sp-bg)!important;stroke-width:3!important;filter:drop-shadow(0 8px 12px rgba(0,0,0,.55));
+ transition:fill .14s var(--sp-ease),transform .18s cubic-bezier(.2,.9,.3,1.3)!important}
+.nx-wheel-seg[data-hot]{fill:var(--sp-s4)!important;stroke:var(--accent)!important;stroke-width:1.6!important;transform:translate(calc(var(--dx,0px) * 2),calc(var(--dy,0px) * 2));filter:drop-shadow(0 0 16px rgba(var(--accent-rgb),.35)) drop-shadow(0 10px 14px rgba(0,0,0,.6))}
+.nx-wheel-seg[data-tone=heat][data-hot]{stroke:var(--heat)!important;filter:drop-shadow(0 0 16px color-mix(in srgb,var(--heat) 40%,transparent))}
+.nx-wheel-seg[data-tone=cool][data-hot]{stroke:var(--cool)!important;filter:drop-shadow(0 0 16px color-mix(in srgb,var(--cool) 40%,transparent))}
+.nx-wheel-seg[data-off]{fill:var(--sp-s1)!important}
+.nx-wheel-seg[data-empty]{fill:transparent!important;stroke:rgba(255,255,255,.06)!important;stroke-width:1!important;stroke-dasharray:3 5;filter:none}
+.nx-wheel .nx-wheel-key{transition:transform .18s cubic-bezier(.2,.9,.3,1.3),opacity .15s}
+.nx-wheel .nx-wheel-key[data-hot]{transform:translate(-50%,-50%) translate(calc(var(--dx,0px) * 2),calc(var(--dy,0px) * 2))}
+.nx-wheel .nx-wheel-key svg.nx-ico{color:var(--sp-t1)!important;filter:none!important}
+.nx-wheel .nx-wheel-key[data-hot] svg.nx-ico{color:var(--accent-hi)!important}
+.nx-wheel .nx-wheel-key[data-tone=heat] svg.nx-ico,.nx-wheel .nx-wheel-key[data-tone=heat] .nx-radial-sub{color:var(--heat)!important}
+.nx-wheel .nx-wheel-key[data-tone=cool] svg.nx-ico{color:var(--cool)!important}
+.nx-wheel .nx-wheel-key[data-kind=danger] svg.nx-ico{color:#FF7482!important}
+.nx-wheel .nx-wheel-key .nx-lbl{color:var(--sp-t2)!important;letter-spacing:.1em!important}
+.nx-wheel .nx-wheel-key[data-hot] .nx-lbl{color:var(--sp-t1)!important}
+.nx-wheel-hub{background:var(--sp-s1)!important;border:1px solid var(--sp-line2)!important;box-shadow:var(--sp-rim),0 0 0 7px rgba(0,0,0,.5),0 20px 40px -10px rgba(0,0,0,.9)!important}
+.nx-wheel-hub-ico svg.nx-ico{color:var(--accent-hi)!important}
+.nx-wheel-hub[data-tone=heat] .nx-wheel-hub-ico svg.nx-ico{color:var(--heat)!important}
+.nx-wheel-hub-t{font:600 16px/1.2 var(--sans)!important;letter-spacing:.08em;text-transform:uppercase;color:var(--sp-t1)!important}
+.nx-wheel-hub-d{color:var(--sp-t2)!important}
+.nx-wheel-hub-c{color:var(--sp-t1)!important;font:500 14px/1.35 var(--sans)!important}
+.nx-wheel-page{color:var(--sp-t3)!important}
+
+/* ---------- 12. the farm: the same surfaces; a printer's own colour stays on its card's top edge ---------- */
+.fm-top{background:var(--sp-s1)!important;background-image:var(--sp-weave)!important;box-shadow:inset 0 -1px 0 var(--sp-line)!important}
+.fm-tile{background:var(--sp-s1)!important;border-color:var(--sp-line)!important}
+.fm-tile[data-open]{background:var(--sp-s1)!important}
+.fm-veil{background:rgba(0,0,0,.72)!important}
+
+/* ---------- 13. the Look panel: colour, finish, dials ---------- */
+.nx-paint{display:flex;flex-direction:column;gap:18px}
+.nx-paint-sw{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.nx-paint-sw button,.nx-paint-fin button,.nx-paint-dial button{all:unset;box-sizing:border-box;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:7px;padding:10px 6px;border-radius:12px;
+ background:var(--sp-s2);border:1px solid var(--sp-line);box-shadow:var(--sp-rim);font:600 11px/1.15 var(--sans);letter-spacing:.04em;color:var(--sp-t2);text-align:center;transition:background .15s,border-color .15s}
+.nx-paint-sw button i{width:30px;height:30px;border-radius:50%;background:var(--sw);box-shadow:inset 0 2px 4px rgba(255,255,255,.3),inset 0 -3px 6px rgba(0,0,0,.35),0 0 0 2px rgba(0,0,0,.6)}
+.nx-paint button[aria-pressed=true]{background:var(--sp-s3);border-color:var(--accent);color:var(--sp-t1);box-shadow:var(--sp-rim),inset 0 -2px 0 var(--accent)}
+@media (hover:hover){.nx-paint button:hover{background:var(--sp-s3);color:var(--sp-t1)}}
+.nx-paint-fin,.nx-paint-dial{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.nx-paint-dial{grid-template-columns:repeat(2,minmax(0,1fr))}
+.nx-paint-fin button i{width:100%;height:34px;border-radius:8px;background:var(--sw);box-shadow:inset 0 1px 0 rgba(255,255,255,.1),inset 0 0 0 1px rgba(255,255,255,.06)}
+.nx-paint-dial button svg{width:54px;height:54px}
+.nx-paint p{margin:0;color:var(--sp-t3);font:500 12px/1.4 var(--sans)}
+.nx-paint-dial svg .on{fill:var(--accent)}.nx-paint-dial svg .tip{fill:#fff}.nx-paint-dial svg .off{fill:rgba(255,255,255,.12)}
+
+/* ---------- 14. the live step card (levelling, probing) and the filament card: the same solid tile, plain figures ---------- */
+.nx-activity{background:var(--sp-s1)!important;background-image:none!important;border:1px solid var(--sp-line2)!important;border-radius:14px!important;box-shadow:var(--sp-rim),var(--sp-drop)!important}
+.nx-act-c{background:var(--sp-s2)!important;border:1px solid var(--sp-line)!important;border-radius:10px!important;box-shadow:none!important;color:var(--sp-t3)!important;letter-spacing:.12em}
+.nx-act-c b{background:none!important;box-shadow:none!important;padding:0!important;font:500 14px/1 var(--sans)!important;color:var(--sp-t1)!important;text-shadow:none!important}
+.nx-act-c[data-far] b{color:var(--heat)!important}
+.nx-act-c[data-hit]{border-color:rgba(var(--accent-rgb),.7)!important;box-shadow:0 0 14px rgba(var(--accent-rgb),.25)!important}
+.nx-act-c[data-ok]{border-color:color-mix(in srgb,var(--sp-good) 50%,transparent)!important;box-shadow:none!important}
+.nx-act-c[data-ok]::after{border-radius:50%!important}
+.nx-act-round{color:var(--sp-t2)!important;font-family:var(--sans)!important}
+.nx-act-head b{color:var(--sp-t1)!important}.nx-act-head span{color:var(--sp-t2)!important;font-family:var(--sans)!important}
+.nx-act-head svg.nx-ico{color:var(--accent-hi)!important}
+
+/* ---------- 15. the farm, in full: the bar, the tools row, the tiles, their pictures and chips ---------- */
+.fm-top,.fm-tools{background:var(--sp-s1)!important;background-image:var(--sp-weave)!important;border:1px solid var(--sp-line)!important;border-radius:16px!important;box-shadow:var(--sp-rim),var(--sp-drop)!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+.fm-top{box-shadow:var(--sp-rim),0 0 0 9px var(--sp-bg)!important}
+.fm-search input{background:var(--sp-bg)!important;border:1px solid var(--sp-line2)!important;border-radius:10px!important;color:var(--sp-t1)!important}
+.fm-tools select,.fm-tools .nx-select{background:var(--sp-s2)!important;border:1px solid var(--sp-line2)!important;border-radius:10px!important;color:var(--sp-t1)!important}
+.fm-tile{background:linear-gradient(180deg,var(--sp-s2),var(--sp-s1))!important;border:1px solid var(--sp-line)!important;border-top:2px solid color-mix(in srgb,var(--c,var(--accent)) 80%,transparent)!important;border-radius:16px!important;
+ box-shadow:var(--sp-rim),0 -8px 24px -18px var(--c,var(--accent)),var(--sp-drop)!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+.fm-media{background:var(--sp-bg)!important;border:1px solid var(--sp-line)!important;border-radius:12px!important}
+.fm-name{color:var(--sp-t1)!important}
+.fm-sub,.fm-line{color:var(--sp-t3)!important}
+.fm-chip{background:var(--sp-s2)!important;border:1px solid var(--sp-line2)!important;color:var(--sp-t1)!important;box-shadow:none!important}
+.fm-stat .fm-led,.fm-stat b{color:var(--sp-t1)!important;text-shadow:none!important}
+
+/* ---------- 16. small screens: the name never breaks, the deck's keys share the width ---------- */
+.nx-id-text b{white-space:nowrap}
+body:is([data-layout=phone],[data-layout=phone-land],[data-layout=tablet-port]) .nx-id-text b{letter-spacing:.14em!important}
+body:is([data-layout=phone],[data-layout=phone-land],[data-layout=tablet-port]) #nx-dock .nxkey{min-width:0!important}
+body:is([data-layout=phone],[data-layout=phone-land],[data-layout=tablet-port]) .nx-dock .nx-axis{background:var(--sp-s2)!important;box-shadow:var(--sp-rim)!important}
+body:is([data-layout=phone],[data-layout=phone-land],[data-layout=tablet-port]) .nx-dock .nx-axis span{color:var(--sp-t1)!important;text-shadow:none!important}
+body:is([data-layout=phone],[data-layout=phone-land]) .nx-state-label{letter-spacing:.05em!important}
+body:is([data-layout=phone],[data-layout=phone-land]) .nx-state{padding:0 10px 0 9px!important;gap:6px!important}
+body:is([data-layout=phone],[data-layout=phone-land]) .nx-top-right{gap:6px!important}
+
+/* ---------- 17. 2026-10-25, second look at rc14: "the buttons on the bottom and on the left are still bad, the left ones sit at the top, the gauges
+   look basic, Iso Front Top Side should be a cube". One family of keys (rail and deck alike): a cap with depth, an LED strip that says what it is
+   doing (lit in the accent when it is the open page or the main action, red for stop), the picture over the word. ---------- */
+.nxkey,#nx-rail .nx-btn[data-size=icon]{position:relative}
+#nx-dock .nxkey{min-width:80px!important;height:66px!important;border-radius:14px!important;padding:12px 8px 7px!important;gap:5px!important;
+ background:linear-gradient(180deg,color-mix(in srgb,var(--sp-s4) 70%,#fff 4%) 0,var(--sp-s3) 45%,var(--sp-s2) 100%)!important;
+ box-shadow:inset 0 1px 0 rgba(255,255,255,.14),inset 0 -1px 0 rgba(0,0,0,.4),0 0 0 1px rgba(0,0,0,.65),0 4px 0 rgba(0,0,0,.6),0 10px 18px -8px rgba(0,0,0,.9)!important}
+#nx-dock .nxkey svg{width:24px!important;height:24px!important}
+#nx-dock .nxkey::after,#nx-rail .nx-btn[data-size=icon]::before{content:''!important;position:absolute;top:5px;left:50%;width:20px;height:3px;margin-left:-10px;border-radius:2px;
+ background:rgba(255,255,255,.10);box-shadow:inset 0 1px 1px rgba(0,0,0,.5);animation:none!important;opacity:1!important;border:0!important;right:auto;bottom:auto;display:block!important}
+#nx-dock .nxkey[data-kind=primary]::after,#nx-dock .nxkey[data-showing]::after,#nx-dock .nxkey[aria-pressed=true]::after{background:var(--accent-hi);box-shadow:0 0 8px rgba(var(--accent-rgb),.9),0 0 2px var(--accent-hi)}
+#nx-dock .nxkey[data-kind=danger]::after,#nx-dock .nxkey[data-key=stop]::after{background:#FF5468;box-shadow:0 0 8px rgba(255,84,104,.8)}
+#nx-dock .nxkey[data-key=cool]::after{background:color-mix(in srgb,var(--cool) 55%,transparent)}
+#nx-dock .nxkey[data-key*=heat]::after{background:color-mix(in srgb,var(--heat) 55%,transparent)}
+#nx-dock .nxkey:disabled::after{background:rgba(255,255,255,.06);box-shadow:none}
+#nx-dock .nxkey[data-busy]::before{top:auto!important}
+/* the rail: the same caps, in one column, standing in the middle of the room between the bar and the deck */
+body:not([data-layout=phone]):not([data-layout=phone-land]) #nx-rail{top:calc(var(--top) + var(--safe-t) + (100% - var(--top) - var(--safe-t) - var(--dockzone,120px)) / 2)!important;transform:translateY(-50%)!important;
+ padding:8px!important;gap:6px!important;border-radius:20px!important;background:linear-gradient(180deg,var(--sp-s2),var(--sp-s1))!important}
+#nx-rail .nx-btn[data-size=icon]{width:66px!important;min-height:56px!important;height:auto!important;padding:11px 4px 7px!important;gap:4px!important;border-radius:12px!important;
+ background:linear-gradient(180deg,var(--sp-s3),var(--sp-s2))!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.10),0 0 0 1px rgba(0,0,0,.6),0 3px 0 rgba(0,0,0,.55)!important}
+#nx-rail .nx-btn[data-size=icon] svg{width:22px!important;height:22px!important;color:var(--sp-t1)!important}
+#nx-rail .nx-btn[data-size=icon]::after{color:var(--sp-t2)!important;font-size:9px!important;letter-spacing:.08em!important}
+@media (hover:hover){#nx-rail .nx-btn[data-size=icon]:hover{background:linear-gradient(180deg,var(--sp-s4),var(--sp-s3))!important}}
+#nx-rail .nx-btn[data-size=icon]:active{transform:translateY(2px)}
+#nx-rail .nx-btn[aria-current=page],#nx-rail .nx-btn[data-showing]{background:linear-gradient(180deg,var(--sp-s4),var(--sp-s3))!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.14),0 0 0 1px rgba(var(--accent-rgb),.45),0 3px 0 rgba(0,0,0,.55),0 0 18px -6px rgba(var(--accent-rgb),.6)!important}
+#nx-rail .nx-btn[aria-current=page]::before,#nx-rail .nx-btn[data-showing]::before{display:block!important;background:var(--accent-hi)!important;box-shadow:0 0 8px rgba(var(--accent-rgb),.9)!important;left:50%!important;top:5px!important;bottom:auto!important;width:20px!important;height:3px!important;margin-left:-10px}
+#nx-rail hr{display:none!important}
+@media (max-height:860px){body:not([data-layout=phone]) #nx-rail .nx-btn[data-size=icon]{min-height:48px!important;padding:9px 4px 5px!important}body:not([data-layout=phone]) #nx-rail{gap:4px!important}}
+@media (max-height:760px){body:not([data-layout=phone]) #nx-rail .nx-btn[data-size=icon]::after{display:none}body:not([data-layout=phone]) #nx-rail .nx-btn[data-size=icon]{min-height:40px!important}}
+
+/* the gauges: an instrument, not a ring of dots. A fine bezel of ticks outside the LEDs, a hairline chrome rim, light from inside the figure. */
+.nx-cluster .nxctl:not(.nxctl--lift)::after{content:''!important;position:absolute;inset:0;border-radius:50%;pointer-events:none;z-index:0;
+ background:repeating-conic-gradient(from -135.5deg,rgba(255,255,255,.55) 0 1deg,transparent 1deg 27deg);
+ -webkit-mask:radial-gradient(closest-side,transparent 84%,#000 85%,#000 91%,transparent 92%),conic-gradient(from -136deg,#000 0 272deg,transparent 272deg);
+ -webkit-mask-composite:source-in;mask:radial-gradient(closest-side,transparent 84%,#000 85%,#000 91%,transparent 92%),conic-gradient(from -136deg,#000 0 272deg,transparent 272deg);mask-composite:intersect}
+.nx-cluster .nxctl:not(.nxctl--lift)::before{inset:2%!important;background:radial-gradient(closest-side,color-mix(in srgb,var(--c) 18%,transparent) 0,transparent 52%),
+ radial-gradient(closest-side,transparent 95%,rgba(255,255,255,.16) 96.5%,transparent 98%)!important}
+.nxctl .nxc-seg.on{filter:url(#nxctl-glow) drop-shadow(0 0 4px var(--c))!important}
+.nxctl .nxc-read b{font-weight:300!important;text-shadow:0 0 22px color-mix(in srgb,var(--c) 55%,transparent),0 0 3px color-mix(in srgb,var(--c) 40%,transparent),0 1px 2px #000!important}
+html[data-dials=smooth] .nx-cluster .nxctl:not(.nxctl--lift)::before{content:''!important;background:radial-gradient(closest-side,transparent 95%,rgba(255,255,255,.16) 96.5%,transparent 98%)!important}
+
+/* the view cube, top right of the stage */
+.nx-stagecard .nx-md-tools{display:flex!important;flex-direction:column!important;align-items:flex-end!important;gap:8px!important;width:auto!important;background:none!important;border:0!important;box-shadow:none!important;padding:0!important}
+.nx-cube-wrap{width:124px;height:124px;pointer-events:auto;filter:drop-shadow(0 10px 18px rgba(0,0,0,.7))}
+.nx-cube{width:100%;height:100%;overflow:visible}
+.nx-cube-f polygon{fill:var(--sp-s3);stroke:rgba(255,255,255,.16);stroke-width:.8;stroke-linejoin:round;transition:fill .14s}
+.nx-cube-f[data-k=top] polygon{fill:var(--sp-s4)}
+.nx-cube-f[data-k=right] polygon{fill:var(--sp-s2)}
+.nx-cube-f text{font:700 6.6px/1 var(--sans);letter-spacing:.06em;fill:var(--sp-t2);text-anchor:middle;dominant-baseline:middle;pointer-events:none}
+.nx-cube-f{cursor:pointer;outline:none}
+@media (hover:hover){.nx-cube-f:hover polygon{fill:color-mix(in srgb,var(--accent) 22%,var(--sp-s4))}.nx-cube-f:hover text{fill:#fff}}
+.nx-cube-f[data-on] polygon{fill:color-mix(in srgb,var(--accent) 30%,var(--sp-s4));stroke:var(--accent)}
+.nx-cube-f[data-on] text{fill:#fff}
+.nx-cube-f:focus-visible polygon{stroke:var(--accent);stroke-width:1.6}
+.nx-cube-iso{fill:var(--sp-s1);stroke:rgba(255,255,255,.4);stroke-width:1.2;cursor:pointer;transition:fill .14s}
+.nx-cube-iso[data-on]{fill:var(--accent);stroke:#fff}
+@media (hover:hover){.nx-cube-iso:hover{fill:var(--accent-hi)}}
+body:is([data-layout=phone],[data-layout=tablet-port]) .nx-cube-wrap{width:72px;height:72px}
+body:is([data-layout=phone],[data-layout=tablet-port]) .nx-stagecard .nx-md-tools{left:auto!important;right:10px!important;top:calc(var(--top) + var(--safe-t) + 118px)!important}
+/* a gauge that cannot be turned from here (controls off, or a printer that does not take it) still shows its live reading at full light: only the hand is refused */
+.nxctl[data-locked]{opacity:1!important}
+.nxctl[data-locked] .nxc-read .nxc-l::after{content:' ·';opacity:.0}
+
+/* ---------- 18. alive (2026-10-25): a heater on its way up breathes; the cluster sweeps once when the page opens (next-control.js) ---------- */
+@keyframes sp-breathe{0%,100%{opacity:.45}50%{opacity:1}}
+.nx-cluster .nxctl[data-heating]:not(.nxctl--lift)::before{animation:sp-breathe 1.8s ease-in-out infinite}
+.nx-cluster .nxctl[data-heating] .nxc-seg.hot{animation:sp-breathe .9s ease-in-out infinite}
+@media (prefers-reduced-motion:reduce){.nx-cluster .nxctl[data-heating]:not(.nxctl--lift)::before,.nx-cluster .nxctl[data-heating] .nxc-seg.hot{animation:none}}
+
+/* ---------- 19. nothing lands on the machine (2026-10-24 and 10-25) ---------- */
+/* a live step (levelling, probing) is one slim strip under the bar: what it is, the round, the four corners; a tap opens Levelling */
+body:is([data-layout=desktop],[data-layout=tablet],[data-layout=kiosk]) .nx-activity{top:calc(var(--top) + var(--safe-t) + 10px)!important;width:auto!important;max-width:min(980px,calc(100vw - 2 * (var(--rail) + 340px)))!important;
+ flex-direction:row!important;align-items:center!important;gap:14px!important;padding:8px 12px 8px 14px!important;border-radius:14px!important}
+body:is([data-layout=desktop],[data-layout=tablet],[data-layout=kiosk]) .nx-activity .nx-act-map{display:none!important}
+body:is([data-layout=desktop],[data-layout=tablet],[data-layout=kiosk]) .nx-activity .nx-act-head{flex:none;gap:10px}
+body:is([data-layout=desktop],[data-layout=tablet],[data-layout=kiosk]) .nx-activity .nx-act-head span{display:none}
+body:is([data-layout=desktop],[data-layout=tablet],[data-layout=kiosk]) .nx-activity .nx-act-corners{display:flex!important;gap:6px!important;flex:none}
+body:is([data-layout=desktop],[data-layout=tablet],[data-layout=kiosk]) .nx-activity .nx-act-c{flex-direction:column!important;gap:3px!important;padding:5px 9px!important;min-width:0;font-size:8.5px!important}
+body:is([data-layout=desktop],[data-layout=tablet],[data-layout=kiosk]) .nx-activity .nx-act-c b{font-size:13px!important}
+body:is([data-layout=desktop],[data-layout=tablet],[data-layout=kiosk]) .nx-activity .nx-act-c[data-ok]::after{width:12px!important;height:12px!important;font-size:8px!important;top:4px!important;right:4px!important}
+body:is([data-layout=desktop],[data-layout=tablet],[data-layout=kiosk]) .nx-activity .nx-act-round{white-space:nowrap;font-size:12px!important}
+/* the job card sits under the bar too: while a step runs the strip stands just below it */
+body:is([data-layout=desktop],[data-layout=tablet],[data-layout=kiosk]) #nx-job:not([hidden])~* .nx-activity,body:is([data-layout=desktop],[data-layout=tablet],[data-layout=kiosk]) .nx-activity{top:calc(var(--top) + var(--safe-t) + 10px)!important}
+/* the other printers' alerts stack at the right, above the deck, under the fan gauges, never over the deck */
+body:has(#nx-ui) .fl-pops{bottom:calc(var(--dockzone,130px) + 14px)!important;width:min(360px,calc(100vw - 32px))!important}
+
+/* ---------- 20. panels read like an instrument, not a form (audit 2026-10-26) ---------- */
+/* a figure is a big plain number with its word over it, never a dark box with a number inside */
+.nx-u06 .nx-stat-v,.nx-sheet .nx-stat-v{display:block!important;padding:0!important;background:none!important;box-shadow:none!important;border-radius:0!important;
+ font:300 24px/1.1 var(--sans)!important;letter-spacing:-.01em!important;color:var(--sp-t1)!important;text-shadow:none!important;font-variant-numeric:tabular-nums}
+.nx-sheet .nx-stat[data-tone=ok] .nx-stat-v{color:#8DF0B3!important}
+.nx-sheet .nx-stat[data-tone=warn] .nx-stat-v{color:var(--heat-2)!important}
+.nx-sheet .nx-stat[data-tone=alarm] .nx-stat-v{color:#FF8E9A!important}
+.nx-sheet .nx-stat[data-empty] .nx-stat-v{color:var(--sp-t3)!important;opacity:1!important}
+.nx-sheet .nx-stat{padding:12px 14px!important;gap:6px!important}
+.nx-sheet .nx-stat-l{color:var(--sp-t3)!important;letter-spacing:.16em!important}
+/* words are words: the small lines of a panel in the sans, the mono kept for code and the console */
+.nx-sheet :is(.nx-stat-n,.nx-note,.nx-item-sub,small,p):not(.nx-console *):not(code):not(kbd){font-family:var(--sans)!important;letter-spacing:.005em}
+.nx-sheet .nx-stat-n{font-size:12px!important;color:var(--sp-t3)!important}
+/* list rows (pages, alerts, maintenance): a quiet tile each, the title then the line */
+.nx-sheet .nx-item{background:var(--sp-s2)!important;border:1px solid var(--sp-line)!important;border-radius:12px!important;box-shadow:var(--sp-rim)!important}
+@media (hover:hover){.nx-sheet button.nx-item:hover{background:var(--sp-s3)!important}}
+.nx-sheet .nx-item-title{color:var(--sp-t1)!important;font-weight:600!important}
+.nx-sheet .nx-item-sub{color:var(--sp-t3)!important;font-size:12px!important}
+/* phone pairing: the step's number sits beside its title, never over the first letters (audit: "an it in the app") */
+.nx-pairstep{padding-top:52px!important}
+.nx-pairnum{border-radius:50%!important;font-family:var(--sans)!important}
+
+/* ---------- 21. the readings on the machine (next-models.js machineChips): a small pill beside the nozzle and the bed, a hairline down to the point ---------- */
+.nx-mchips{position:absolute;inset:0;pointer-events:none;z-index:2;overflow:hidden}
+.nx-chip-m{position:absolute;left:0;top:0;display:flex;align-items:center;gap:6px;height:28px;padding:0 10px 0 8px;margin:-46px 0 0 18px;border-radius:999px;white-space:nowrap;
+ background:color-mix(in srgb,var(--sp-s2) 92%,transparent);border:1px solid var(--sp-line2);box-shadow:var(--sp-rim),0 8px 18px -8px rgba(0,0,0,.9);
+ font:500 13px/1 var(--sans);color:var(--sp-t1);font-variant-numeric:tabular-nums;transition:transform .12s linear}
+.nx-chip-m::before{content:'';position:absolute;left:-18px;top:100%;width:18px;height:18px;border-left:1px solid rgba(255,255,255,.35);border-bottom:0;transform:skewX(-45deg);transform-origin:0 0}
+.nx-chip-m::after{content:'';position:absolute;left:-21px;top:calc(100% + 16px);width:6px;height:6px;border-radius:50%;background:#fff;box-shadow:0 0 6px rgba(255,255,255,.8)}
+.nx-chip-m svg.nx-ico{width:15px;height:15px;color:var(--sp-t2)}
+.nx-chip-m[data-hot] svg.nx-ico{color:var(--heat)}
+.nx-chip-m[data-hot]::after{background:var(--heat);box-shadow:0 0 8px var(--heat)}
+html[data-chips=off] .nx-mchips{display:none}
+body:is([data-layout=phone],[data-layout=phone-land]) .nx-chip-m{height:24px;font-size:11.5px;padding:0 8px 0 6px}
+
+/* ---------- 22. the main action of a panel is a lit key, not a slab of paint (a silver slab read as a grey, disabled button) ---------- */
+.nx-btn[data-kind=primary]{background:linear-gradient(180deg,var(--sp-s4),var(--sp-s3))!important;border:1px solid rgba(var(--accent-rgb),.55)!important;color:var(--sp-t1)!important;
+ box-shadow:var(--sp-rim),inset 0 -2px 0 var(--accent),0 0 18px -8px rgba(var(--accent-rgb),.7)!important}
+.nx-btn[data-kind=primary] svg.nx-ico{color:var(--accent-hi)!important}
+.nx-btn[data-kind=primary] .nx-lbl{color:var(--sp-t1)!important}
+@media (hover:hover){.nx-btn[data-kind=primary]:not(:disabled):hover{background:linear-gradient(180deg,color-mix(in srgb,var(--sp-s4) 80%,#fff 8%),var(--sp-s4))!important}}
+
+/* ---------- 23. Filament (audit 5): the steps are a quiet track, the ring only shows while something runs, the two actions are big ---------- */
+.nx-fil .nx-filsteps{display:flex!important;gap:0!important;counter-reset:s;position:relative;margin:4px 0 6px!important}
+.nx-fil .nx-filsteps li{flex:1 1 0;padding:30px 4px 0!important;background:none!important;border:0!important;box-shadow:none!important;border-radius:0!important;text-align:center;
+ font:600 10.5px/1.2 var(--sans)!important;letter-spacing:.1em;text-transform:uppercase;color:var(--sp-t3)!important}
+.nx-fil .nx-filsteps li::before{left:50%!important;top:0!important;transform:translateX(-50%)!important;width:22px!important;height:22px!important;background:var(--sp-s3)!important;color:var(--sp-t2)!important;
+ box-shadow:0 0 0 3px var(--sp-s1),inset 0 1px 0 rgba(255,255,255,.1)!important;font:600 11px/22px var(--sans)!important;z-index:1}
+.nx-fil .nx-filsteps li::after{content:'';position:absolute;top:10px;left:calc(50% + 14px);right:calc(-50% + 14px);height:2px;background:var(--sp-s4)}
+.nx-fil .nx-filsteps li:last-child::after{display:none}
+.nx-fil .nx-filsteps li[data-state=done]{color:var(--sp-t2)!important}
+.nx-fil .nx-filsteps li[data-state=done]::before{background:color-mix(in srgb,var(--sp-good) 30%,var(--sp-s3))!important;color:#BFF5D3!important}
+.nx-fil .nx-filsteps li[data-state=done]::after{background:color-mix(in srgb,var(--sp-good) 50%,var(--sp-s4))}
+.nx-fil .nx-filsteps li[data-state=now]{color:var(--sp-t1)!important}
+.nx-fil .nx-filsteps li[data-state=now]::before{background:var(--accent)!important;color:var(--accent-ink)!important;box-shadow:0 0 0 3px var(--sp-s1),0 0 14px rgba(var(--accent-rgb),.7)!important}
+.nx-fil .nx-filjob[data-step=idle] .nx-filring,.nx-fil .nx-filjob[data-step=checking] .nx-filring{display:none!important}
+.nx-fil .nx-filjob{background:var(--sp-s2)!important;border:1px solid var(--sp-line)!important;border-radius:14px!important;box-shadow:var(--sp-rim)!important;padding:16px!important}
+.nx-fil .nx-filwords b{font:600 17px/1.25 var(--sans)!important;color:var(--sp-t1)!important}
+.nx-fil .nx-filwords p{color:var(--sp-t2)!important;font:400 13px/1.45 var(--sans)!important}
+.nx-fil .nx-filacts .nx-btn{min-height:52px!important;font-size:14px!important;flex:1 1 0}
+.nx-fil .nx-filacts .nx-btn svg.nx-ico{width:22px;height:22px}
+/* Heat presets by family (audit 10) */
+.nx-heat-groups{display:flex;flex-direction:column;gap:12px}
+.nx-heat-group{display:flex;flex-direction:column;gap:6px}
+.nx-heat-fam{font:700 10px/1 var(--sans);letter-spacing:.16em;color:var(--sp-t3)}
+.nx-heat-group .nx-heat-chips{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))!important}
+.nx-heat-chip[data-cool]{background:color-mix(in srgb,var(--cool) 10%,var(--sp-s2))!important;border-color:color-mix(in srgb,var(--cool) 35%,transparent)!important}
+/* an open panel takes the right of the stage: the view cube and its Model key step out of its way (audit 11) */
+body:has(#nx-sheet:not([hidden])) .nx-stagecard .nx-md-tools{opacity:0!important;pointer-events:none!important;transition:opacity .15s}
+
+/* ---------- 24. the farm wall (audit 12): words in the sans, the state as a lit pill, the figures plain ---------- */
+.fm-tile :is(.fm-sub,.fm-eta,.fm-line,.fm-nextline,.fm-jobtext small,.fm-detail){font-family:var(--sans)!important;letter-spacing:.02em!important}
+.fm-tile .fm-sub{text-transform:uppercase;font-size:10.5px!important;letter-spacing:.14em!important;color:var(--sp-t3)!important}
+.fm-chip{display:inline-flex!important;align-items:center;gap:7px;font:700 10.5px/1 var(--sans)!important;letter-spacing:.14em!important;padding:0 11px!important;height:26px}
+.fm-chip::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--sp-t3);flex:none}
+.fm-tile[data-look=printing] .fm-chip::before,.fm-tile[data-state=printing] .fm-chip::before{background:var(--accent-hi);box-shadow:0 0 6px rgba(var(--accent-rgb),.9)}
+.fm-tile[data-look=done] .fm-chip::before,.fm-tile[data-look=clear] .fm-chip::before{background:var(--sp-good);box-shadow:0 0 6px var(--sp-good)}
+.fm-tile[data-look=heating] .fm-chip::before,.fm-tile[data-look=paused] .fm-chip::before{background:var(--heat);box-shadow:0 0 6px var(--heat)}
+.fm-tile[data-look=error] .fm-chip::before,.fm-tile[data-look=attention] .fm-chip::before{background:#FF5468;box-shadow:0 0 6px #FF5468}
+.fm-chip svg{display:none}
+.fm-media :is(.fm-pct,.fm-eta,.fm-demo){font-family:var(--sans)!important;background:color-mix(in srgb,var(--sp-s1) 88%,transparent)!important;border:1px solid var(--sp-line2)!important;border-radius:999px!important;color:var(--sp-t1)!important}
+.fm-name{font:600 17px/1.2 var(--sans)!important;letter-spacing:.005em}
+.nx-chip-m[data-left]{margin:-46px 0 0 0;transform-origin:100% 100%;translate:calc(-100% - 18px) 0}
+.nx-chip-m[data-left]::before{left:auto;right:-18px;transform:skewX(45deg);transform-origin:100% 0;border-left:0;border-right:1px solid rgba(255,255,255,.35)}
+.nx-chip-m[data-left]::after{left:auto;right:-21px}
+/* the farm card's keys are the deck's keys, light strip included */
+.fm-tile[data-open] .fm-act .nxkey{padding-top:12px!important}
+.fm-tile[data-open] .fm-act .nxkey::after{content:'';position:absolute;top:5px;left:50%;width:18px;height:3px;margin-left:-9px;border-radius:2px;background:rgba(255,255,255,.10);right:auto;bottom:auto}
+.fm-tile[data-open] .fm-act .nxkey[data-kind=primary]::after{background:var(--accent-hi);box-shadow:0 0 8px rgba(var(--accent-rgb),.9)}
+.fm-tile[data-open] .fm-act .nxkey[data-kind=danger]::after{background:#FF5468;box-shadow:0 0 8px rgba(255,84,104,.8)}
+.fm-tile[data-open] .fm-act [data-act=cool]::after{background:color-mix(in srgb,var(--cool) 55%,transparent)}
+.fm-tile[data-open] .fm-act [data-act=heat]::after{background:color-mix(in srgb,var(--heat) 55%,transparent)}
+
+/* ---------- 25. Calibrate (2026-10-26): the setup in order, each step a card that opens into its runner; before you print, a quiet checklist ---------- */
+.nx-cal .nx-cal-head{display:flex;align-items:center;gap:14px;margin:2px 0 4px}
+.nx-cal .nx-cal-head b{font:600 15px/1 var(--sans);color:var(--sp-t1);white-space:nowrap}
+.nx-cal .nx-cal-bar{flex:1;height:6px;border-radius:3px;background:var(--sp-s4);overflow:hidden}
+.nx-cal .nx-cal-bar i{display:block;height:100%;width:0;background:var(--accent);box-shadow:0 0 10px rgba(var(--accent-rgb),.6);transition:width .5s var(--sp-ease)}
+.nx-cal-check{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px}
+.nx-cal-ci{display:grid;grid-template-columns:22px 1fr;grid-template-rows:auto auto;column-gap:10px;row-gap:2px;align-items:center;padding:10px 12px;border-radius:12px;background:var(--sp-s2);border:1px solid var(--sp-line);box-shadow:var(--sp-rim)}
+.nx-cal-ci svg.nx-ico{grid-row:1/3;width:20px;height:20px}
+.nx-cal-ci[data-tone=ok] svg.nx-ico{color:var(--sp-good)}
+.nx-cal-ci[data-tone=warn] svg.nx-ico{color:var(--sp-warn)}
+.nx-cal-ci[data-tone=alarm]{border-color:rgba(255,84,104,.5)}.nx-cal-ci[data-tone=alarm] svg.nx-ico{color:#FF5468}
+.nx-cal-ci b{font:600 13px/1.2 var(--sans);color:var(--sp-t1)}
+.nx-cal-ci span{font:400 12px/1.3 var(--sans);color:var(--sp-t3)}
+.nx-cal-check>.nx-btn{grid-column:1/-1;justify-self:start}
+.nx-cal-list{display:flex;flex-direction:column;gap:8px}
+.nx-cal-step{display:grid;grid-template-columns:40px minmax(0,1fr) auto;grid-template-areas:"n t s" "n run run";column-gap:14px;row-gap:10px;padding:14px 14px 14px 12px;border-radius:14px;
+ background:linear-gradient(180deg,var(--sp-s2),var(--sp-s1));border:1px solid var(--sp-line);box-shadow:var(--sp-rim)}
+.nx-cal-step[data-skip]{opacity:.55}
+.nx-cal-n{grid-area:n;align-self:start;width:36px;height:36px;border-radius:50%;display:grid;place-items:center;font:600 13px/1 var(--sans);color:var(--sp-t2);background:var(--sp-s3);box-shadow:inset 0 1px 0 rgba(255,255,255,.1),0 0 0 1px rgba(0,0,0,.5)}
+.nx-cal-step[data-done] .nx-cal-n{color:#0b1a12;background:var(--sp-good);box-shadow:0 0 12px -2px var(--sp-good)}
+.nx-cal-step[data-open]{border-color:rgba(var(--accent-rgb),.55);box-shadow:var(--sp-rim),0 0 22px -10px rgba(var(--accent-rgb),.6)}
+.nx-cal-step[data-open] .nx-cal-n{background:var(--accent);color:var(--accent-ink)}
+.nx-cal-t{grid-area:t;min-width:0}
+.nx-cal-t b{display:block;font:600 15px/1.2 var(--sans);color:var(--sp-t1)}
+.nx-cal-t p{margin:3px 0 0;font:400 13px/1.4 var(--sans);color:var(--sp-t2)}
+.nx-cal-t small{display:block;margin-top:4px;font:600 10.5px/1 var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--sp-t3)}
+.nx-cal-st{grid-area:s;display:flex;flex-direction:column;align-items:flex-end;gap:4px;text-align:right}
+.nx-cal-st small{font:500 12px/1.3 var(--sans);color:var(--sp-t2);max-width:240px}
+.nx-cal-tag{font:700 10.5px/1 var(--sans);letter-spacing:.12em;text-transform:uppercase;padding:6px 10px;border-radius:999px;background:var(--sp-s3);color:var(--sp-t3);white-space:nowrap}
+.nx-cal-tag.nx-cal-ok{background:color-mix(in srgb,var(--sp-good) 16%,var(--sp-s3));color:#BFF5D3}
+.nx-cal-run{grid-area:run;display:flex;flex-wrap:wrap;gap:8px}
+.nx-cal-panel{flex:1 1 100%;display:flex;flex-direction:column;gap:12px;padding:14px;border-radius:12px;background:var(--sp-bg);border:1px solid var(--sp-line)}
+.nx-cal-say{margin:0;font:400 13.5px/1.5 var(--sans);color:var(--sp-t2)}
+.nx-cal-acts{display:flex;flex-wrap:wrap;gap:8px}
+.nx-cal-row{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+.nx-cal-row small{font:700 10.5px/1 var(--sans);letter-spacing:.14em;color:var(--sp-t3)}
+.nx-cal-row .nx-input{min-width:0;flex:1 1 140px;height:40px;padding:0 12px;font:500 14px/1 var(--sans)}
+.nx-cal-big{font:300 30px/1 var(--sans);color:var(--sp-t1);font-variant-numeric:tabular-nums;min-width:90px;text-align:center}
+.nx-cal-steps{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:6px}
+.nx-cal-steps .nx-btn{min-height:40px;justify-content:center;padding:0 4px!important;font-variant-numeric:tabular-nums}
+@media (max-width:700px){.nx-cal-step{grid-template-columns:34px minmax(0,1fr);grid-template-areas:"n t" "n s" "run run"}.nx-cal-st{align-items:flex-start;text-align:left}.nx-cal-steps{grid-template-columns:repeat(4,minmax(0,1fr))}}
+/* a closed step keeps its Start key at the right, under its state: one compact row each; an open step gives its runner the full width */
+.nx-cal-step:not([data-open]){grid-template-areas:"n t s" "n t r";row-gap:8px}
+.nx-cal-step:not([data-open]) .nx-cal-run{grid-area:r;justify-content:flex-end;align-self:end}
+.nx-cal-step[data-open]{grid-template-areas:"n t s" "run run run"}
+@media (max-width:700px){.nx-cal-step:not([data-open]){grid-template-areas:"n t" "n s" "n r"}.nx-cal-step:not([data-open]) .nx-cal-run{justify-content:flex-start}}
+
+/* ---------- 26. material profiles (2026-10-26) ---------- */
+.nx-matprof{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px}
+.nx-mp{display:flex;flex-direction:column;gap:10px;padding:12px;border-radius:14px;background:linear-gradient(180deg,var(--sp-s2),var(--sp-s1));border:1px solid var(--sp-line);box-shadow:var(--sp-rim)}
+.nx-mp[data-changed]{border-color:rgba(var(--accent-rgb),.45)}
+.nx-mp-top{display:flex;align-items:center;gap:8px}
+.nx-mp-name{flex:1;min-width:0;height:38px;padding:0 12px;font:600 15px/1 var(--sans)!important}
+.nx-mp-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.nx-mp-f{display:flex;flex-direction:column;gap:4px;min-width:0}
+.nx-mp-f small{font:700 9.5px/1.1 var(--sans);letter-spacing:.1em;text-transform:uppercase;color:var(--sp-t3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nx-mp-f .nx-input{height:34px;padding:0 8px;font:500 14px/1 var(--sans);min-width:0;width:100%}
+.nx-mp-f .nx-input::placeholder{color:var(--sp-t3);font-size:12px}
+/* the first layer in one go */
+.nx-prep{margin-top:10px;padding:12px 14px;border-radius:14px;background:var(--sp-s2);border:1px solid var(--sp-line);box-shadow:var(--sp-rim);display:flex;flex-direction:column;gap:10px}
+.nx-prep:empty{display:none}
+.nx-prep-t{font:600 14px/1.2 var(--sans);color:var(--sp-t1)}
+.nx-prep-list{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:6px;counter-reset:p}
+.nx-prep-list li{counter-increment:p;position:relative;padding-left:30px;font:400 13px/1.4 var(--sans);color:var(--sp-t2)}
+.nx-prep-list li::before{content:counter(p);position:absolute;left:0;top:-1px;width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font:600 11px/1 var(--sans);background:var(--sp-s4);color:var(--sp-t2)}
+.nx-prep-list li[data-off]{color:var(--sp-t3);text-decoration:line-through;text-decoration-color:rgba(255,255,255,.2)}
+.nx-prep-list li[data-st=now]{color:var(--sp-t1)}.nx-prep-list li[data-st=now]::before{background:var(--accent);color:var(--accent-ink);box-shadow:0 0 10px rgba(var(--accent-rgb),.8)}
+.nx-prep-list li[data-st=done]::before{content:'✓';background:var(--sp-good);color:#0b1a12}
+.nx-prep-list li[data-st=failed]{color:#FF8E9A}.nx-prep-list li[data-st=failed]::before{content:'!';background:#FF5468;color:#fff}
+.nx-prep>.nx-btn{align-self:flex-start}
+
+/* ---------- 27. the print report and the timelapse player (2026-10-26) ---------- */
+.nx-rep-hero{display:flex;gap:16px;align-items:center}
+.nx-rep-thumb{width:84px;height:84px;border-radius:14px;object-fit:cover;background:var(--sp-bg);box-shadow:inset 0 0 0 1px var(--sp-line)}
+.nx-rep-t{display:flex;flex-direction:column;gap:5px;min-width:0}
+.nx-rep-t b{font:600 19px/1.2 var(--sans);color:var(--sp-t1)}
+.nx-rep-t small{font:400 13px/1.3 var(--sans);color:var(--sp-t2)}
+.nx-rep-pill{align-self:flex-start;font:700 10.5px/1 var(--sans);letter-spacing:.14em;text-transform:uppercase;padding:6px 10px;border-radius:999px;background:var(--sp-s3);color:var(--sp-t2)}
+.nx-rep-pill[data-status=completed]{background:color-mix(in srgb,var(--sp-good) 18%,var(--sp-s3));color:#BFF5D3}
+.nx-rep-pill:is([data-status=cancelled],[data-status=error],[data-status=klippy_shutdown]){background:rgba(255,84,104,.16);color:#FF9AA4}
+.nx-rep-figs{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-top:6px}
+.nx-rep-fig{display:flex;flex-direction:column;gap:4px;padding:12px 14px;border-radius:12px;background:var(--sp-s2);border:1px solid var(--sp-line);box-shadow:var(--sp-rim)}
+.nx-rep-fig small{font:700 10px/1 var(--sans);letter-spacing:.16em;color:var(--sp-t3)}
+.nx-rep-fig b{font:300 24px/1.1 var(--sans);color:var(--sp-t1);font-variant-numeric:tabular-nums}
+.nx-rep-fig span{font:400 12px/1.3 var(--sans);color:var(--sp-t3);min-height:1em}
+.nx-tlp{display:flex;flex-direction:column;gap:8px}
+.nx-tlp-img{width:100%;aspect-ratio:16/9;object-fit:contain;border-radius:12px;background:#000;box-shadow:inset 0 0 0 1px var(--sp-line)}
+.nx-tlp-bar{display:flex;align-items:center;gap:10px}
+.nx-tlp-range{flex:1;accent-color:var(--accent)}
+.nx-tlp-at{font:500 12px/1 var(--sans);color:var(--sp-t2);font-variant-numeric:tabular-nums;white-space:nowrap}
+.nx-tlp-host{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
+.nx-tlp-title{font:600 15px/1.2 var(--sans);color:var(--sp-t1)}
+
+/* ---------- 28. Health over time (2026-10-26) ---------- */
+.nx-hl-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}
+.nx-hl-grid>.nx-btn{grid-column:1/-1;justify-self:start}
+.nx-hl-card{display:flex;flex-direction:column;gap:6px;padding:12px 14px;border-radius:14px;background:linear-gradient(180deg,var(--sp-s2),var(--sp-s1));border:1px solid var(--sp-line);box-shadow:var(--sp-rim)}
+.nx-hl-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.nx-hl-top small{font:700 10px/1 var(--sans);letter-spacing:.16em;color:var(--sp-t3)}
+.nx-hl-word{font:600 11.5px/1.2 var(--sans);color:var(--sp-t2);text-align:right}
+.nx-hl-card[data-tone=ok] .nx-hl-word{color:#8DF0B3}.nx-hl-card[data-tone=warn] .nx-hl-word{color:var(--sp-warn)}.nx-hl-card[data-tone=alarm] .nx-hl-word{color:#FF8E9A}
+.nx-hl-card[data-tone=alarm]{border-color:rgba(255,84,104,.4)}
+.nx-hl-big{font:300 26px/1.1 var(--sans);color:var(--sp-t1);font-variant-numeric:tabular-nums}
+.nx-hl-card p{margin:0;font:400 12px/1.4 var(--sans);color:var(--sp-t3)}
+.nx-hl-spark{width:100%;height:44px}
+.nx-hl-spark polyline{fill:none;stroke:var(--accent);stroke-width:1.8;stroke-linejoin:round;stroke-linecap:round}
+.nx-hl-spark circle{fill:var(--accent-hi)}
+.nx-hl-spark .ok-line{stroke:rgba(61,220,132,.35);stroke-dasharray:3 4}
+.nx-hl-card[data-tone=warn] .nx-hl-spark polyline{stroke:var(--sp-warn)}.nx-hl-card[data-tone=alarm] .nx-hl-spark polyline{stroke:#FF5468}
+
+/* ---------- 29. the farm's own panels (queue, spools, analytics, backup): the same plain figures and quiet tiles as a printer's ---------- */
+.nx-fig{background:none!important;box-shadow:none!important;padding:0!important;border-radius:0!important;font:300 26px/1.1 var(--sans)!important;color:var(--sp-t1)!important;text-shadow:none!important;letter-spacing:-.01em}
+.nx-fig small{color:var(--sp-t3)!important;font:500 13px/1 var(--sans)!important;letter-spacing:0!important;text-transform:none!important}
+.fl-stat{background:var(--sp-s2)!important;border:1px solid var(--sp-line)!important;border-radius:12px!important;box-shadow:var(--sp-rim)!important;padding:12px 14px!important}
+.fl-stat b{font:300 26px/1.1 var(--sans)!important;color:var(--sp-t1)!important}
+.fl-stat span{color:var(--sp-t3)!important;letter-spacing:.14em!important;font-size:10px!important}
+.fl-stat[data-tone=ok] .nx-fig,.fl-stat[data-tone=ok] b{color:#8DF0B3!important}.fl-stat[data-tone=warn] .nx-fig,.fl-stat[data-tone=warn] b{color:var(--sp-warn)!important}
+.fl-field span{color:var(--sp-t3)!important;letter-spacing:.12em!important;font-size:10px!important}
+.fl-field .nx-input,.nx-sheet input.nx-input,.nx-sheet select.nx-input{font-family:var(--sans)!important;border-radius:10px!important}
+.fl-spool{background:linear-gradient(180deg,var(--sp-s2),var(--sp-s1))!important;border:1px solid var(--sp-line)!important;border-radius:14px!important;box-shadow:var(--sp-rim)!important}
+.fl-table-wrap{border:1px solid var(--sp-line)!important;border-radius:12px!important;background:var(--sp-s1)}
+.fl-tr{border-bottom:1px solid var(--sp-line)!important;font-family:var(--sans)!important}
+.fl-tr:first-child{color:var(--sp-t3);letter-spacing:.1em;text-transform:uppercase;font-size:10.5px}
+.fl-more-row small,.fl-row-text small,.fl-empty{font-family:var(--sans)!important;color:var(--sp-t3)!important}
+.nx-sheet canvas{border-radius:12px}
+/* material cards: wider fields, a dash when empty */
+.nx-matprof{grid-template-columns:repeat(auto-fill,minmax(330px,1fr))!important}

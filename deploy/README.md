@@ -24,4 +24,4 @@ The service retries process-level failures; ordinary printer disconnections are 
 
 Rollback consists of stopping/disabling this newly added service and restoring the previous executable/configuration. No rollback of printer firmware or printer settings is needed because this service does not change them.
 
-This unit is a supplied deployment template, not a claim that it has been installed or tested on any particular Raspberry Pi. Physical printer acceptance and deployment performance remain separate checks described in the root README.
+This unit is a supplied deployment template, not a claim that it has been installed or tested on the owner's Raspberry Pi. Physical printer acceptance and deployment performance remain separate checks described in the root README.

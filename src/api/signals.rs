@@ -193,7 +193,7 @@ pub fn projection(d: &Value, ts: f64) -> Value {
         }
     }
     let bl = &settings["bltouch"];
-    let probe = json!({"configured":bl.is_object(),"name":d["probe"]["name"],"sensor_pin":bl["sensor_pin"],"control_pin":bl["control_pin"],"x_offset":bl["x_offset"],"y_offset":bl["y_offset"],"z_offset":bl["z_offset"],"last_query":d["probe"]["last_query"],"last_probe_position":d["probe"]["last_probe_position"],"last_z_result_legacy":d["probe"]["last_z_result"],"pin_extension":null,"basis":"BLTouch section present in the printer configuration. Recorded configuration can differ across time. Last query is cached; pin extension is not observed by this feed."});
+    let probe = json!({"configured":bl.is_object(),"name":d["probe"]["name"],"sensor_pin":bl["sensor_pin"],"control_pin":bl["control_pin"],"x_offset":bl["x_offset"],"y_offset":bl["y_offset"],"z_offset":bl["z_offset"],"last_query":d["probe"]["last_query"],"last_probe_position":d["probe"]["last_probe_position"],"last_z_result_legacy":d["probe"]["last_z_result"],"pin_extension":null,"basis":"BLTouch installed per owner. Recorded configuration can differ across time. Last query is cached; pin extension is not observed by this feed."});
     // Configuration-only sections: Klipper exposes no status object for these three; surface their
     // recorded settings so the app shows real values instead of a wrong "not reported" warning.
     let config_sections: Vec<Value> = ["input_shaper", "adxl345", "safe_z_home"]

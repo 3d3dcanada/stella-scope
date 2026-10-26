@@ -1,5 +1,5 @@
-// Node scripts/hud-gcode-tests.mjs — synthetic cases for every parser rule, plus a real slice of a
-// Voron Design Cube sliced by OrcaSlicer and read read-only off the test printer's Moonraker.
+// node scripts/hud-gcode-tests.mjs — synthetic cases for every parser rule, plus a real slice of a
+// Voron Design Cube sliced by OrcaSlicer and read read-only off Stella's Moonraker.
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -264,10 +264,9 @@ const seg = (layer, i) => Array.from(layer.segments.slice(i * 6, i * 6 + 6), (v)
  is(progressToLayer({ byteOffsets: [] }, 10), { layer: 0, fraction: 0 }, 'an empty parse is layer zero');
 }
 
-// --- a real file: three layers of a Voron Design Cube, OrcaSlicer 2.4.2, read off the test printer
-// ----------
+// --- a real file: three layers of a Voron Design Cube, OrcaSlicer 2.4.2, read off Stella ----------
 {
- const file = fileURLToPath(new URL('../tests/fixtures/cube-3-layers.gcode', import.meta.url));
+ const file = fileURLToPath(new URL('../docs/visual-review-rp-01/runtime/fixtures/cube-3-layers.gcode', import.meta.url));
  const bytes = readFileSync(file);
  const p = parseGcode(bytes.toString('utf8'));
  is(p.layers.length, 3, 'three layers in the trimmed cube');
@@ -309,6 +308,22 @@ const seg = (layer, i) => Array.from(layer.segments.slice(i * 6, i * 6 + 6), (v)
  console.log(`Real slice: ${p.layers.length} layers, ${p.segmentCount} segments, ` +
   `${p.totalLength.toFixed(0)} mm extruded, bounds X ${p.bounds.min[0]}..${p.bounds.max[0]} ` +
   `Y ${p.bounds.min[1]}..${p.bounds.max[1]} Z ${p.bounds.min[2]}..${p.bounds.max[2]}.`);
+}
+
+// --- tool changes (polish WO-03, 2026-10-18): each segment knows the tool it was made with -----
+{
+ const p = parseGcode('G90\nM82\nT0\nG1 X0 Y0 Z0.2\nG1 X10 E1\nG1 X20 E2\nT1\nG1 X30 E3\nG1 X40 E4\nT0\nG1 X50 E5\n');
+ is(Array.from(p.layers[0].tool), [0, 0, 0, 1, 1, 0], 'a segment carries the tool the last T command picked');
+ const q = parseGcode('G90\nG1 X0 Y0 Z0.2\nG1 X10 E1\n');
+ is(Array.from(q.layers[0].tool), [0, 0], 'a file with no T command is all tool 0');
+ // A macro that merely starts with T is not a tool change, and a layer keeps the tool across the marker.
+ const m = parseGcode('G90\nT1\nTURN_OFF_HEATERS\nG1 X0 Y0 Z0.2\n;LAYER_CHANGE\n;Z:0.4\nG1 X10 E1\n');
+ is(Array.from(m.layers.at(-1).tool), [1], 'TURN_OFF_HEATERS is not T and the tool carries into the next layer');
+ // The store grows with the file: 3000 segments, the tool flips every 1000.
+ let t = 'G90\nM82\nG1 X0 Y0 Z0.2\n';
+ for (let i = 1; i <= 3000; i++) { if (i % 1000 === 1 && i > 1) t += 'T' + ((i / 1000) | 0) + '\n'; t += 'G1 X' + (i % 200) + ' Y' + ((i / 200) | 0) + ' E' + i + '\n'; }
+ const big = parseGcode(t), tools = Array.from(big.layers[0].tool);
+ is([tools[10], tools[1500], tools[2999]], [0, 1, 2], 'tools survive the growth of the packed stores');
 }
 
 console.log(`HUD G-code parser: ${checks} assertions passed.`);

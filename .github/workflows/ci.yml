@@ -23,7 +23,7 @@ jobs:
         run: cargo build --release --locked -j 2
       - name: Interface tests
         run: |
-          for t in service-core hud-core hud-gcode next-core next-gesture next-pages workspace-core; do
+          for t in service-core hud-core hud-gcode next-core next-gesture next-pages workspace-core calibrate report health; do
             node scripts/$t-tests.mjs
           done
       - name: HTTP smoke tests

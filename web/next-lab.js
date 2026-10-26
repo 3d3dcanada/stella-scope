@@ -1,7 +1,9 @@
-// Stella Scope NEXT · instrument style lab. Three candidate designs for the
-// instruments, all interactive, none connected to the printer: the user picks, then the winner is
-// built into /next. Current readings are simulated so heating and settling can be felt.
+// Stella Scope NEXT · instrument style lab (NEXT review 2026-09-24). Three candidate designs for the
+// instruments, all interactive, none connected to the printer: the owner picks, then the winner is built
+// into /next, plus section D: the LED control kit the owner approved on 2026-10-20 (UI board U01), the one
+// module every page imports. Current readings are simulated so heating and settling can be felt.
 import {heatColor,arcPath,polar} from './next-core.js';
+import {control,key,CONTROLS} from './next-control.js';
 
 const CH=[
  {key:'nozzle',label:'NOZZLE',unit:'°',min:0,max:300,major:6,step:5,cur:24,target:250,kind:'heat',heat:'nozzle'},
@@ -81,3 +83,23 @@ for(const [id,name,desc,make]of variants){const state=Object.fromEntries(CH.map(
  sec.append(h,row);lab.append(sec);}
 // simulated readings: heaters chase their targets, factors are what you set
 setInterval(()=>{for(const [st,c,inst]of all){const s=st[c.key];if(c.kind==='heat'){const d=s.target-s.cur;s.cur+=d>0?Math.min(d,Math.max(.6,d*.04)):Math.max(d,d*.03-.2);}else s.cur=s.target;inst.paint();}},120);
+
+// ---------- D. the LED control kit (approved 2026-10-20, UI board U01) ----------
+// The same seven controls with their own steps as the design the owner approved, wired exactly as a page
+// wires them: the setting is turned (onSet), the reading arrives by itself (setNow).
+const START={nozzle:250,bed:85,speed:100,flow:100,part:46,hotend:100,board:100},NOW={nozzle:248,bed:84};
+const kit=[];
+for(const s of CONTROLS){const c={...s,value:START[s.key]};if(s.key in NOW)c.now=NOW[s.key];
+ const inst=control({...c,onSet:v=>{}});kit.push([c,inst]);}
+const sec=el('section','lab-var');const h=el('div','lab-var-head');
+h.append(el('span','lab-id','D'),el('h2','','The LED control kit (approved 2026-10-20)'),
+ el('p','','A number is one piece. At rest it is an LED gauge with the value in the middle. Press and hold: the same piece grows where it is — on a phone it rises to the middle — turns into a black anodised knob with a lit index, the LED ring becomes its scale and the number rides above. Turn it and it clicks once per step; let go and it springs back to a gauge with the new value. Each control has its own step: 5° nozzle, 1° bed, 5% speed, 1° flow, 5% each fan. The mouse wheel and the arrow keys move it too. Everything that is not a number is a square key.'));
+const grid=el('div','lab-row');for(const [c,inst]of kit)grid.append(inst.el);
+const keysHead=el('p','lab-keys-head','Square keys: depth under them, a pressed state that eats the depth, and a click. No pills, no corner arrows.');
+const keyRow=el('div','lab-row lab-keys');const keyNote=el('p','lab-note','Nothing is sent to the printer on this page: a key here only shows its own state.');
+for(const [label,o]of [['CHAMBER LIGHT',{toggle:true,pressed:true}],['PURGE',{}],['MOTORS OFF',{}],['PAUSE',{disabled:true}]])
+ keyRow.append(key({label,...o,onPress:p=>{keyNote.textContent=`${label}: ${p===null?'pressed':p?'on':'off'}`;}}).el);
+sec.append(h,grid,keysHead,keyRow,keyNote);lab.append(sec);
+// simulated readings on the kit: the heaters chase their target, exactly like the printer
+setInterval(()=>{for(const [c,inst]of kit){if(c.unit!=='°')continue;const d=inst.spec.value-inst.spec.now;
+ inst.spec.now+=d>0?Math.min(d,Math.max(.6,d*.04)):Math.max(d,d*.03-.2);inst.setNow(inst.spec.now);}},120);

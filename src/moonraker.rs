@@ -41,8 +41,8 @@ pub fn check_gcode_name(filename: &str) -> Result<()> {
     Ok(())
 }
 
-/// Every "Moonraker did not answer at all" error starts with this, so the collector can tell
-/// a printer that is off from one whose Klipper is not ready.
+/// WO-20 (2026-09-23): every "Moonraker did not answer at all" error starts with this, so the
+/// collector can tell a printer that is off from one whose Klipper is not ready.
 pub const UNREACHABLE: &str = "cannot reach Moonraker";
 
 pub struct Moonraker {
@@ -56,6 +56,20 @@ pub struct Moonraker {
     next_host: f64,
 }
 impl Moonraker {
+    /// The API key Moonraker wants, if any: this printer's own credentials first (farm board WO-03,
+    /// `<config dir>/printers/<ref>.secret`, field `api_key`), then the process environment variable
+    /// the configuration names, as it always was.
+    fn api_key(&self) -> Option<String> {
+        self.cfg
+            .secret
+            .get("api_key")
+            .map(str::to_owned)
+            .or_else(|| {
+                std::env::var(&self.cfg.api_key_env)
+                    .ok()
+                    .filter(|k| !k.is_empty())
+            })
+    }
     pub fn new(cfg: &Config) -> Self {
         let agent = ureq::Agent::config_builder()
             .timeout_global(Some(Duration::from_millis(cfg.request_timeout_ms)))
@@ -78,12 +92,13 @@ impl Moonraker {
         }
     }
     pub fn get(&self, path: &str) -> Result<Value> {
+        if self.cfg.moonraker_url.trim().is_empty() {
+            return Err(crate::config::NO_PRINTER.into());
+        }
         let url = format!("{}{}", self.cfg.moonraker_url.trim_end_matches('/'), path);
         let mut request = self.agent.get(&url);
-        if let Ok(key) = std::env::var(&self.cfg.api_key_env) {
-            if !key.is_empty() {
-                request = request.header("X-Api-Key", &key);
-            }
+        if let Some(key) = self.api_key() {
+            request = request.header("X-Api-Key", &key);
         }
         let mut response=request.call().map_err(|e|format!(
             "{UNREACHABLE} at {}: {e}; is the printer on, and is this host allowed by Moonraker? For 401/403, set {}",
@@ -118,6 +133,9 @@ impl Moonraker {
         v.get("result").cloned().ok_or_else(||"Moonraker response has no result; check that moonraker_url points to Moonraker, not another service".into())
     }
     pub fn post(&self, path: &str, body: Option<&Value>) -> Result<Value> {
+        if self.cfg.moonraker_url.trim().is_empty() {
+            return Err(crate::config::NO_PRINTER.into());
+        }
         let url = format!("{}{}", self.cfg.moonraker_url.trim_end_matches('/'), path);
         let mut request = self
             .agent
@@ -125,10 +143,8 @@ impl Moonraker {
             .config()
             .timeout_global(Some(Duration::from_millis(self.cfg.command_timeout_ms)))
             .build();
-        if let Ok(key) = std::env::var(&self.cfg.api_key_env) {
-            if !key.is_empty() {
-                request = request.header("X-Api-Key", &key);
-            }
+        if let Some(key) = self.api_key() {
+            request = request.header("X-Api-Key", &key);
         }
         let encoded = body
             .map(serde_json::to_vec)
@@ -144,6 +160,9 @@ impl Moonraker {
     /// DELETE with the command timeout, for the job queue. Same failure wording as `post`:
     /// a DELETE that does not confirm leaves the outcome unknown, and nothing is retried.
     pub fn delete(&self, path: &str) -> Result<Value> {
+        if self.cfg.moonraker_url.trim().is_empty() {
+            return Err(crate::config::NO_PRINTER.into());
+        }
         let url = format!("{}{}", self.cfg.moonraker_url.trim_end_matches('/'), path);
         let mut request = self
             .agent
@@ -151,10 +170,8 @@ impl Moonraker {
             .config()
             .timeout_global(Some(Duration::from_millis(self.cfg.command_timeout_ms)))
             .build();
-        if let Ok(key) = std::env::var(&self.cfg.api_key_env) {
-            if !key.is_empty() {
-                request = request.header("X-Api-Key", &key);
-            }
+        if let Some(key) = self.api_key() {
+            request = request.header("X-Api-Key", &key);
         }
         let response = request
             .call()
@@ -211,10 +228,8 @@ impl Moonraker {
             encode(path)
         );
         let mut request = self.agent.get(&url);
-        if let Ok(key) = std::env::var(&self.cfg.api_key_env) {
-            if !key.is_empty() {
-                request = request.header("X-Api-Key", &key);
-            }
+        if let Some(key) = self.api_key() {
+            request = request.header("X-Api-Key", &key);
         }
         let mut response = request
             .call()
@@ -273,10 +288,8 @@ impl Moonraker {
             .config()
             .timeout_global(Some(Duration::from_millis(self.cfg.command_timeout_ms)))
             .build();
-        if let Ok(key) = std::env::var(&self.cfg.api_key_env) {
-            if !key.is_empty() {
-                request = request.header("X-Api-Key", &key);
-            }
+        if let Some(key) = self.api_key() {
+            request = request.header("X-Api-Key", &key);
         }
         let response = request
             .header(
@@ -286,6 +299,82 @@ impl Moonraker {
             .send(body.as_bytes())
             .map_err(|e| format!("config upload did not confirm an outcome: {e}"))?;
         self.command_body(response)
+    }
+
+    /// Upload a G-code file to the printer's `gcodes` root (`POST /server/files/upload`, multipart,
+    /// `print=false`): the queue (WO-08) uploads, then starts through the command route so its checks
+    /// apply. The name is a plain file name; the boundary is fixed and refused if it occurs in the body.
+    pub fn upload_gcode(&self, name: &str, bytes: &[u8]) -> Result<Value> {
+        if name.is_empty()
+            || name.contains(['/', '\\', '?', '#', '\r', '\n', '"'])
+            || name.contains("..")
+            || name.len() > 200
+        {
+            return Err("the file name has characters a printer upload does not take".into());
+        }
+        const BOUNDARY: &str = "StellaScopeQueueBoundary5b9e04";
+        if bytes
+            .windows(BOUNDARY.len())
+            .any(|w| w == BOUNDARY.as_bytes())
+        {
+            return Err("the file contains the upload boundary marker; refusing to send it".into());
+        }
+        let mut body: Vec<u8> = Vec::with_capacity(bytes.len() + 512);
+        for (field, value) in [("root", "gcodes"), ("print", "false")] {
+            body.extend_from_slice(format!("--{BOUNDARY}\r\nContent-Disposition: form-data; name=\"{field}\"\r\n\r\n{value}\r\n").as_bytes());
+        }
+        body.extend_from_slice(format!("--{BOUNDARY}\r\nContent-Disposition: form-data; name=\"file\"; filename=\"{name}\"\r\nContent-Type: application/octet-stream\r\n\r\n").as_bytes());
+        body.extend_from_slice(bytes);
+        body.extend_from_slice(format!("\r\n--{BOUNDARY}--\r\n").as_bytes());
+        let url = format!(
+            "{}/server/files/upload",
+            self.cfg.moonraker_url.trim_end_matches('/')
+        );
+        // A big file takes longer than a command: a minute plus a second per MB.
+        let ms = self
+            .cfg
+            .command_timeout_ms
+            .max(60_000 + (bytes.len() as u64 / 1_000_000) * 1_000);
+        let mut request = self
+            .agent
+            .post(&url)
+            .config()
+            .timeout_global(Some(Duration::from_millis(ms)))
+            .build();
+        if let Some(key) = self.api_key() {
+            request = request.header("X-Api-Key", &key);
+        }
+        let response = request
+            .header(
+                "Content-Type",
+                &format!("multipart/form-data; boundary={BOUNDARY}"),
+            )
+            .send(&body[..])
+            .map_err(|e| format!("the upload did not confirm an outcome: {e}"))?;
+        // Moonraker answers an upload with {"item":{...},"action":"create_file"}, not a "result".
+        let mut response = response;
+        let status = response.status().as_u16();
+        let mut bytes = Vec::new();
+        response
+            .body_mut()
+            .as_reader()
+            .take(1024 * 1024)
+            .read_to_end(&mut bytes)
+            .map_err(|e| format!("the upload reply was interrupted: {e}"))?;
+        let value: Value = serde_json::from_slice(&bytes).unwrap_or(Value::Null);
+        if !(200..300).contains(&status) {
+            let why = value["error"]["message"]
+                .as_str()
+                .or(value["error"].as_str())
+                .unwrap_or("no reason given");
+            return Err(format!(
+                "the printer refused the file (HTTP {status}): {why}"
+            ));
+        }
+        if value["item"].is_null() {
+            return Err("the printer answered the upload without confirming a file".into());
+        }
+        Ok(value)
     }
 
     // Live object list for per-sample queries: configfile never rides the fast path. It is
@@ -439,10 +528,8 @@ impl Moonraker {
             .ok_or("file size unknown; cannot build the range request")? as i64;
         let start = (size - bytes as i64).max(0);
         let mut request = self.agent.get(&url);
-        if let Ok(key) = std::env::var(&self.cfg.api_key_env) {
-            if !key.is_empty() {
-                request = request.header("X-Api-Key", &key);
-            }
+        if let Some(key) = self.api_key() {
+            request = request.header("X-Api-Key", &key);
         }
         let mut response = request
             .header("Range", &format!("bytes={start}-"))
@@ -480,10 +567,8 @@ impl Moonraker {
             .config()
             .timeout_global(Some(Duration::from_millis(self.cfg.command_timeout_ms)))
             .build();
-        if let Ok(key) = std::env::var(&self.cfg.api_key_env) {
-            if !key.is_empty() {
-                request = request.header("X-Api-Key", &key);
-            }
+        if let Some(key) = self.api_key() {
+            request = request.header("X-Api-Key", &key);
         }
         let mut response = request.call().map_err(|e| {
             format!("cannot read {filename} from Moonraker: {e}; is the printer on?")
@@ -509,7 +594,7 @@ impl Moonraker {
         Ok(bytes)
     }
 
-    /// The largest slicer thumbnail for one gcode file, PNG bytes straight from Moonraker.
+    /// WO-13: the largest slicer thumbnail for one gcode file, PNG bytes straight from Moonraker.
     /// Thumbnails live in the same gcodes directory as the file, and the file names we accept are
     /// already single plain names (check_gcode_name refuses separators), so the thumbnail's own
     /// relative path is accepted only as one plain `.png` name — anything with a separator or a
@@ -557,10 +642,8 @@ impl Moonraker {
             encoded_path
         );
         let mut request = self.agent.get(&url);
-        if let Ok(key) = std::env::var(&self.cfg.api_key_env) {
-            if !key.is_empty() {
-                request = request.header("X-Api-Key", &key);
-            }
+        if let Some(key) = self.api_key() {
+            request = request.header("X-Api-Key", &key);
         }
         let mut response = request.call().map_err(|e| {
             format!(

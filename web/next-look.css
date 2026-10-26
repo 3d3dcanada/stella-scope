@@ -1,0 +1,316 @@
+/* Stella Scope look A (2026-10-23): the glass cockpit. Loaded last on every page; it changes the surface, never the layout.
+   the owner approved this direction over the rebuild: the left sidebar with words under its icons, gauges floating on solid holographic discs,
+   every pane real glass. The layout is the 10-20 board's, which he had accepted. */
+:root{
+ --glass-rim:inset 0 1px 0 rgba(255,255,255,.30),inset 0 0 0 1px rgba(255,255,255,.06),inset 0 -1px 0 rgba(0,0,0,.35),inset 0 26px 34px -26px rgba(160,235,255,.18);
+ --glass-1:rgba(16,22,30,.40);--glass-2:rgba(16,22,30,.62);
+ --blur-1:blur(26px) saturate(185%) brightness(1.06);--blur-2:blur(32px) saturate(190%) brightness(1.04);
+ --shadow-1:0 2px 4px rgba(0,0,0,.25),0 22px 48px -12px rgba(0,0,0,.65);
+ --rail:80px;
+}
+#nx-backdrop{background:
+  radial-gradient(40% 22% at 50% 88%,rgba(var(--accent-rgb),.10),transparent 70%),
+  radial-gradient(30% 40% at 12% 50%,rgba(255,106,0,.06),transparent 70%),
+  radial-gradient(30% 40% at 88% 45%,rgba(var(--accent-rgb),.06),transparent 70%),
+  radial-gradient(75% 65% at 50% 55%,#1b2430 0%,#0f151c 50%,#06080b 100%)}
+.nx-glass:not(.nx-stagecard){background:linear-gradient(140deg,rgba(255,255,255,.12),rgba(255,255,255,.025) 38%,rgba(255,255,255,.015) 70%,rgba(255,255,255,.06)),var(--glass-1);
+ border:1px solid rgba(255,255,255,.13);box-shadow:var(--glass-rim),var(--shadow-1)}
+/* the specular sweep across the top of every pane */
+.nx-glass:not(.nx-stagecard)::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+ background:linear-gradient(180deg,rgba(255,255,255,.10),rgba(255,255,255,0) 34%);mix-blend-mode:screen}
+
+/* ---- sidebar: icons with their names, the page you are on lit from the edge ---- */
+#nx-rail{padding:10px 8px;gap:4px;border-radius:26px}
+#nx-rail .nx-btn[data-size=icon]{width:72px;height:auto;min-height:58px;padding:8px 2px;flex-direction:column;gap:5px;border-radius:16px}
+#nx-rail .nx-btn[data-size=icon]::after{content:attr(aria-label);font:600 9.5px/1 var(--sans);letter-spacing:.06em;text-transform:uppercase;color:inherit;opacity:.85;white-space:normal;text-align:center;line-height:1.15;max-width:68px}
+#nx-rail .nx-btn[aria-current=page]{color:var(--accent-2);background:linear-gradient(180deg,rgba(var(--accent-rgb),.22),rgba(var(--accent-rgb),.06));
+ box-shadow:inset 0 1px 0 rgba(255,255,255,.22),inset 0 0 0 1px rgba(var(--accent-hi-rgb),.35),0 0 22px -4px rgba(var(--accent-rgb),.55)}
+#nx-rail .nx-btn[aria-current=page]::before{content:"";position:absolute;left:-9px;top:14px;bottom:14px;width:3px;border-radius:3px;background:var(--accent-hi);box-shadow:0 0 10px var(--accent),0 0 20px var(--accent)}
+#nx-rail hr{width:40px}
+
+/* ---- gauges: each instrument sits on its own glass lens, floating over the machine ---- */
+/* The disc: a solid slab of smoked crystal (a bevel you can see, a lit lip on top, a dark edge underneath
+   that gives it thickness) with the instrument projected into it: fine light rings, the LED light
+   bleeding into the glass, and a thin rainbow fresnel at the very edge where the light catches it. */
+.nxctl{border-radius:50%;isolation:isolate;
+ background:
+  radial-gradient(ellipse 80% 55% at 50% 8%,rgba(255,255,255,.10),rgba(255,255,255,0) 60%),
+  radial-gradient(circle closest-side,rgba(6,10,14,.62) 0 72%,rgba(22,30,38,.55) 92%,rgba(40,52,62,.5) 100%);
+ -webkit-backdrop-filter:blur(16px) saturate(170%);backdrop-filter:blur(16px) saturate(170%);
+ box-shadow:
+  inset 0 2px 1px rgba(255,255,255,.30),inset 0 1px 0 rgba(255,255,255,.18),inset 0 0 0 1px rgba(255,255,255,.10),
+  inset 0 -3px 5px rgba(0,0,0,.65),inset 0 0 0 7px rgba(255,255,255,.025),inset 0 0 0 8px rgba(0,0,0,.35),
+  0 1px 0 rgba(255,255,255,.06),0 4px 0 #04070a,0 5px 0 rgba(255,255,255,.05),
+  0 10px 14px rgba(0,0,0,.45),0 34px 60px -18px rgba(0,0,0,.85),
+  0 0 90px -30px var(--c)}
+/* projected inside the glass: fine light rings and the LED light bleeding into it */
+.nxctl::before{content:"";position:absolute;inset:3.2%;border-radius:50%;z-index:0;pointer-events:none;
+ background:
+  radial-gradient(circle closest-side,transparent 0 64%,color-mix(in srgb,var(--c) 16%,transparent) 76%,transparent 90%),
+  repeating-radial-gradient(circle,color-mix(in srgb,var(--c) 14%,transparent) 0 1px,transparent 1px 5px);
+ -webkit-mask:radial-gradient(circle closest-side,#000 0 62%,rgba(0,0,0,.55) 80%,transparent 100%);mask:radial-gradient(circle closest-side,#000 0 62%,rgba(0,0,0,.55) 80%,transparent 100%);
+ mix-blend-mode:screen;opacity:.9}
+/* the edge where light catches it: a thin rainbow fresnel, brightest top-left, and the specular glint */
+.nxctl::after{content:"";position:absolute;inset:0;border-radius:50%;z-index:2;pointer-events:none;
+ background:conic-gradient(from 210deg,rgba(var(--accent-rgb),.75),rgba(140,120,255,.45) 14%,rgba(255,45,146,.35) 26%,rgba(255,255,255,.08) 40%,rgba(255,255,255,.02) 60%,rgba(255,106,0,.30) 78%,rgba(24,227,107,.35) 88%,rgba(var(--accent-rgb),.75));
+ -webkit-mask:radial-gradient(circle closest-side,transparent 0 96%,#000 97.5%,transparent 100%);mask:radial-gradient(circle closest-side,transparent 0 96%,#000 97.5%,transparent 100%);
+ filter:blur(.4px)}
+.nxctl .nxc-face circle:first-child{fill:rgba(4,7,10,.82);stroke:rgba(255,255,255,.10)}
+.nxctl .nxc-face circle:nth-child(2){stroke:color-mix(in srgb,var(--c) 30%,transparent);stroke-width:.8}
+.nxctl.live{background:none;box-shadow:none;-webkit-backdrop-filter:none;backdrop-filter:none}
+/* a tap or right click on the number types it: the LED field over the face */
+.nxctl[data-typing] .nxc-read b{padding:2px 10px;border-radius:8px;background:rgba(0,0,0,.6);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--c) 70%,transparent),0 0 18px -4px var(--c)}
+.nxctl[data-typing] .nxc-read b::after{content:"";display:inline-block;width:.08em;height:.8em;margin-left:.06em;background:var(--c2);box-shadow:0 0 8px var(--c);vertical-align:-.05em}
+.nxctl[data-typing] .nxc-read .nxc-n{color:var(--c2)}
+.nxctl.live::before,.nxctl.live::after{opacity:0;transition:opacity .2s}
+.nxctl .nxc-read b{text-shadow:0 0 calc(var(--nxctl-size)*.08) var(--c),0 0 2px rgba(255,255,255,.35)}
+.nxctl .nxc-read .nxc-l{color:#DDE5EC}
+#nx-left,#nx-right{gap:26px}
+#nx-left{left:calc(16px + var(--safe-l) + var(--rail) + 40px)}
+#nx-right{column-gap:26px}
+
+/* ---- top bar: glass chips with the same lip ---- */
+.nx-job{background:linear-gradient(140deg,rgba(255,255,255,.12),rgba(255,255,255,.02) 45%,rgba(255,255,255,.05)),rgba(16,22,30,.45);
+ -webkit-backdrop-filter:var(--blur-1);backdrop-filter:var(--blur-1);border:1px solid rgba(255,255,255,.13);box-shadow:var(--glass-rim),var(--shadow-1)}
+
+/* ---- dock: one glass slab, keys are glass tiles inside it ---- */
+.nx-dock.nx-glass{border-radius:28px;padding:8px 10px}
+.nx-dock .nxkey:not([data-kind=primary]):not([aria-pressed=true]){border-radius:16px;border-color:rgba(255,255,255,.10);
+ background:linear-gradient(180deg,rgba(255,255,255,.13),rgba(255,255,255,.03));
+ box-shadow:inset 0 1px 0 rgba(255,255,255,.22),0 2px 0 rgba(0,0,0,.35),0 8px 18px -6px rgba(0,0,0,.6)}
+.nx-dock .nxkey[data-kind=primary]{border-radius:16px;box-shadow:inset 0 1px 0 rgba(255,255,255,.4),0 0 24px -4px rgba(var(--accent-rgb),.7),0 2px 0 var(--accent-lo)}
+/* the GAUGES key goes: it only grew the rings */
+.nx-dock .nxkey[data-key=gauges]{display:none}
+/* top bar: every chip is the same glass */
+#nx-top>.nxkey,.nx-cmd-box,.nx-top-right .nx-btn,.nx-state{border-radius:16px!important;border:1px solid rgba(255,255,255,.13)!important;
+ background:linear-gradient(140deg,rgba(255,255,255,.12),rgba(255,255,255,.02) 45%,rgba(255,255,255,.05)),rgba(16,22,30,.45)!important;
+ -webkit-backdrop-filter:var(--blur-1);backdrop-filter:var(--blur-1);box-shadow:var(--glass-rim),var(--shadow-1)!important}
+.nx-estop{border-radius:16px!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 0 28px -4px rgba(229,38,58,.75),0 10px 24px -8px rgba(0,0,0,.6)!important}
+.nx-md-tools>*{border-radius:16px!important}
+
+/* Paused is waiting on a person: amber, not the green of a printer at work (Opus review 2026-10-22, carried from rc5) */
+.nx-state[data-state=ready][data-mode=paused] .nx-state-dot{background:#FFB020;box-shadow:0 0 0 3px rgba(255,176,32,.18),0 0 12px rgba(255,176,32,.6)}
+.nx-state[data-state=ready][data-mode=paused]{border-color:rgba(255,176,32,.45)!important}
+
+/* ======== the panels (2026-10-23: "everything you open from it never had a design pass") ========
+   Every sheet and dialog is the same glass as the sidebar and the dock: rounded, a lit lip, a real shadow on the machine behind it.
+   Inside, one size of corner (12 px keys and fields, 16 px cards), readable type (13-15 px, never 10), and the LED figures kept for numbers. */
+:root{--r-key:12px;--r-card:16px}
+.nx-sheet,.nx-modal-card{border-radius:26px!important;border:1px solid rgba(255,255,255,.13)!important;
+ background:linear-gradient(150deg,rgba(255,255,255,.10),rgba(255,255,255,.02) 35%,rgba(255,255,255,.015) 75%,rgba(255,255,255,.05)),rgba(12,17,24,.72)!important;
+ -webkit-backdrop-filter:blur(30px) saturate(180%);backdrop-filter:blur(30px) saturate(180%);
+ box-shadow:var(--glass-rim),0 2px 4px rgba(0,0,0,.3),0 40px 80px -20px rgba(0,0,0,.75)!important}
+.nx-sheet-head{padding:18px 18px 14px 22px;border-bottom:1px solid rgba(255,255,255,.07)}
+.nx-sheet-head>svg.nx-ico{width:22px;height:22px;filter:drop-shadow(0 0 6px rgba(var(--accent-rgb),.6))}
+.nx-sheet-title{font:650 19px/1.2 var(--sans)}
+.nx-sheet-eyebrow{font:650 11px/1 var(--sans);letter-spacing:.16em}
+.nx-sheet-body{padding:16px 22px 26px;gap:20px;font-size:14px}
+.nx-sheet-head .nx-btn[data-size=icon]{border-radius:12px!important}
+/* keys, switches, chips, fields and choices: one corner */
+.nx-sheet .nx-btn,.nx-modal .nx-btn,.nx-u06 .nx-btn,.nx-sheet .nx-seg button,.nx-modal .nx-seg button,.nx-u06 .nx-seg button,.nx-u06 .nx-chip,.nx-sheet .nx-chip,
+.nx-sheet .nx-input,.nx-modal .nx-input,.nx-u06 .nx-input,.nx-sheet select.nx-input,.nx-sheet .nx-item,.nx-modal .nx-item,.nx-sheet .nx-choice-btn,.nx-modal .nx-choice-btn,
+.nx-sheet .nx-md-chip,.nx-modal .nx-md-chip,.nx-sheet .nx-q-chip,.nx-sheet .fm-chip,.nx-sheet .nx-fm-pill,.nx-u06 .nx-matcard,.nx-entry .nxkey,.nxc-entry,.nxc-entry .nxkey,.nx-u06 .nxkey,.nx-sheet .nxkey{border-radius:var(--r-key)!important}
+/* cards and rows inside a panel: a raised glass tile with a lit top edge */
+.nx-u06 .nx-stat,.nx-u06 .nx-part,.nx-u06 .nx-motor,.nx-u06 .nx-maint-row,.nx-u06 .nx-cause,.nx-u06 .nx-asm-card,.nx-u06 .nx-ht,.nx-u06 .nx-ht-fan,.nx-sheetline,.nx-sheet .nx-q-job,.nx-sheet .nx-q-printer,
+.nx-u06 .nx-lv-corner,.nx-u06 .nx-qgl-corner,.nx-u06 .nx-tl-row,.nx-u06 .nx-filjob,.nx-u06 .nx-part-hero,.fl-stat,.nx-al-row,.nx-q-force{border-radius:var(--r-card)!important;
+ background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.02))!important;border:1px solid rgba(255,255,255,.09)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.10),0 6px 16px -8px rgba(0,0,0,.6)!important}
+/* the LED figure wells keep their sunk look, rounded to match */
+.nx-u06 .nx-stat-v,.nx-fig,.nx-u06 .nx-led{border-radius:10px!important}
+.nx-u06 .nx-table,.nx-u06 .nx-console,.nx-u06 .nx-raw{border-radius:var(--r-card)!important;overflow:hidden}
+/* readable words: a label is 12 px, a line of text 14 px */
+.nx-u06 .nx-label,.nx-sheet .nx-label{font-size:12px}
+.nx-u06 .nx-micro,.nx-sheet .nx-micro{font-size:12.5px;line-height:1.45;color:#9AA4AF}
+.nx-u06 p,.nx-sheet-body>p{font-size:14px;line-height:1.5}
+/* the opener stays lit while its panel is open: the A glow, not a sunk square */
+.nx-btn[data-showing],.nxkey[data-showing]{border-radius:var(--r-key)}
+/* the More and Home menus: glass tiles that grow from their key */
+.nx-radial-hub .nx-btn{border-radius:16px!important;background:linear-gradient(150deg,rgba(255,255,255,.14),rgba(255,255,255,.03) 45%,rgba(255,255,255,.05)),rgba(14,20,28,.62)!important;
+ -webkit-backdrop-filter:blur(22px) saturate(180%);backdrop-filter:blur(22px) saturate(180%);border:1px solid rgba(255,255,255,.14)!important;box-shadow:var(--glass-rim),0 14px 30px -8px rgba(0,0,0,.7)!important}
+.nx-radial-close{border-radius:50%!important}
+/* toasts and pop-ups are the same glass */
+.nx-toast,.fl-pop,#nx-holdline{border-radius:18px!important}
+
+/* ---- the choice tray (Home, Level, heat presets, speed presets, More): one glass card above its key, keys in rows, words inside them ---- */
+.nx-radial{background:rgba(4,6,9,.18);-webkit-backdrop-filter:none;backdrop-filter:none}
+.nx-radial-tray{position:absolute;border-radius:24px;pointer-events:none;
+ background:linear-gradient(150deg,rgba(255,255,255,.12),rgba(255,255,255,.02) 40%,rgba(255,255,255,.05)),rgba(12,17,24,.74);
+ -webkit-backdrop-filter:blur(28px) saturate(180%);backdrop-filter:blur(28px) saturate(180%);border:1px solid rgba(255,255,255,.13);
+ box-shadow:var(--glass-rim),0 30px 70px -18px rgba(0,0,0,.8);animation:nx-tray-in .32s cubic-bezier(.34,1.56,.64,1) both}
+@keyframes nx-tray-in{from{opacity:0;transform:translate(var(--kx,0),var(--ky,0)) scale(.3)}to{opacity:1;transform:none}}
+.nx-radial-hub--tray .nx-btn{width:104px!important;height:96px!important;margin:-48px 0 0 -52px!important;border-radius:16px!important;padding:10px 6px!important;justify-content:center;gap:8px}
+.nx-radial-hub--tray .nx-btn .nx-lbl{position:static!important;width:auto;max-width:96px;font:650 11px/1.15 var(--sans)!important;letter-spacing:.06em;text-shadow:none!important;color:var(--ink-1)!important}
+.nx-radial-hub--tray .nx-radial-sub{position:static;margin-top:-4px;text-shadow:none}
+.nx-radial-hub--tray .nx-radial-close{width:36px!important;height:36px!important;margin:-18px 0 0 -18px!important;border-radius:12px!important;padding:0!important}
+.nx-radial-hub--tray .nx-btn[data-hot]{transform:translateY(-2px)}
+@media (hover:hover){.nx-radial-hub--tray .nx-btn:hover{transform:translateY(-2px)}}
+
+/* ---- a panel stands above the dock, never over it (the dock's keys glowed through the glass as a blur) ---- */
+.nx-sheet{bottom:calc(var(--slot) + var(--edge) + var(--safe-b) + 22px)!important}
+body[data-layout=phone] .nx-sheet{bottom:calc(16px + var(--safe-b))!important}
+/* ---- readable insides: the LED labels and small words grow to 11.5-12 px; values stay LED ---- */
+.nx-u06 .nx-stat>span:first-child,.nx-u06 .nx-stat-l,.nx-u06 .nx-label,.nx-u06 small,.nx-u06 .nx-specs dt,.nx-u06 .nx-table th{font-size:11.5px!important;letter-spacing:.1em}
+.nx-u06 .nx-stat-v{font-size:17px}
+.nx-u06 .nx-stat small,.nx-u06 .nx-stat-s{font-size:12px!important;color:#9AA4AF}
+.nx-u06 .nx-table td,.nx-u06 .nx-specs dd,.nx-u06 .nx-tl-row,.nx-u06 .nx-maint-row,.nx-u06 .nx-cause{font-size:13.5px}
+
+/* ---- a heater that is off does not glow: the disc's colour light is for a live value only ---- */
+.nxctl[aria-valuenow="0"]{--glow-c:transparent}
+.nxctl{box-shadow:inset 0 2px 1px rgba(255,255,255,.30),inset 0 1px 0 rgba(255,255,255,.18),inset 0 0 0 1px rgba(255,255,255,.10),inset 0 -3px 5px rgba(0,0,0,.65),inset 0 0 0 7px rgba(255,255,255,.025),inset 0 0 0 8px rgba(0,0,0,.35),
+ 0 1px 0 rgba(255,255,255,.06),0 4px 0 #04070a,0 5px 0 rgba(255,255,255,.05),0 10px 14px rgba(0,0,0,.45),0 34px 60px -18px rgba(0,0,0,.85),0 0 90px -30px var(--glow-c,var(--c))}
+.nxctl.live,.nxctl--lift{box-shadow:none}
+
+/* ---- a short window (a 1366 x 768 laptop): the sidebar's keys get shorter so every page fits without scrolling, and the Move pad shrinks ---- */
+@media (max-height:900px){
+ #nx-rail{padding:6px;gap:0}
+ #nx-rail .nx-btn[data-size=icon]{min-height:46px;padding:5px 2px;gap:3px}
+ #nx-rail .nx-btn[data-size=icon] svg.nx-ico{width:20px;height:20px}
+ #nx-rail .nx-btn[data-size=icon]::after{font-size:8.5px}
+ #nx-rail hr{margin:2px auto}
+ .nx-sheet-body:has(.nx-mv-pad){zoom:.66}
+}
+
+/* ======== the farm wall in the same glass ======== */
+.fm-top,.fm-tools{border-radius:24px!important;border:1px solid rgba(255,255,255,.12)!important;
+ background:linear-gradient(150deg,rgba(255,255,255,.10),rgba(255,255,255,.02) 40%,rgba(255,255,255,.04)),rgba(12,17,24,.66)!important;
+ -webkit-backdrop-filter:var(--blur-1);backdrop-filter:var(--blur-1);box-shadow:var(--glass-rim),var(--shadow-1)!important}
+.fm-top{box-shadow:var(--glass-rim),var(--shadow-1),0 0 0 9px var(--bg-0)!important}
+.fm-stat,.fm-chip,.fm-tools .nx-btn,.fm-top .nx-btn,.fm-search,.fm-tools select{border-radius:12px!important}
+.fm-tile{border-radius:22px!important;border:1px solid rgba(255,255,255,.10)!important;
+ background:linear-gradient(160deg,rgba(255,255,255,.08),rgba(255,255,255,.015) 38%,rgba(255,255,255,.01) 70%,rgba(255,255,255,.04)),rgba(13,18,25,.86)!important;
+ box-shadow:inset 0 1px 0 rgba(255,255,255,.16),0 2px 4px rgba(0,0,0,.3),0 26px 50px -18px rgba(0,0,0,.75)!important}
+/* the state is a lit line along the top of the tile, glowing in its colour, instead of a flat bar down its side */
+.fm-tile::before{left:18px!important;right:18px!important;top:0!important;bottom:auto!important;width:auto!important;height:2px!important;border-radius:2px;box-shadow:0 0 10px var(--st),0 0 22px var(--st)}
+@media (hover:hover){.fm-tile:hover{border-color:rgba(255,255,255,.22)!important;transform:translateY(-2px)}}
+.fm-tile{transition:border-color var(--t-hover),transform var(--t-hover),opacity var(--t-hover)}
+.fm-media,.fm-cam,.fm-nocam,.fm-job{border-radius:16px!important}
+.fm-tile .nxctl{background:none!important;box-shadow:none!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;isolation:auto}
+.fm-tile .nxctl::before,.fm-tile .nxctl::after{content:none}
+.fm-banner,.fm-licence,.fm-democard,.fm-empty{border-radius:20px!important}
+/* signals: the plain name, with Klipper's own name small beside it */
+.nx-sig-raw{margin-left:8px;font:500 11px/1 var(--mono);color:#7C8794;letter-spacing:0;text-transform:none}
+.nx-sig-obj{font:650 13px/1.2 var(--sans)!important;letter-spacing:.04em!important;text-transform:none!important;color:var(--accent-hi)!important;padding-top:10px}
+.nx-sig-name{font:500 13.5px/1.3 var(--sans);color:var(--ink-1)}
+/* file cards: the same glass tile */
+.nx-filecard{border-radius:18px!important;overflow:hidden}
+.nx-filecard-pic{border-radius:14px!important}
+
+/* ======== round three (2026-10-23: "it still looks identical") ======== */
+/* ---- the head: one glass visor across the top instead of loose chips ---- */
+#nx-top{background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.015)),rgba(9,13,18,.70);
+ -webkit-backdrop-filter:blur(26px) saturate(170%);backdrop-filter:blur(26px) saturate(170%);
+ border-bottom:1px solid rgba(255,255,255,.10);box-shadow:inset 0 -1px 0 rgba(0,0,0,.5),0 14px 34px -14px rgba(0,0,0,.7);pointer-events:auto}
+#nx-top::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:1px;pointer-events:none;
+ background:linear-gradient(90deg,transparent,rgba(var(--accent-hi-rgb),.55) 30%,rgba(var(--accent-hi-rgb),.55) 70%,transparent);opacity:.55}
+#nx-ui::before{display:none}
+#nx-top>.nxkey,.nx-cmd-box,.nx-top-right .nx-btn:not(.nx-estop):not(.nx-state){background:rgba(255,255,255,.035)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.06)!important;
+ border:1px solid rgba(255,255,255,.08)!important;-webkit-backdrop-filter:none;backdrop-filter:none}
+.nx-state{background:rgba(0,0,0,.28)!important;box-shadow:inset 0 1px 3px rgba(0,0,0,.6)!important;border:1px solid rgba(255,255,255,.08)!important;-webkit-backdrop-filter:none;backdrop-filter:none}
+#nx-rail{top:calc(var(--top) + 16px)}
+/* ---- the job: one wide block with a lit bar along its foot ---- */
+.nx-job{position:absolute;height:50px;padding:0 18px 0 6px;gap:12px;border-radius:14px!important;max-width:none!important;width:min(620px,42vw);overflow:hidden;
+ background:rgba(0,0,0,.30)!important;box-shadow:inset 0 1px 3px rgba(0,0,0,.6),inset 0 0 0 1px rgba(255,255,255,.07)!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;border:0!important}
+.nx-job-thumb{width:40px;height:40px;border-radius:10px}
+.nx-job-text{flex:1;min-width:0}
+.nx-job-title{font:650 14.5px/1.15 var(--sans)}
+.nx-job-meta{font:500 12px/1.2 var(--mono);color:#A9B3BD}
+.nx-job-pct{font:500 26px/1 var(--mono);letter-spacing:-.03em;color:var(--accent-2);text-shadow:0 0 14px rgba(var(--accent-rgb),.7);min-width:0}
+.nx-job-bar{position:absolute;left:0;right:0;bottom:0;height:3px;background:rgba(255,255,255,.06)}
+.nx-job-bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--accent-lo),var(--accent-hi));box-shadow:0 0 10px var(--accent),0 0 20px rgba(var(--accent-rgb),.6);transition:width .8s var(--ease)}
+.nx-job[data-state=paused] .nx-job-pct{color:#FFC861;text-shadow:0 0 14px rgba(255,176,32,.7)}
+.nx-job[data-state=paused] .nx-job-bar i{background:linear-gradient(90deg,#C77D00,#FFC861);box-shadow:0 0 10px #FFB020}
+.nx-job[data-state=finished] .nx-job-bar i{background:linear-gradient(90deg,#0f9c4c,#5BF59A);box-shadow:0 0 10px #18E36B}
+.nx-job[data-state=finished] .nx-job-pct{color:#7DFFAE;text-shadow:0 0 14px rgba(24,227,107,.6)}
+/* the phone: the job fills the row it is given, the percentage at its end, the bar under it all */
+body[data-layout=phone] .nx-job{left:12px!important;right:12px!important;width:auto!important;transform:none!important;height:58px;padding:0 16px 0 8px}
+body[data-layout=phone] .nx-job-meta{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.3}
+body[data-layout=phone] .nx-job-pct{font-size:24px}
+/* ---- the floor: the machine stands on a lit stage, not in a void ---- */
+#nx-backdrop{background:
+  radial-gradient(38% 12% at 50% 86%,rgba(var(--accent-rgb),.16),transparent 72%),
+  radial-gradient(60% 22% at 50% 90%,rgba(var(--accent-rgb),.06),transparent 75%),
+  radial-gradient(28% 36% at 9% 46%,rgba(255,106,0,.07),transparent 72%),
+  radial-gradient(28% 36% at 91% 42%,rgba(var(--accent-rgb),.07),transparent 72%),
+  radial-gradient(80% 70% at 50% 48%,#1c2632 0%,#0e141b 52%,#05070a 100%)}
+#nx-backdrop::before{content:"";position:absolute;left:50%;top:83%;width:min(1100px,80vw);height:22vh;transform:translate(-50%,-50%);pointer-events:none;
+ background:repeating-linear-gradient(90deg,rgba(var(--accent-hi-rgb),.07) 0 1px,transparent 1px 64px),repeating-linear-gradient(0deg,rgba(var(--accent-hi-rgb),.07) 0 1px,transparent 1px 32px);
+ -webkit-mask:radial-gradient(closest-side,#000,transparent);mask:radial-gradient(closest-side,#000,transparent);transform:translate(-50%,-50%) perspective(600px) rotateX(62deg)}
+/* a preset that is only a number shows the number, large, not the same little icon five times */
+.nx-radial-hub--tray .nx-radial-num svg.nx-ico{display:none}
+.nx-radial-hub--tray .nx-radial-num .nx-lbl{font:500 24px/1 var(--mono)!important;letter-spacing:-.02em!important;color:var(--accent-2)!important;text-shadow:0 0 12px rgba(var(--accent-rgb),.55)!important}
+/* a figure with nothing to show is dimmed, its note says why */
+.nx-stat[data-empty] .nx-stat-v{opacity:.4;text-shadow:none}
+.nx-stat[data-empty] .nx-stat-n{color:#7C8794;font-style:italic}
+/* ---- the dock's readouts sit in sunk LED wells, the same as the panels' figures ---- */
+.nx-dock .nx-axis{padding:6px 10px 5px;border-radius:10px;background:#06080b;box-shadow:inset 0 1px 4px rgba(0,0,0,.85),0 0 0 1px rgba(255,255,255,.06)}
+.nx-dock .nx-axis span{font-weight:500;color:#DDF7F3;text-shadow:0 0 8px rgba(var(--accent-rgb),.35)}
+.nx-dock .nx-axis[data-homed] b{color:#3FF3A0;text-shadow:0 0 6px rgba(24,227,107,.6)}
+.nx-dock .nx-pos-x span,.nx-dock .nx-pos-speed span{color:#DDF7F3}
+.nx-dock .nx-pos-x small,.nx-dock .nx-pos-src small{font-size:10.5px;letter-spacing:.12em}
+/* ---- very short windows (about 750 px): the sidebar's keys tighten again so the last one is never cut ---- */
+@media (max-height:800px){
+ #nx-rail{top:calc(var(--top) + 10px);padding:5px}
+ #nx-rail .nx-btn[data-size=icon]{min-height:40px;padding:3px 2px;gap:2px;width:66px}
+ #nx-rail .nx-btn[data-size=icon] svg.nx-ico{width:18px;height:18px}
+ #nx-rail .nx-btn[data-size=icon]::after{font-size:8px;line-height:1.05}
+ #nx-rail hr{margin:1px auto}
+}
+/* ---- the readout wells must not push the dock's last key out of it ---- */
+.nx-dock .nx-axis{padding:5px 8px 4px}
+.nx-dock .nx-pos{gap:8px!important}
+.nx-dock .nx-keyrow{flex-shrink:0}
+.nx-dock .nx-pos{flex-shrink:1;min-width:0}
+.nx-dock .nx-pos-x span{white-space:nowrap}
+/* no picture of the file: no empty square left of its name */
+.nx-job-thumb[style*="hidden"]{display:none}
+/* a phone's position row has room for the three numbers only; where they come from is said on the computer */
+body[data-layout=phone] .nx-dock .nx-pos-src{display:none!important}
+
+/* 2026-10-23 (a live ring print, 1568x751): the job block held a fixed 620 px and pushed the red STOP off the right
+   edge. The job block gives way; the right-hand keys and STOP never do. */
+body:is([data-layout=desktop],[data-layout=tablet]) #nx-top .nx-job{flex:0 1 620px;width:auto;min-width:150px}
+#nx-top .nx-top-right{flex:none}
+/* On the phone the state read "PRINT…": pairing a phone from the phone is no use, so its key goes and the state gets the room. */
+body[data-layout=phone] #nx-phonebtn{display:none}
+/* While a print runs the job block needs the header room more than the command search and the PAIR PHONE word: below
+   1800 px both fold to their icon (the search opens wide when focused, as on the kiosk). */
+@media (max-width:1799px){
+ body:is([data-layout=desktop],[data-layout=tablet]):has(#nx-job:not([hidden])) .nx-cmd-host{flex:0 0 48px;min-width:48px;margin-left:8px}
+ body:is([data-layout=desktop],[data-layout=tablet]):has(#nx-job:not([hidden])) .nx-cmd-box{width:48px;padding:0 14px;overflow:hidden}
+ body:is([data-layout=desktop],[data-layout=tablet]):has(#nx-job:not([hidden])) .nx-cmd-box kbd{display:none}
+ body:is([data-layout=desktop],[data-layout=tablet]):has(#nx-job:not([hidden])) .nx-cmd-box:focus-within{position:absolute;z-index:8;width:min(420px,calc(100vw - 40px));padding:0 10px 0 14px}
+ body:is([data-layout=desktop],[data-layout=tablet]):has(#nx-job:not([hidden])) #nx-phonebtn>:not(svg){display:none}
+}
+/* Narrow desktops (1280, 1024): the job's line wraps to two rows instead of losing its end. */
+@media (max-width:1365px){
+ body:is([data-layout=desktop],[data-layout=tablet]) #nx-top .nx-job{height:56px}
+ body:is([data-layout=desktop],[data-layout=tablet]) .nx-job-title{font-size:13px;white-space:normal;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow-wrap:anywhere}
+ body:is([data-layout=desktop],[data-layout=tablet]) .nx-job-meta{font-size:11px;white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.25}
+ body:is([data-layout=desktop],[data-layout=tablet]) .nx-job-pct{font-size:22px}
+}
+@media (max-width:1099px){
+ body:is([data-layout=desktop],[data-layout=tablet]):has(#nx-job:not([hidden])) .nx-id{min-width:0!important;flex:none}
+ body:is([data-layout=desktop],[data-layout=tablet]):has(#nx-job:not([hidden])) .nx-id-text b{white-space:nowrap}
+ body:is([data-layout=desktop],[data-layout=tablet]):has(#nx-job:not([hidden])) .nx-id-text small{display:none}
+ body:is([data-layout=desktop],[data-layout=tablet]):has(#nx-job:not([hidden])) .nx-id-text b{letter-spacing:.12em}
+ body:is([data-layout=desktop],[data-layout=tablet]) .nx-state{padding:0 12px}
+}
+/* Phone: the full part name, two lines if it needs them, never an ellipsis; the block keeps its 58 px. */
+body[data-layout=phone] .nx-job-meta{-webkit-line-clamp:1}   /* the phone drops "done 11:24 AM" (next.js paintJob), so the line fits */
+body[data-layout=phone] .nx-job-title{font-size:13px;white-space:normal;overflow-wrap:anywhere;line-height:1.2}
+/* A long choice list (the standard materials) scrolls inside its glass instead of running off the screen. */
+.nx-pop{max-height:min(72vh,600px);overflow-y:auto;overscroll-behavior:contain}
+/* rc9 WO-01/04: the maintenance row has a take-away key beside Done. */
+.nx-u06 .nx-maint-row{grid-template-columns:1fr auto auto auto}
+@media (max-width:520px){.nx-u06 .nx-maint-row{grid-template-columns:1fr auto auto}.nx-u06 .nx-maint-row .nx-btn:not([data-size=icon]){grid-column:auto}}
+/* Toasts sat over the title of an open panel. On a desktop they stand at the top left, beside the rail, over the stage. */
+body:is([data-layout=desktop],[data-layout=tablet],[data-layout=kiosk]) .nx-toasts{left:calc(var(--safe-l) + 112px);transform:none;align-items:flex-start;width:min(440px,34vw)}
+/* rc9 WO-03: the first seconds. The dock says it is connecting from the first frame, and a camera background keeps the lit
+   stage until its first picture arrives. */
+.nx-dock-spin{display:inline-block;width:14px;height:14px;flex:none;border-radius:50%;border:2px solid rgba(255,255,255,.15);border-top-color:var(--accent);animation:nx-spin .9s linear infinite}
+body[data-bg=camera][data-cam-wait] #nx-backdrop{visibility:visible}
+.nx-bgcam-wait{position:absolute;left:50%;top:46%;transform:translate(-50%,-50%);display:flex;align-items:center;gap:12px;padding:12px 18px;border-radius:999px;
+ font:600 12px/1 var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-2);z-index:2}
+body[data-cam-wait] #nx-bgcam{background:transparent}
+/* The printer's name never wraps to two lines (VORON 2.4 / 350 at 1366 during a print): it keeps its width and the job block gives way. */
+body:is([data-layout=desktop],[data-layout=tablet]) #nx-top .nx-id{flex:none}
+body:is([data-layout=desktop],[data-layout=tablet]) #nx-top .nx-id-text b{white-space:nowrap}

@@ -1,5 +1,5 @@
 {
-  "moonraker_url": "http://192.168.1.50:7125",
+  "moonraker_url": "http://192.168.1.131:7125",
   "bind": "127.0.0.1",
   "port": 7420,
   "database": "stella-scope.sqlite3",

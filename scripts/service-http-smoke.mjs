@@ -35,9 +35,9 @@ const port=await new Promise(r=>{const s=net.createServer();s.listen(0,'127.0.0.
 function launch(args=[]){child=spawn(bin,['--config',path.join(tmp,'config.json'),...args],{stdio:['ignore','pipe','pipe']});let log='';child.stdout.on('data',b=>log+=b);child.stderr.on('data',b=>log+=b);child.on('close',()=>fs.writeFileSync(path.join(out,args.length?'replay.log':'collector.log'),log));}
 async function stop(){if(!child||child.exitCode!==null)return;const p=child;p.kill('SIGTERM');await Promise.race([new Promise(r=>p.once('close',r)),wait(1500)]);if(p.exitCode===null)p.kill('SIGKILL');child=null;}
 async function call(p,options={}){const r=await fetch(base+p,{...options,signal:AbortSignal.timeout(10000)});const text=await r.text();let json;try{json=JSON.parse(text);}catch{}return {status:r.status,text,json};}
-// Revision: the waits are for conditions, with a generous deadline, not a count of tries or a fixed
-// sleep; under load (load average 4 to 5) 150 tries and the fixed 400 / 600 / 1150 ms sleeps ran out
-// before the recorder did the thing being checked. No check's meaning changed.
+// WO-20 revision (2026-09-23): the waits are for conditions, with a generous deadline, not a count of
+// tries or a fixed sleep; under load (load average 4 to 5) 150 tries and the fixed 400 / 600 / 1150 ms
+// sleeps ran out before the recorder did the thing being checked. No check's meaning changed.
 async function until(fn,ms=30000){const end=Date.now()+ms;for(;;){if(child?.exitCode!==null&&child?.exitCode!==undefined)throw Error('Recorder exited');try{if(await fn())return;}catch{}if(Date.now()>end)break;await wait(50);}throw Error('Compiled-server condition timed out');}
 async function eventually(fn,ms=30000){const end=Date.now()+ms;for(;;){try{const v=await fn();if(v)return v;}catch{}if(Date.now()>end)return null;await wait(50);}}
 function check(name,v){assert.ok(v,name);checks.push(name);}function rss(){try{peak=Math.max(peak,Number(fs.readFileSync(`/proc/${child.pid}/status`,'utf8').match(/^VmRSS:\s+(\d+)/m)?.[1]||0));}catch{}}

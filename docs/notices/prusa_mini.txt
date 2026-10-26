@@ -1,0 +1,23 @@
+PRUSA MINI+ MODEL FOR STELLA SCOPE: NOTICE
+
+This model of the Original Prusa MINI (and the MINI+) ships inside Stella Scope. This is its notice: who made it, the terms it is under and what was done to the file. It is also shown under About and under Printer models.
+
+WHO MADE IT
+Luis made the assembly and exported it as STEP: "STEP File for Prusa Mini", Printables model 307054, stated CC0. Address: https://www.printables.com/model/307054-step-file-for-prusa-mini
+Source file: Prusa Mini Assembly.STEP (25,510,600 bytes, SHA-256 26d3bad51186ba7b7074d1a9b5405d77baf1f05d689fd3a916f0cf19bf188dd1)
+Prusa Research designed the MINI and published its printed parts as STEP files in github.com/prusa3d/Original-Prusa-MINI, under the GNU General Public License version 3; the printed parts in this assembly carry the names of those files (MINI-x-carriage, MINI-extruder-front and so on).
+
+UNDER WHAT TERMS
+The uploader states CC0 for the assembly. The printed parts in it are Prusa Research's and Prusa's licence for them is the GNU General Public License version 3, so that is the licence this notice keeps: the converted file is passed on under it (the text is at the end of this notice), with this notice and free of charge. The source of this file, what you would edit to change it, is the STEP file at the address above and the conversion in the Stella Scope source. The standard hardware in the assembly (the motors, bearings, fans, hotend and pulleys) comes from other makers' public models; their licences are not stated by the uploader and were not found, which is a limit of what is known about this model. Stella Scope itself is not under the GPL and a model is a separate file beside it.
+
+WHAT WAS DONE TO IT
+The STEP assembly was converted into a triangle mesh in glTF 2.0 binary form (a .glb file, then gzipped) so that Stella Scope can draw the printer on screen. The STEP is written with the vertical axis up and the display at the back; the conversion turns it upright with the display at the front. The parts were named and grouped so that the axes can move with the printer, and the printed parts were given the orange of the real machine (the STEP carries no colours). Nothing was added to the geometry. The conversion is tools/printer-cad/step_to_glb.py in the Stella Scope source, with tools/printer-cad/prusa-mini/groups.json; anyone can repeat it from the STEP file and gets the same bytes.
+
+THE FILE
+Inside Stella Scope: models/prusa-mini.glb.gz
+Size: 1,319,342 bytes
+SHA-256 of that file: 44e72e3dbf68a39039d0304d7382ceea329ab4e33a016778a6a7159391839b40
+SHA-256 once unpacked: 24f7bf7c030922de8baf0fd1d13d941ba420843d84821bd71e5bc4db32899fb3
+Stella Scope knows both numbers in advance and puts the model in your library only if what it carries matches them.
+
+Prusa Research is not connected with Stella Scope and has not approved it.

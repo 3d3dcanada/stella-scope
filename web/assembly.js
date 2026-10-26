@@ -4,8 +4,8 @@ import {OrbitControls} from './vendor/OrbitControls.js';
 const el=(tag,cls='',text)=>{const e=document.createElement(tag);e.className=cls;if(text!==undefined)e.textContent=text;return e;};
 const button=(label,action)=>{const b=el('button','',label);b.type='button';b.addEventListener('click',action);return b;};
 const label=(name,input)=>{const e=el('label','',name);e.append(input);return e;};
-// What a control is (title) and what clicking it does (data-tip-do), for the HUD's one tooltip.
-// Outside the HUD the title is the browser's own tooltip.
+// WO-19 (2026-09-23): what a control is (title) and what clicking it does (data-tip-do), for the
+// HUD's one tooltip. Outside the HUD the title is the browser's own tooltip.
 const tipped=(e,what,does='')=>{e.title=what;if(does)e.dataset.tipDo=does;return e;};
 const views={Isometric:[-1,-1,.8],Front:[0,-1,0],Rear:[0,1,0],Left:[-1,0,0],Right:[1,0,0],Top:[0,0,1]};
 const compact=n=>new Intl.NumberFormat(undefined,{notation:'compact',maximumFractionDigits:1}).format(n);

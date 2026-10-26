@@ -1,0 +1,10 @@
+{
+ "about": "Original Prusa i3 MK3 / MK3S / MK3S+ (Printables 563056, 00Fusion360Export.step, sha256 c2ea1caf...). CAD frame: Z up, the LCD at CAD -Y (the front), the X rods along CAD X, the Y rods along CAD Y. Bed = Y (the Y-axis assembly's moving components: heatbed, carriage, bearings, belt holder); gantry = Z (the X-axis assembly: X-end motor and idler, X rods, Z nuts); head = X and Z (the extruder assembly rides the X rods and climbs with the gantry). The model names its own assemblies, so the rules are by name.",
+ "rules": [
+  {"group": "bed", "match": ["Y-axis Assembly:1 / Moving Components"]},
+  {"group": "head", "match": ["Extruder Assembly"]},
+  {"group": "gantry", "match": ["X-axis Assembly"]}
+ ],
+ "looks_about": "The STEP carries no colours. Printed parts orange, the frame and the heatbed black, as on the real machine.",
+ "looks": []
+}

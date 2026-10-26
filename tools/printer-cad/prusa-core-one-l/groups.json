@@ -1,0 +1,258 @@
+{
+ "about": "Prusa CORE One L (Printables 1520379, core_one_l_assembly.step, sha256 2f46bccb...). CAD frame: Z up, +X toward the front (two Z screws), the X beam runs along CAD Y. Head = machine X (CAD Y) and Y (CAD X); gantry = machine Y; bed = machine Z.",
+ "rules": [
+  {
+   "group": "head",
+   "match": [
+    "C1P Head assembly"
+   ]
+  },
+  {
+   "group": "head",
+   "match": [
+    "XY assembly"
+   ],
+   "inside": [
+    -105,
+    43,
+    425,
+    9,
+    149,
+    613
+   ]
+  },
+  {
+   "group": "bed",
+   "match": [
+    "Bed assembly"
+   ]
+  },
+  {
+   "group": "gantry",
+   "match": [
+    "XY assembly"
+   ],
+   "not": [
+    "x-motor",
+    "MOTOR HOLDER",
+    "M3x35",
+    "Distan",
+    "Deska xy",
+    "Plech",
+    "CABLE COVER",
+    "ty\u010de zadn\u00ed",
+    "Tensioner",
+    "kladky",
+    "FILAMENT SENSOR",
+    "Screw guide",
+    "prichytka",
+    "Dr\u017e\u00e1k ty\u010de lev\u00fd",
+    "Dr\u017e\u00e1k ty\u010de prav\u00fd",
+    "Dr\u017e\u00e1k osv\u011btlen\u00ed",
+    "Y ROD"
+   ],
+   "inside": [
+    -62,
+    -225,
+    420,
+    -12,
+    235,
+    500
+   ]
+  }
+ ],
+ "looks_about": "Colours from the real machine (black steel, smoked doors and windows, gold satin sheet, orange printhead covers). The STEP carries no colours. The enclosure walls are ghosted so the mechanism shows.",
+ "looks": [
+  {
+   "look": {
+    "color": [
+     0.16,
+     0.18,
+     0.2
+    ],
+    "alpha": 0.16,
+    "metal": 0.0,
+    "rough": 0.05
+   },
+   "match": [
+    "Plexi",
+    "plexi"
+   ]
+  },
+  {
+   "look": {
+    "color": [
+     0.07,
+     0.075,
+     0.08
+    ],
+    "alpha": 0.22,
+    "metal": 0.4,
+    "rough": 0.45
+   },
+   "match": [
+    "Bo\u010dnice",
+    "Zadn\u00ed plech"
+   ]
+  },
+  {
+   "look": {
+    "color": [
+     0.06,
+     0.065,
+     0.07
+    ],
+    "metal": 0.5,
+    "rough": 0.42
+   },
+   "match": [
+    "Profil",
+    "Deska xy",
+    "Deska Z",
+    "Kryt DNA",
+    "Plech",
+    "Lista displeje",
+    "No\u017ei\u010dka"
+   ]
+  },
+  {
+   "look": {
+    "color": [
+     0.78,
+     0.6,
+     0.28
+    ],
+    "metal": 0.6,
+    "rough": 0.35
+   },
+   "match": [
+    "smooth sheet"
+   ]
+  },
+  {
+   "look": {
+    "color": [
+     0.1,
+     0.1,
+     0.11
+    ],
+    "metal": 0.3,
+    "rough": 0.5
+   },
+   "match": [
+    "BED UNI",
+    "Bed assembly"
+   ],
+   "not": [
+    "smooth sheet",
+    "LED"
+   ]
+  },
+  {
+   "look": {
+    "color": [
+     0.98,
+     0.42,
+     0.07
+    ],
+    "metal": 0.0,
+    "rough": 0.55
+   },
+   "match": [
+    "PRINTHEAD COVER",
+    "Printhead cover",
+    "PRINT FAN SHROUD"
+   ]
+  },
+  {
+   "look": {
+    "color": [
+     0.8,
+     0.82,
+     0.85
+    ],
+    "metal": 0.9,
+    "rough": 0.25
+   },
+   "match": [
+    "ROD",
+    "linear_rail",
+    "Jekl"
+   ]
+  },
+  {
+   "look": {
+    "color": [
+     0.12,
+     0.12,
+     0.13
+    ],
+    "metal": 0.2,
+    "rough": 0.6
+   },
+   "match": [
+    "motor",
+    "NEMA"
+   ]
+  },
+  {
+   "look": {
+    "color": [
+     0.45,
+     0.46,
+     0.48
+    ],
+    "metal": 0.8,
+    "rough": 0.35
+   },
+   "match": [
+    "ISO ",
+    "DIN",
+    "M3x",
+    "M4x",
+    "M5x",
+    "M2",
+    "\u010cvon\u010d",
+    "Sloupek"
+   ]
+  },
+  {
+   "look": {
+    "color": [
+     0.95,
+     0.96,
+     0.97
+    ],
+    "alpha": 0.85,
+    "metal": 0.0,
+    "rough": 0.3
+   },
+   "match": [
+    "LED",
+    "difuzor"
+   ]
+  },
+  {
+   "look": {
+    "color": [
+     0.11,
+     0.115,
+     0.12
+    ],
+    "metal": 0.05,
+    "rough": 0.65
+   },
+   "match": [
+    "C1L",
+    "CXL",
+    "E1",
+    "E2",
+    "A1",
+    "A2",
+    "A3",
+    "A4",
+    "A5"
+   ]
+  }
+ ]
+}

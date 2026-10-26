@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#07090C">
+<title>Farm · Stella Scope</title>
+<link rel="preload" as="font" type="font/woff2" href="/fonts/geist.woff2" crossorigin>
+<link rel="preload" as="font" type="font/woff2" href="/fonts/geist-mono.woff2" crossorigin>
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/logo.svg">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<script src="/paint.js"></script>
+<link rel="stylesheet" href="/next.css">
+<link rel="stylesheet" href="/next-control.css">
+<link rel="stylesheet" href="/next-frame.css">
+<link rel="stylesheet" href="/farm.css">
+<link rel="stylesheet" href="/next-look.css">
+<link rel="stylesheet" href="/next-hud.css">
+<link rel="stylesheet" href="/next-pro.css">
+<script type="module" src="/farm.js"></script>
+</head>
+<body class="fm" data-layout="desktop">
+<div id="nx-backdrop" aria-hidden="true"></div>
+<main class="fm-root">
+ <div class="fm-sticky">
+  <header class="fm-top nx-glass">
+   <a class="fm-id" href="/" title="Stella Scope, the first printer">
+    <img src="/logo.svg" alt="">
+    <span><b>FARM</b><small id="fm-sub">LOADING</small></span>
+   </a>
+   <div id="fm-summary" class="fm-summary" aria-live="polite"></div>
+   <div id="fm-actions" class="fm-actions"></div>
+  </header>
+  <div id="fm-next" class="fm-nextline" hidden></div>
+  <div id="fm-tools" class="fm-tools nx-glass" role="search" aria-label="Find printers">
+   <label class="fm-search">
+    <svg class="nx-ico" aria-hidden="true"><use href="#i-search"/></svg>
+    <input id="fm-q" type="search" placeholder="Search printers" aria-label="Search printers" autocomplete="off" spellcheck="false" enterkeyhint="search">
+   </label>
+   <label class="fm-pick"><span>Show</span><select id="fm-filter" class="nx-input" aria-label="Show"></select></label>
+   <label class="fm-pick"><span>Sort</span><select id="fm-sort" class="nx-input" aria-label="Sort by"></select></label>
+  </div>
+ </div>
+ <div id="fm-licence" class="fm-licence nx-glass" role="note" hidden></div>
+ <p id="fm-banner" class="fm-banner nx-glass" role="status" hidden></p>
+ <section id="fm-grid" class="fm-grid" aria-label="Printers"></section>
+ <div id="fm-empty" class="fm-empty nx-glass" role="status" hidden></div>
+</main>
+<aside id="nx-sheet" class="nx-sheet" aria-modal="true" role="dialog" hidden></aside>
+<div id="nx-toasts" class="nx-toasts" role="status" aria-live="polite"></div>
+<div id="nx-tip" class="nx-tip" role="tooltip" hidden></div>
+</body>
+</html>

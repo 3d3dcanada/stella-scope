@@ -24,32 +24,35 @@ export function installationAge(record,at){
  return Math.floor((at-record.effective_at)/86400);
 }
 
-// The gantry still flew to the top. Klipper force-sets the kinematic position before a homing move
-// (Z 464.0195 against axis_maximum 310 in the recording of their cube print), so a reported pose
-// can be a place the machine cannot be. tested that in hud-scene set, but the live path
-// interpolates between two recorded samples BEFORE set sees anything, and every blend between Z 10
-// and Z 464 is inside the machine, so the guard passed it. The test lives here so the jitter buffer
-// in service.js can drop the impossible sample before it can be interpolated through, and set can
-// still refuse one that reaches it another way. 1 mm of slack keeps a legitimate move to the very
-// end of travel drawable; unknown limits mean no opinion.
+// 2026-09-21, second look at a G28: the gantry still flew to the top. Klipper force-sets the
+// kinematic position before a homing move (Z 464.0195 against axis_maximum 310 in the recording of
+// his cube print), so a reported pose can be a place the machine cannot be. WO-10 tested that in
+// hud-scene set(), but the live path interpolates between two recorded samples BEFORE set() sees
+// anything, and every blend between Z 10 and Z 464 is inside the machine, so the guard passed it.
+// The test lives here so the jitter buffer in service.js can drop the impossible sample before it
+// can be interpolated through, and set() can still refuse one that reaches it another way. 1 mm of
+// slack keeps a legitimate move to the very end of travel drawable; unknown limits mean no opinion.
+// Finish-2 F02 (CORE One L, 2026-10-19): an axis the printer does not report (PrusaLink gives no X/Y while the head moves) is
+// unknown, not outside: the tick still carries its Z, which the page showed as a dash. Every reported axis must be a number
+// inside the travel, and at least one must be reported.
 export function insideTravel(position,limits){
- if(!Array.isArray(position)||!position.every(v=>typeof v==='number'&&Number.isFinite(v)))return false;
+ if(!Array.isArray(position)||!position.every(v=>v===null||v===undefined||(typeof v==='number'&&Number.isFinite(v)))||!position.some(v=>typeof v==='number'))return false;
  if(!Array.isArray(limits?.min)||!Array.isArray(limits?.max))return true;
- return !position.some((v,i)=>finite(limits.min[i])!==null&&finite(limits.max[i])!==null&&(v<limits.min[i]-1||v>limits.max[i]+1));
+ return !position.some((v,i)=>typeof v==='number'&&finite(limits.min[i])!==null&&finite(limits.max[i])!==null&&(v<limits.min[i]-1||v>limits.max[i]+1));
 }
 
 // Namespaced, reversible mapping from immutable CAD instance paths into existing parts-book IDs.
 export const instanceRecordId=id=>'cad:'+id.replaceAll('/','.');
 
-// The user, clicking parts in their own window: "I clicked Raw Signals on the extruder and got
-// controller fan RPM and speed, extruder, fan, heater fan, probe, TMC... there shouldn't be
-// signals from something that's not there." This is the one map every part card reads: what each
-// part is physically wired to or measured on, and nothing else. A part matches on its scene slot
-// and name; fields are exact names, a RegExp, or null for the whole object. A part that matches
-// nothing (extrusions, printed brackets, the cowl, the LCD, whose display_status the recorder does
-// not keep) gets no signals card at all. The four Z motors share one slot, so the driver comes
-// from which corner of the bed the motor sits at, in service-core's CORNERS order: front left
-// stepper_z, back left z1, back right z2, front right z3.
+// WO-18 (2026-09-23), the owner, clicking parts in his own window: "I clicked Raw Signals on the Sherpa
+// Mini and got controller fan RPM and speed, extruder, fan, heater fan, probe, TMC... there
+// shouldn't be signals from something that's not there." This is the one map every part card
+// reads: what each part is physically wired to or measured on, and nothing else. A part matches on
+// its scene slot and name; fields are exact names, a RegExp, or null for the whole object. A part
+// that matches nothing (extrusions, printed brackets, the cowl, the LCD, whose display_status the
+// recorder does not keep) gets no signals card at all. The four Z motors share one slot, so the
+// driver comes from which corner of the bed the motor sits at, in service-core's CORNERS order:
+// front left stepper_z, back left z1, back right z2, front right z3.
 const Z_AT=['stepper_z','stepper_z3','stepper_z1','stepper_z2'];
 const LINK=/^(last_stats\.|mcu_version$)/;
 export const PART_WIRING=[
@@ -84,11 +87,11 @@ export function partSignals(wiring,point){
   for(const s of rows)if(fields===null||(Array.isArray(fields)?fields.includes(s.field):fields.test(s.field)))out.push(s);}
  return out;
 }
-// Reviewer on the cards: raw values printed at full float precision (hold_current 0.489535463898379). Every raw
-// number now prints by its unit, with the unit beside it: current 2 dp, millimetres 3 dp, temperatures 1 dp, ratios
-// 2 dp. The unit comes from the field name, and from the object where one name means two things: a fan's speed is a
-// 0 to 1 command, gcode_move's speed is the G1 F value in mm/min. Counts stay whole; anything unrecognised keeps 3
-// dp, never all 15.
+// WO-19 (2026-09-23), reviewer on the WO-18 cards: raw values printed at full float precision
+// (hold_current 0.489535463898379). Every raw number now prints by its unit, with the unit beside it:
+// current 2 dp, millimetres 3 dp, temperatures 1 dp, ratios 2 dp. The unit comes from the field
+// name, and from the object where one name means two things: a fan's speed is a 0 to 1 command,
+// gcode_move's speed is the G1 F value in mm/min. Counts stay whole; anything unrecognised keeps 3 dp, never all 15.
 const RATIO_OBJECT=/^(fan|heater_fan|controller_fan|fan_generic|temperature_fan)\b/;
 const SIGNAL_UNITS=[[/current$/,'A',2],[/temp(erature)?$|^target$/,'°C',1],[/^(power|speed_factor|extrude_factor|progress|value|duty)$|_ratio$/,'',2],[/rpm$/,'rpm',0],
  [/velocity$|^speed$/,'mm/s',1],[/accel/,'mm/s²',0],[/^pressure_advance$|smooth_time$/,'s',3],[/^freq$/,'Hz',0],[/^(mcu_)?phase_offset$/,null,null],[/position|offset|origin|distance$/,'mm',3]];
@@ -107,54 +110,63 @@ export function formatSignal(object,field,value){
 }
 // Volumetric flow from the filament speed Klipper reports (motion_report.live_extruder_velocity,
 // mm/s of 1.75 mm filament). A retraction is not flow, so it reads 0; unknown stays unknown. The
-// A flow warning needs the user's measured limit. An unknown limit stays unknown.
+// A flow warning needs the owner's measured limit. An unknown limit stays unknown.
 export function volumetricFlow(extruderVelocity,diameter=1.75){
  const v=finite(extruderVelocity);return v===null?null:Math.max(0,v)*Math.PI*(diameter/2)**2;
 }
 export function flowCeiling(loaded,measured){const max=finite(measured);return {name:loaded||'material not recorded',max:max!==null&&max>0?max:null};}
-// The printer's state as the header shows it and every control obeys, read off the collector's own
-// link (observer.printer_state); nothing here polls the printer. lock: printer controls are off.
-// estop: the emergency stop may still go (Moonraker answers).
-export function printerLink(observer,{replay=false,lastSeen=null,now=Date.now()/1000}={}){
+// WO-20 (2026-09-23), the owner: "Nothing works without the printer being on. You can look at things, but
+// you can't really alter anything." The printer's state as the header shows it and every control
+// obeys, read off the collector's own link (observer.printer_state); nothing here polls the printer.
+// lock: printer controls are off. estop: the emergency stop may still go (Moonraker answers).
+// WO-13 (2026-10-12): state words come from the printer's driver and brand. Klipper phrases
+// ("KLIPPER NOT READY", FIRMWARE RESTART) only on a Klipper printer; a PrusaLink or FlashForge in the
+// same state reads in its own words (pass klipper:false and the brand the /api/controls payload
+// carries). Default stays Klipper so the pages that never fetch controls (service, replay) are
+// unchanged.
+export function printerLink(observer,{replay=false,lastSeen=null,now=Date.now()/1000,klipper=true,brand='Moonraker'}={}){
  const ago=finite(lastSeen)===null?null:Math.max(0,now-lastSeen);
  const since=ago===null?'':ago<90?Math.round(ago)+' s':ago<5400?Math.round(ago/60)+' min':ago<172800?(ago/3600).toFixed(1)+' h':Math.round(ago/86400)+' days';
- // The page's own service comes first. While Stella Scope itself does not answer (service.js then
- // hands this rule {printer_state:'service'} with the moment it was lost), nothing about the printer
- // is current and no command can go, so it is a state of its own, not PRINTER OFF.
+ // WO-21 (2026-09-24): the page's own service comes first. While Stella Scope itself does not answer
+ // (service.js then hands this rule {printer_state:'service'} with the moment it was lost), nothing
+ // about the printer is current and no command can go, so it is a state of its own, not PRINTER OFF.
  if(observer?.printer_state==='service')return {state:'service',label:'SERVICE OFF',since,lock:true,estop:false,reason:'Stella Scope service is not running: this page cannot reach it, so nothing new arrives and no command can go. The page tries again by itself and picks up at once when it answers.'};
- if(replay)return {state:'replay',label:'REPLAY',since,lock:true,estop:false,reason:'Saved recording: printer commands are unavailable in replay.'};
+ if(replay)return {state:'replay',label:'REPLAY',since,lock:true,estop:false,reason:'This is a saved recording: printer controls are not available.'};
  const st=observer?.printer_state;
- if(st==='unreachable')return {state:'off',label:'PRINTER OFF',since,lock:true,estop:false,reason:'Printer is off: Moonraker is not answering'+(since?`, last data ${since} ago`:'')+'. Viewing still works.'};
- if(st==='not_ready')return {state:'not_ready',label:'KLIPPER NOT READY',since,lock:true,estop:true,recover:['shutdown','error'].includes(observer.klipper_state),reason:'Klipper not ready: '+(observer.printer_message||'Moonraker answers but Klipper does not')+'.'};
+ if(st==='unreachable')return {state:'off',label:'PRINTER OFF',since,lock:true,estop:false,reason:`The printer is off or not answering${since?`, last heard ${since} ago`:''}. It reconnects by itself when it is on.`};   // 2026-10-25: no "Moonraker" in what he reads
+ if(st==='not_ready'){
+  if(klipper===false){const m=(observer.printer_message||'').replace(/\.+$/,'');
+   return {state:'not_ready',label:'PRINTER NOT READY',since,lock:true,estop:false,recover:false,klipper:false,reason:m?m+'.':`${brand} answers but the printer is not ready.`};}
+  return {state:'not_ready',label:'KLIPPER NOT READY',since,lock:true,estop:true,recover:['shutdown','error'].includes(observer.klipper_state),reason:'Klipper not ready: '+(observer.printer_message||'Moonraker answers but Klipper does not')+'.'};}
  if(st==='ready')return {state:'ready',label:'PRINTER READY',since,lock:false,estop:true,reason:''};
  return {state:'unknown',label:'CHECKING',since,lock:false,estop:true,reason:''};
 }
-// What the header badge and the line under the name say about the controls, from the same state as
-// the pill and the locks, so the badge cannot say LIVE CONTROLS while the view is rewound or the
-// printer is off. `enabled`: the service lets controls run at all (its config).
+// WO-21 (2026-09-24): what the header badge and the line under the name say about the controls,
+// from the same state as the pill and the locks, so the badge cannot say LIVE CONTROLS while the view
+// is rewound or the printer is off. `enabled`: the service lets controls run at all (its config).
 export function controlsSummary(link,{live=true,enabled=false}={}){
  if(link.state==='service')return {key:'service',badge:'SERVICE OFF · LOCKED',line:'controls locked: Stella Scope is not running'};
  if(link.state==='replay')return {key:'replay',badge:'REPLAY · READ ONLY',line:'saved recording, read only'};
  if(link.state==='off')return {key:'printer_off',badge:'PRINTER OFF · LOCKED',line:'controls locked: printer off'};
- if(link.state==='not_ready')return link.recover?{key:'restarts',badge:'RESTARTS ONLY',line:'controls locked: only the restarts and E-STOP go'}:{key:'klipper',badge:'KLIPPER · LOCKED',line:'controls locked: Klipper not ready'};
+ if(link.state==='not_ready')return link.klipper===false?{key:'locked',badge:'NOT READY · LOCKED',line:'controls locked: printer not ready'}:link.recover?{key:'restarts',badge:'RESTARTS ONLY',line:'controls locked: only the restarts and E-STOP go'}:{key:'klipper',badge:'KLIPPER · LOCKED',line:'controls locked: Klipper not ready'};
  if(!enabled)return {key:'read_only',badge:'READ ONLY',line:''};
  if(!live)return {key:'rewound',badge:'REWOUND · LOCKED',line:'controls paused while rewound'};
  return {key:'live',badge:'LIVE CONTROLS',line:'controls armed'};
 }
-// Reviewer's decision on with Moonraker answering and Klipper halted or in error (`recover`), the two
-// restarts are the way out, as in Mainsail and Fluidd, so they stay usable. Each still asks once.
-// linkAllows says whether the printer's state lets a command through at all; the service's own rules
-// for it come after.
+// Reviewer's decision on WO-20 (2026-09-23): with Moonraker answering and Klipper halted or in error
+// (`recover`), the two restarts are the way out, as in Mainsail and Fluidd, so they stay usable. Each
+// still asks once. linkAllows says whether the printer's state lets a command through at all; the
+// service's own rules for it come after.
 export const RECOVERY=['firmware_restart','klipper_restart'];
 export function linkAllows(link,id){return !link.lock||id==='emergency_stop'&&link.estop||link.recover===true&&RECOVERY.includes(id);}
-// One preset store. The PREHEAT menu is the saved presets in their saved order, then Cool down, which
-// is built in and cannot be deleted. Nothing in the HUD holds a second table.
+// WO-20: one preset store. The PREHEAT menu is the saved presets in their saved order, then Cool down,
+// which is built in and cannot be deleted. Nothing in the HUD holds a second table.
 export const COOL_DOWN=Object.freeze({name:'Cool down',nozzle:0,bed:0,fixed:true});
 export function preheatMenu(presets){const list=Array.isArray(presets?.materials)?presets.materials:[];
  return [...list.filter(m=>typeof m?.name==='string'&&finite(m.nozzle)!==null&&finite(m.bed)!==null).map(m=>({name:m.name,nozzle:m.nozzle,bed:m.bed,fixed:false})),COOL_DOWN];}
-// What the preset editor has not saved yet. rows carry `orig`, the index of the saved preset a row
-// started from (null for an added row); a row is new, edited or the same, and a saved preset with no
-// row left is removed.
+// WO-20: what the preset editor has not saved yet. rows carry `orig`, the index of the saved preset a
+// row started from (null for an added row); a row is new, edited or the same, and a saved preset with
+// no row left is removed.
 export function presetDiff(saved,rows){const s=Array.isArray(saved)?saved:[],kept=new Set();
  const states=rows.map(r=>{const o=r.orig==null?null:s[r.orig];if(!o)return 'new';kept.add(r.orig);return String(r.name).trim()===o.name&&Number(r.nozzle)===Number(o.nozzle)&&Number(r.bed)===Number(o.bed)?'same':'edited';});
  const removed=s.length-kept.size;return {states,removed,changed:removed>0||states.some(x=>x!=='same')};}

@@ -368,7 +368,7 @@ def create_geometry(source: Path, output: Path, asset_id: str, placement: dict[s
                 "Z-up millimeter STEP coordinates with source placements baked into every mesh. "
                 "bed_center X/Y and bed_size are derived from the named source MIC6 plate; bed_center "
                 "Z is the top of the named Flex Sheet when present, otherwise the plate top. target_machine_bed_size "
-                "records the printer's requested 350 mm target separately; no scaling was applied. No "
+                "records Stella's requested 350 mm target separately; no scaling was applied. No "
                 "source-backed nozzle datum or motion classification was recovered."
             ),
         }

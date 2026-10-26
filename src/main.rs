@@ -1,41 +1,62 @@
 mod api;
 mod assets;
 mod camera;
+mod camera_hub;
 mod collector;
 mod commands;
 mod config;
+mod demo;
+mod discover;
+mod driver;
+mod drivers;
+mod dry_run;
+#[cfg(test)]
+mod fakes;
+mod farm;
+#[cfg(test)]
+mod farm_tests;
+mod fleet;
+// Polish WO-06 (2026-10-18): the Rust reference of web/gcode-follow.js (the page does the mapping; scripts/gcode-follow-tests.mjs mirrors these numbers).
+#[cfg(test)]
+mod gcode_follow;
+mod gcode_meta;
+mod gzip;
+// Finish-2 F07 (2026-10-19): the user guide inside the program.
+mod help;
 mod lan;
+mod licence;
 mod log_tail;
 mod model;
-mod notify;
 mod moonraker;
 #[cfg(test)]
 mod next_tests;
+mod notify;
 mod operator;
+mod plate;
+mod plugs;
 mod printer_config;
+mod printer_models;
+mod prusa_machines;
 mod probe;
-mod remote;
 mod qgl;
+mod queue;
+mod queue_flow;
 #[cfg(test)]
 mod regression_tests;
+mod remote;
 mod resonance;
 mod server;
+mod sha256;
 mod store;
 mod telemetry;
+mod timelapse;
 #[cfg(test)]
 mod tests;
 mod ws;
 mod ws_source;
 
 use config::Config;
-use model::CollectorStatus;
-use std::{
-    fs::{self, File, OpenOptions},
-    net::TcpListener,
-    path::Path,
-    sync::{Arc, Mutex},
-    thread,
-};
+use std::{fs, net::TcpListener, path::Path};
 use store::Store;
 pub type Result<T> = std::result::Result<T, String>;
 
@@ -96,7 +117,7 @@ fn start() -> Result<()> {
             "--print-config" => print_config = true,
             "--benchmark" => bench = true,
             "--help" | "-h" => {
-                println!("Stella Scope - Klipper recorder with guarded local controls disabled by default\n\n  stella-scope [--config FILE] [--db FILE] [--port PORT]\n  stella-scope --demo [--db DEMO_FILE]\n  stella-scope --replay RECORDING.sqlite3 [--config FILE]\n  stella-scope --print-config\n  stella-scope --benchmark [--config FILE]\n\nSet controls_enabled only on a loopback live instance. Replay and demo never enable controls.");
+                println!("Stella Scope - printer and farm recorder (Klipper, Prusa, FlashForge) with guarded local controls disabled by default\n\n  stella-scope [--config FILE] [--db FILE] [--port PORT]\n  stella-scope --demo [--db DEMO_FILE]\n  stella-scope --replay RECORDING.sqlite3 [--config FILE]\n  stella-scope --print-config\n  stella-scope --benchmark [--config FILE]\n\nSet controls_enabled only on a loopback live instance. Replay and demo never enable controls.");
                 return Ok(());
             }
             _ => {
@@ -113,6 +134,12 @@ fn start() -> Result<()> {
         return Err("--replay already supplies the recording path; omit --db".into());
     }
     let mut startup_warnings = Vec::new();
+    let used_config: Option<String> = config_path.clone().or_else(|| {
+        Path::new("stella-scope.json")
+            .exists()
+            .then(|| "stella-scope.json".to_owned())
+    });
+    let database_override = database.clone();
     let mut cfg = match config_path {
         Some(path) => Config::load(&path)?,
         None if Path::new("stella-scope.json").exists() => Config::load("stella-scope.json")?,
@@ -121,7 +148,10 @@ fn start() -> Result<()> {
                 "Using built-in defaults; use --print-config to create a JSON configuration file"
                     .into(),
             );
-            Config::default()
+            Config {
+                unconfigured: true,
+                ..Config::default()
+            }
         }
     };
     if let Some(db) = database {
@@ -147,67 +177,75 @@ fn start() -> Result<()> {
         return benchmark(&cfg);
     }
     let readonly = replay.is_some();
-    let _writer_lock: Option<File> = if readonly {
-        None
-    } else {
-        let path = format!("{}.lock", cfg.database);
-        let file=OpenOptions::new().read(true).write(true).create(true).truncate(false).open(&path)
-            .map_err(|e|format!("cannot open recorder lock {path}: {e}; create the parent directory and grant write permission"))?;
-        file.try_lock().map_err(|e| {
-            format!(
-                "another recorder may already own {}: {e}; stop it or choose a different database",
-                cfg.database
-            )
-        })?;
-        Some(file)
-    };
-    let db = Store::open(&cfg.database, readonly)?;
-    if !readonly {
-        let origin = db.context_at(f64::MAX, "scope_origin")?;
-        let expected = if demo { "demo" } else { "live" };
-        if origin
-            .as_ref()
-            .and_then(|v| v.as_str())
-            .is_some_and(|v| v != expected)
-            || (demo && origin.is_none() && db.bounds()?.0.is_some())
-        {
-            return Err(
-                "refusing to mix demonstration and real recordings; select a new --db file".into(),
-            );
+    // A demonstration and a saved recording have their own first printer; the placeholder is for a live service.
+    if demo || readonly {
+        cfg.unconfigured = false;
+    }
+    // A demonstration runs simulated printers instead of real ones: one demo Stella (a Voron 2.4 350)
+    // by default, or whichever printers the config names with driver "demo". Nothing leaves the
+    // machine and nothing is printed.
+    if demo {
+        if cfg.printers.is_empty() {
+            cfg.printers.push(crate::config::PrinterEntry {
+                id: "stella".into(),
+                name: "Stella".into(),
+                driver: "demo".into(),
+                address: String::new(),
+                credentials_ref: None,
+                database: Some(cfg.database.clone()),
+                model_asset: None,
+                model: Some("Voron 2.4 350".into()),
+                accent: Some("#04D9C4".into()),
+                camera: None,
+                bed_size_mm: Some([350.0, 350.0]),
+                probe_offset_mm: None,
+                nozzle_mm: None,
+                slicer_model: None,
+                material: None,
+                cad_model: None,
+                cad_calibration: None,
+                cad_options: None,
+                plug: None,
+                demo_start_at: Some(0.3),
+                demo_paused: false,
+                demo_since: None,
+            });
+        } else {
+            for first in cfg.printers.iter_mut().take(1) {
+                first.driver = "demo".into();
+                first.demo_start_at.get_or_insert(0.3);
+                if first.model.is_none() {
+                    first.model = Some("Voron 2.4 350".into());
+                }
+            }
         }
     }
-    let (a, b, c) = db.counts()?;
-    let (_, last) = db.bounds()?;
-    let state = Arc::new(Mutex::new(CollectorStatus {
-        mode: if readonly {
-            "replay"
-        } else if demo {
-            "demo"
-        } else {
-            "live"
+    // The first printer is the service. A path given on the command line overrides the file's own
+    // recording for it, as it always did.
+    if let Some(first) = cfg.printers.first_mut() {
+        if database_override.is_some() || replay.is_some() || demo {
+            first.database = Some(cfg.database.clone());
         }
-        .into(),
-        samples: a,
-        events: b,
-        qgl_rounds: c,
-        last_success: last,
-        degraded: startup_warnings,
-        ..CollectorStatus::default()
-    }));
+    }
     let listener=TcpListener::bind((cfg.bind.as_str(),cfg.port))
         .map_err(|e|format!("cannot listen on {}:{}: {e}; stop the other service or change bind/port in the JSON file",cfg.bind,cfg.port))?;
+    // Every printer's recording, collector and control service (src/farm.rs). A configuration with no
+    // `printers` is one printer, `stella`, with the recording it always had.
+    let farm = farm::Farm::start(
+        cfg.clone(),
+        used_config.map(std::path::PathBuf::from),
+        demo,
+        readonly,
+        startup_warnings,
+    )?;
+    let first = farm.first();
+    // Finish-2 F09 (2026-10-19): the 3D models this build carries (Prusa's CORE One L and CORE One, the MK3S+ and the MINI) are put in the
+    // person's library before the first page is asked for, so a fresh install draws them with nothing to download and no file to find.
     if !readonly {
-        let worker_cfg = cfg.clone();
-        let worker_state = state.clone();
-        thread::Builder::new().name("stella-collector".into()).stack_size(1024*1024).spawn(move||{
-            let status=worker_state.clone();
-            let result=std::panic::catch_unwind(std::panic::AssertUnwindSafe(||collector::run(worker_cfg,demo,worker_state,db)));
-            let error=match result {Ok(Err(e))=>e,Ok(Ok(()))=>"collector stopped unexpectedly; restart Stella Scope".into(),
-                Err(_)=>"collector panicked; recorded data remains available, but restart Stella Scope to resume capture".into()};
-            eprintln!("{error}");
-            // CI exposed a temporary MutexGuard outliving the final closure-local Arc.
-            if let Ok(mut s)=status.lock() {s.connected=false;s.last_error=Some(error);};
-        }).map_err(|e|format!("cannot start collector thread: {e}; free memory and restart"))?;
+        let carried = farm.library().seed_bundled();
+        if !carried.is_empty() {
+            println!("  3D models put in the library: {}", carried.join(", "));
+        }
     }
     println!(
         "Stella Scope {}: http://{}:{} | {} | {}",
@@ -221,29 +259,32 @@ fn start() -> Result<()> {
         } else {
             "read-only recording"
         },
-        cfg.database
+        first.cfg.database
     );
-    if !readonly {
-        notify::init(&cfg);
+    for p in farm.list().iter().skip(1) {
+        println!(
+            "  printer {} ({}): {} | {}",
+            p.id, p.cfg.driver, p.cfg.moonraker_url, p.cfg.database
+        );
     }
     // Phone access: a second listener that answers paired devices only (src/lan.rs).
-    let lan = cfg.lan_port.filter(|_| !readonly).and_then(|port| match TcpListener::bind((cfg.lan_bind.as_str(), port)) {
-        Ok(l) => {
-            println!("Phone access for paired devices on {}:{port}", cfg.lan_bind);
-            Some(l)
-        }
-        Err(e) => {
-            eprintln!("phone access is off: cannot listen on {}:{port}: {e}", cfg.lan_bind);
-            None
+    let lan = cfg.lan_port.filter(|_| !readonly).and_then(|port| {
+        match TcpListener::bind((cfg.lan_bind.as_str(), port)) {
+            Ok(l) => {
+                println!("Phone access for paired devices on {}:{port}", cfg.lan_bind);
+                Some(l)
+            }
+            Err(e) => {
+                eprintln!(
+                    "phone access is off: cannot listen on {}:{port}: {e}",
+                    cfg.lan_bind
+                );
+                None
+            }
         }
     });
-    if lan.is_some() {
-        remote::start(&cfg);
-    }
-    if !readonly {
-        remote::start_eye(&cfg);
-    }
-    server::serve(listener, lan, cfg, state)
+    farm.start_extras(lan.is_some(), readonly);
+    server::serve(listener, lan, farm)
 }
 fn main() {
     if let Err(error) = start() {

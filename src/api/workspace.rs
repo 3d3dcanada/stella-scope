@@ -81,6 +81,19 @@ fn matrix(v: &Value) -> Option<Vec<Vec<Option<f64>>>> {
         })
         .collect()
 }
+/// The active tool of a printer with more than one: a toolchanger names it, and Klipper always names the
+/// active extruder (`extruder`, `extruder1`...). Absent when the sample says neither.
+fn tool_of(d: &Value) -> Option<u64> {
+    d["toolchanger"]["tool_number"].as_u64().or_else(|| {
+        match d["toolhead"]["extruder"]
+            .as_str()?
+            .strip_prefix("extruder")?
+        {
+            "" => Some(0),
+            n => n.parse().ok(),
+        }
+    })
+}
 fn point(ts: f64, d: &Value, details: bool) -> Value {
     let mut motors = serde_json::Map::new();
     for (n, _) in MOTORS {
@@ -88,28 +101,32 @@ fn point(ts: f64, d: &Value, details: bool) -> Value {
     }
     let p = &d["motion_report"]["live_position"];
     let mut v = json!({"ts":ts,"position":[number(&p[0]),number(&p[1]),number(&p[2])],
+ "tool":tool_of(d),
+ // Polish WO-03: a printer that names its tools through a toolchanger module (not just Klipper's extruder names).
+ "toolchanger":d["toolchanger"].is_object(),
  "commanded":[number(&d["toolhead"]["position"][0]),number(&d["toolhead"]["position"][1]),number(&d["toolhead"]["position"][2])],
  "velocity":nonnegative(&d["motion_report"]["live_velocity"]),"homed":text(&d["toolhead"]["homed_axes"]),
- // During a G28 the HUD drew the whole gantry above the frame. The recorded sample at 1790021428.895
- // has homed_axes "xyz" and BOTH live_position and toolhead.position at Z 464.02 against axis_maximum
- // 310 — Klipper's homing force position (position_endstop + 1.5 * (position_max -
- // position_endstop)), not a place the machine ever was. The model needs the machine's own travel to
- // tell that pose apart from a real one, so the limits ride on every point.
+ // 2026-09-21: during a G28 the HUD drew the whole gantry above the frame. The recorded sample
+ // at 1790021428.895 has homed_axes "xyz" and BOTH live_position and toolhead.position at Z 464.02
+ // against axis_maximum 310 — Klipper's homing force position (position_endstop + 1.5 * (position_max
+ // - position_endstop)), not a place the machine ever was. The model needs the machine's own travel
+ // to tell that pose apart from a real one, so the limits ride on every point.
  "limits":{"min":[number(&d["toolhead"]["axis_minimum"][0]),number(&d["toolhead"]["axis_minimum"][1]),number(&d["toolhead"]["axis_minimum"][2])],
   "max":[number(&d["toolhead"]["axis_maximum"][0]),number(&d["toolhead"]["axis_maximum"][1]),number(&d["toolhead"]["axis_maximum"][2])]},
  "speed_factor":number(&d["gcode_move"]["speed_factor"]),"extrude_factor":number(&d["gcode_move"]["extrude_factor"]),"max_velocity":number(&d["toolhead"]["max_velocity"]),
- // The space beside X, Y and Z should carry live motion. The acceleration limit, the filament speed
- // (negative while retracting; the HUD turns it into mm³/s) and the speed the G-code asked for are
- // all in the recorded objects already. gcode_move.speed is the last G1 F in mm/min, before M220
- // (the cube print records 12000 while the head runs at 200 mm/s), so it rides here in mm/s.
+ // WO-19 (2026-09-23), the owner: the space beside X, Y and Z should carry live motion. The acceleration
+ // limit, the filament speed (negative while retracting; the HUD turns it into mm³/s) and the speed
+ // the G-code asked for are all in the recorded objects already. gcode_move.speed is the last G1 F
+ // in mm/min, before M220 (the cube print records 12000 while the head runs at 200 mm/s), so it
+ // rides here in mm/s.
  "max_accel":nonnegative(&d["toolhead"]["max_accel"]),"extruder_velocity":number(&d["motion_report"]["live_extruder_velocity"]),"requested_speed":nonnegative(&d["gcode_move"]["speed"]).map(|f| f / 60.0),
  // Z is fifteen times slower than XY on this machine (max_z_velocity 20 against max_velocity 300),
  // so the model's travel guard needs Z's own limit or a 441 mm homing jump is inside one tick's
  // reach. Klipper reports it in configfile.settings.printer, which the recorder already holds.
  "max_z_velocity":number(&d["configfile"]["settings"]["printer"]["max_z_velocity"]),
- // The done ramp marked parts of the cube finished before the head got there. The byte the
- // printer is actually reading is what maps onto the parser's own offsets; progress is a ratio
- // and loses the file size. Both ride on the point so the HUD never has to guess.
+ // 2026-09-21: the done ramp marked parts of the cube finished before the head got there. The
+ // byte the printer is actually reading is what maps onto the parser's own offsets; progress is a
+ // ratio and loses the file size. Both ride on the point so the HUD never has to guess.
  "file_position":nonnegative(&d["virtual_sdcard"]["file_position"]),"file_size":nonnegative(&d["virtual_sdcard"]["file_size"]),
  "z_offset":number(&d["gcode_move"]["homing_origin"][2]),"nozzle":heater(&d["extruder"]),"bed":heater(&d["heater_bed"]),
  "fans":{"fan":fan(&d["fan"]),"hotend_fan":fan(&d["heater_fan hotend_fan"]),"controller_fan":fan(&d["controller_fan controller_fan"])},
@@ -164,11 +181,17 @@ fn geometry(d: &Value, g: Option<Value>, cfg: &Config) -> Value {
         .map(Value::Array)
         .unwrap_or_else(|| json!(cfg.bed_size_mm));
     let (bed, bed_source) = if let (Some(x), Some(y)) = (xy[0], xy[1]) {
-        (json!([x,y]), "Klipper XY travel in this recorded sample; physical plate may differ")
+        (
+            json!([x, y]),
+            "Klipper XY travel in this recorded sample; physical plate may differ",
+        )
     } else if g["bed_size_confirmed"].as_bool() == Some(true) {
-        (configured_bed, "From your Klipper X/Y configuration")
+        (configured_bed, "Owner setup from Klipper X/Y configuration")
     } else {
-        (configured_bed, "Unverified display envelope; configure the printer's bed dimensions")
+        (
+            configured_bed,
+            "Unverified display envelope; configure the printer's bed dimensions",
+        )
     };
     let fallback_offset = g["probe_offset_mm"]
         .as_array()
@@ -181,7 +204,11 @@ fn geometry(d: &Value, g: Option<Value>, cfg: &Config) -> Value {
         .map(Value::Array)
         .unwrap_or_else(|| json!(cfg.probe_offset_mm));
     let mut offset = None;
-    let mut source = if g["probe_offset_confirmed"].as_bool() == Some(true) {"From your Klipper probe configuration"} else {"Unverified default; enter the probe's actual offsets"};
+    let mut source = if g["probe_offset_confirmed"].as_bool() == Some(true) {
+        "Owner setup from Klipper probe configuration"
+    } else {
+        "Unverified default; enter the probe's actual offsets"
+    };
     for name in ["bltouch", "probe"] {
         let x = number(&settings[name]["x_offset"]);
         let y = number(&settings[name]["y_offset"]);
@@ -196,7 +223,7 @@ fn geometry(d: &Value, g: Option<Value>, cfg: &Config) -> Value {
     json!({"machine":cfg.printer_model.as_deref().unwrap_or("Printer"),"bed_size_mm":bed,"bed_size_source":bed_source,"bed_size_confirmed":g["bed_size_confirmed"].as_bool()==Some(true),"probe_offset_mm":offset.map(|v|json!(v)).unwrap_or(fallback_offset),
      "probe_offset_source":source,"z_max_mm":z.unwrap_or(310.0),"z_max_source":if z.is_some(){"Recorded Klipper travel limit"}else{"310 mm display envelope; not measured or verified"},
  "recorded":recorded,"poll_interval_ms":number(&g["poll_interval_ms"]).filter(|n|*n>0.0).unwrap_or(cfg.poll_interval_ms as f64),"qgl_tolerance_mm":g["qgl_tolerance_mm"],
-     "layout_basis":"Reference printer schematic scaled to recorded travel; frame, printed parts, toolhead housing and electronics placement are illustrative until a printer model is loaded. Corner mapping is a reference map, not measured CAD.",
+     "layout_basis":"Reference printer schematic scaled to recorded travel; frame, printed parts, toolhead housing and electronics placement are illustrative until an owner-supplied model is loaded. Corner mapping is a reference map, not measured CAD.",
  "kinematics":text(&settings["printer"]["kinematics"]),"independent_corner_positions":false})
 }
 struct Bounded {
@@ -398,9 +425,20 @@ pub fn snapshot(
     )
 }
 fn job(d: &Value) -> Value {
-    json!({"name":text(&d["print_stats"]["filename"]),"state":text(&d["print_stats"]["state"]),"progress":fraction(&d["virtual_sdcard"]["progress"]),"duration":nonnegative(&d["print_stats"]["print_duration"]),"filament_used":nonnegative(&d["print_stats"]["filament_used"]),
-     // The layer the slicer reports through SET_PRINT_STATS_INFO; null when it does not.
-     "layer":nonnegative(&d["print_stats"]["info"]["current_layer"]),"layers":nonnegative(&d["print_stats"]["info"]["total_layer"])})
+    // 2026-10-23 (a live ring print, Stella): by file bytes the first layer read 9 % and "1 h 11 min left" on a 30 minute
+    // print, while the slicer's own M73 progress (display_status) read 26 %. M73 is the slicer's time-based figure; Klipper
+    // falls back to the file position there when a file has no M73, so it is never worse than the file figure.
+    let duration = nonnegative(&d["print_stats"]["print_duration"]);
+    let progress = fraction(&d["display_status"]["progress"]).filter(|p| *p > 0.0).or(fraction(&d["virtual_sdcard"]["progress"]));
+    let worked_out = match (progress, duration) {
+        (Some(p), Some(t)) if p > 0.01 && t > 0.0 => Some((t / p - t).max(0.0).round()),
+        _ => None,
+    };
+    json!({"name":text(&d["print_stats"]["filename"]),"state":text(&d["print_stats"]["state"]),"message":text(&d["print_stats"]["message"]),"progress":progress,"duration":duration,"filament_used":nonnegative(&d["print_stats"]["filament_used"]),
+     // WO-19: the layer the slicer reports through SET_PRINT_STATS_INFO; null when it does not.
+     "layer":nonnegative(&d["print_stats"]["info"]["current_layer"]),"layers":nonnegative(&d["print_stats"]["info"]["total_layer"]),
+     // Finish-2 F02: the time left the printer itself states (PrusaLink), null where it states none.
+     "time_left":nonnegative(&d["_scope_prusalink"]["time_remaining"]).or(worked_out)})
 }
 // Current procedure is derived from recorded console evidence plus the newest sample; it is never
 // presented as a machine-reported state, and the basis is carried with the answer.
@@ -417,8 +455,7 @@ fn activity(db: &Store, at: f64, d: &Value) -> Result<Value> {
     drop(rows);
     drop(stmt);
     // BLTouch probing is the most specific live state: "probe: at X,Y bed will contact at z=Z"
-    // lines stream while any probing procedure runs (formats from a real printer\'s
-    // recording).
+    // lines stream while any probing procedure runs (formats from Stella's own recording).
     let procedure = records.iter().find_map(|(_, msg)| {
         let l = msg.to_lowercase();
         if l.contains("quad_gantry_level") || l.contains("gantry-relative") {
@@ -523,11 +560,10 @@ pub fn job_for(d: &Value) -> Value {
 pub fn activity_for(db: &Store, at: f64, d: &Value) -> Value {
     activity(db, at, d).unwrap_or_else(|e| json!({"id":"unknown","label":"Activity unavailable","detail":e,"since_ts":at,"basis":"Derivation failed; the console evidence could not be read"}))
 }
-/// L4: runout sensors, when Klipper reports any. the test printer has none fitted today, so
-/// this is an empty array there — an empty list means "none configured", never "none detected".
-/// Discovery already allows the `filament_switch_sensor ` and `filament_motion_sensor `
-/// prefixes (`telemetry::allowed`), so a sensor added to printer.cfg appears here with no
-/// config change.
+/// L4: runout sensors, when Klipper reports any. Stella has none fitted today, so this is an
+/// empty array there — an empty list means "none configured", never "none detected". Discovery
+/// already allows the `filament_switch_sensor ` and `filament_motion_sensor ` prefixes
+/// (`telemetry::allowed`), so a sensor added to printer.cfg appears here with no config change.
 pub fn filament_sensors(data: &Value) -> Vec<Value> {
     let Some(map) = data.as_object() else {
         return Vec::new();
@@ -604,7 +640,7 @@ pub fn tick(db: &Store, cfg: &Config, status: &CollectorStatus) -> Result<Value>
             None,
             Value::Null,
             job(&Value::Null),
-            json!({"id":"no_data","label":"No recorded sample","detail":"The recorder has not captured a sample from the printer yet","since_ts":clock,"basis":"No sample exists"}),
+            json!({"id":"no_data","label":"No recorded sample","detail":"Stella Scope has not had a reading from the printer yet","since_ts":clock,"basis":"No sample exists"}),
             None,
             Vec::new(),
         ),
@@ -635,12 +671,12 @@ pub fn tick_handle(method: &str, db: &Store, cfg: &Config, status: &CollectorSta
 // and driver-warning density. All of it is read from the recording; nothing is extrapolated.
 pub fn trends(db: &Store, _cfg: &Config, to: f64, window_s: f64) -> Result<Value> {
     let from = to - window_s;
-    // The mesh series stays sampled, one reading per 30 s bucket, the newest row in the bucket
-    // that holds a matrix. The rows now come from Store::replay (the decoder history.rs uses):
-    // keyframes, deltas that name a mesh field, deltas that remove an object. The json_extract
-    // this replaces saw keyframes only, so a mesh a delta set was dated at the next keyframe, or
-    // missed when gone again before one. Unchanged below: a repeat of the previous reading is
-    // skipped, and an empty grid in between makes the same mesh count again.
+    // WO-16 (2026-09-23): the mesh series stays sampled, one reading per 30 s bucket, the newest
+    // row in the bucket that holds a matrix. The rows now come from Store::replay (the decoder
+    // history.rs uses): keyframes, deltas that name a mesh field, deltas that remove an object.
+    // The json_extract this replaces saw keyframes only, so a mesh a delta set was dated at the
+    // next keyframe, or missed when gone again before one. Unchanged below: a repeat of the
+    // previous reading is skipped, and an empty grid in between makes the same mesh count again.
     let mut buckets: Vec<(f64, String, Value)> = Vec::new();
     let read = ["/bed_mesh/probed_matrix", "/bed_mesh/profile_name"];
     db.replay(from, to, &read, |ts, sample| {
@@ -733,15 +769,14 @@ pub fn trends(db: &Store, _cfg: &Config, to: f64, window_s: f64) -> Result<Value
         .filter_map(|r| r.ok())
         .collect();
     drop(off_stmt);
-    // Resonance band: recorded time per hour with belt-tooth frequency within ±3 Hz of the printer's
-    // Y resonance, taken from Klipper's [input_shaper] shaper_freq_y (GT2 2 mm pitch: f = v/2, so the
-    // band is 2(f-3) to 2(f+3) mm/s). No configured shaper frequency means no band. Pure math on recorded
-    // velocities; approximate seconds assuming ~4 samples per second. every recorded sample
-    // counts, as the SQL meant to. A delta only carries live_velocity when it changed, so the
-    // replay yields the velocity's changes and each sample timestamp in the window is counted at
-    // the velocity in force then. The json_extract this replaces saw keyframes only, one sample a
-    // minute. The timestamps are streamed, not collected: no cap has to guess the recorder's
-    // fastest cadence (poll_interval_ms goes to 50).
+    // Resonance band (board item 6): recorded time per hour with belt-tooth frequency within
+    // ±3 Hz of the 43.4 Hz Y resonance (GT2 2 mm pitch: f = v/2 → ~83–93 mm/s). Pure math on
+    // recorded velocities; approximate seconds assuming ~4 samples per second.
+    // WO-16 (2026-09-23): every recorded sample counts, as the SQL meant to. A delta only
+    // carries live_velocity when it changed, so the replay yields the velocity's changes and each
+    // sample timestamp in the window is counted at the velocity in force then. The json_extract
+    // this replaces saw keyframes only, one sample a minute. The timestamps are streamed, not
+    // collected: no cap has to guess the recorder's fastest cadence (poll_interval_ms goes to 50).
     const VELOCITY: &str = "/motion_report/live_velocity";
     let reading = |s: &Value| s.pointer(VELOCITY).and_then(Value::as_f64);
     let mut current = db.at(from)?.and_then(|(_, s)| reading(&s));
@@ -753,11 +788,6 @@ pub fn trends(db: &Store, _cfg: &Config, to: f64, window_s: f64) -> Result<Value
         }
         true
     })?;
-    let shaper_y = db
-        .at(to)?
-        .and_then(|(_, s)| s.pointer("/configfile/settings/input_shaper/shaper_freq_y").and_then(Value::as_f64))
-        .filter(|f| *f > 3.0);
-    let band = shaper_y.map(|f| (2.0 * (f - 3.0), 2.0 * (f + 3.0)));
     let mut in_band: BTreeMap<i64, u64> = BTreeMap::new();
     let mut next = changes.iter().peekable();
     let mut times = db
@@ -772,7 +802,7 @@ pub fn trends(db: &Store, _cfg: &Config, to: f64, window_s: f64) -> Result<Value
         while let Some((_, v)) = next.next_if(|(at, _)| *at <= ts) {
             current = *v;
         }
-        if matches!((current, band), (Some(v), Some((lo, hi))) if (lo..=hi).contains(&v)) {
+        if current.is_some_and(|v| (80.6..=92.8).contains(&v)) {
             *in_band.entry((ts / 3600.0) as i64).or_default() += 1;
         }
     }
@@ -791,8 +821,8 @@ pub fn trends(db: &Store, _cfg: &Config, to: f64, window_s: f64) -> Result<Value
         json!({"schema":"stella-scope.trends.v1","from":from,"to":to,"window_s":window_s,
         "meshes":meshes,"qgl_runs":runs,"warnings":warnings,
         "z_health":{"zero_references":zeros,"offset_log":offset_log},
-        "resonance":{"band_mm_s":band.map(|(lo, hi)| json!([lo, hi])),"shaper_freq_y":shaper_y,"hours":resonance,
-            "note":"Recorded seconds per hour spent at speeds whose GT2 belt-tooth frequency (v/2) sits within ±3 Hz of the Y resonance set in Klipper's [input_shaper] (shaper_freq_y). Derived from recorded velocities only."},
+        "resonance":{"band_mm_s":[80.6,92.8],"hours":resonance,
+            "note":"Recorded seconds per hour spent at speeds whose GT2 belt-tooth frequency (v/2) sits within ±3 Hz of the 43.4 Hz Y resonance (the hum heard in and out). Derived from recorded velocities only."},
         "print_context":prints,
         "basis":"Distinct recorded bed meshes and complete levelling runs within the window; repeated capture of an unchanged mesh is collapsed. Warnings are recorded event counts, not a health verdict. Resonance seconds are estimates from the recorded sample rate."}),
     )
@@ -1024,8 +1054,8 @@ mod tests {
     fn unreported_fans_are_not_zero() {
         assert!(point(1.0, &json!({}), true)["fans"]["fan"]["speed"].is_null());
     }
-    /// The HUD tells Klipper's homing force position apart from a real pose by the machine's own
-    /// travel, so the limits have to ride on every point, and stay unknown when Klipper is silent
+    /// WO-10: the HUD tells Klipper's homing force position apart from a real pose by the machine's
+    /// own travel, so the limits have to ride on every point, and stay unknown when Klipper is silent
     /// rather than collapsing to a zero-sized machine that would reject everything.
     #[test]
     fn travel_limits_ride_on_the_point() {
@@ -1038,11 +1068,10 @@ mod tests {
         assert_eq!(v["limits"]["max"], json!([350.0, 350.0, 310.0]));
         assert!(point(1.0, &json!({}), false)["limits"]["max"][0].is_null());
     }
-    /// Z's own speed limit and the byte the printer is reading both ride on the point. The travel
-    /// guard needs max_z_velocity (20 against max_velocity 300 on the test printer) or a homing
-    /// jump is inside one tick's XY reach, and the drawn toolpath needs the file position because
-    /// a progress ratio cannot be mapped back onto the parser's byte offsets without the file
-    /// size.
+    /// WO-11: Z's own speed limit and the byte the printer is reading both ride on the point. The
+    /// travel guard needs max_z_velocity (20 against max_velocity 300 on Stella) or a homing jump
+    /// is inside one tick's XY reach, and the drawn toolpath needs the file position because a
+    /// progress ratio cannot be mapped back onto the parser's byte offsets without the file size.
     #[test]
     fn z_speed_and_file_position_ride_on_the_point() {
         let v = point(
@@ -1058,9 +1087,9 @@ mod tests {
         assert!(quiet["max_z_velocity"].is_null());
         assert!(quiet["file_position"].is_null());
     }
-    /// Live motion beside X, Y and Z, and the layer for the bottom strip. The filament speed keeps
-    /// its sign (a retraction is negative); anything not reported is unknown, never zero. The
-    /// snapshot's job and the tick's job are the same projection.
+    /// WO-19 (2026-09-23): live motion beside X, Y and Z, and the layer for the bottom strip. The
+    /// filament speed keeps its sign (a retraction is negative); anything not reported is unknown,
+    /// never zero. The snapshot's job and the tick's job are the same projection.
     #[test]
     fn motion_readouts_and_layer_ride_on_the_point() {
         let sample = json!({"toolhead":{"max_accel":5000.0},"motion_report":{"live_extruder_velocity":-2.5},
@@ -1078,6 +1107,22 @@ mod tests {
         }
         assert!(job(&json!({}))["layer"].is_null());
         assert!(job(&json!({"print_stats":{"info":{"current_layer":-1}}}))["layer"].is_null());
+    }
+    #[test]
+    fn time_left_follows_the_slicer_progress_not_the_file_bytes() {
+        // Stella 2026-10-23, ring print r11 (Orca estimate 1832 s), eight minutes in on the slow first layer.
+        let d = json!({"print_stats":{"state":"printing","print_duration":496.0},"virtual_sdcard":{"progress":0.0938},"display_status":{"progress":0.26}});
+        let j = job(&d);
+        assert_eq!(j["progress"], json!(0.26));
+        assert_eq!(j["time_left"], json!(1412.0));
+        // no M73 in the file: the file position, as before
+        let j = job(&json!({"print_stats":{"print_duration":100.0},"virtual_sdcard":{"progress":0.5},"display_status":{"progress":0.0}}));
+        assert_eq!(j["progress"], json!(0.5));
+        assert_eq!(j["time_left"], json!(100.0));
+        // warming up: no print time yet, no guess
+        assert!(job(&json!({"print_stats":{"print_duration":0.0},"virtual_sdcard":{"progress":0.006}}))["time_left"].is_null());
+        // PrusaLink's own figure wins
+        assert_eq!(job(&json!({"print_stats":{"print_duration":100.0},"virtual_sdcard":{"progress":0.5},"_scope_prusalink":{"time_remaining":840}}))["time_left"], json!(840.0));
     }
     #[test]
     fn invalid_fan_percent_is_unknown() {
@@ -1192,8 +1237,7 @@ mod tests {
     }
     #[test]
     fn filament_sensors_appear_only_when_klipper_reports_them() {
-        // The test printer has none fitted: an empty list, never a fabricated "filament
-        // present".
+        // Stella has none fitted: an empty list, never a fabricated "filament present".
         assert!(filament_sensors(&json!({"toolhead":{"homed_axes":"xyz"}})).is_empty());
         assert!(filament_sensors(&Value::Null).is_empty());
 
@@ -1380,31 +1424,60 @@ mod tests {
         assert!(absent["observer"]["frame_age_s"].is_null());
         assert!(absent["observer"]["keepalive_ms"].is_null());
     }
-    /// The header's printer state rides on both observers: the published tick and the fallback tick
-    /// built from the status as it is now (what the HUD gets while no sample lands).
+    /// WO-20 (2026-09-23): the header's printer state rides on both observers: the published tick and
+    /// the fallback tick built from the status as it is now (what the HUD gets while no sample lands).
     #[test]
     fn tick_observers_carry_the_printer_state() {
         let mut s = CollectorStatus::default();
         s.printer_state = "unreachable".into();
-        s.printer_message = Some("Printer not answering. cannot reach Moonraker at http://127.0.0.1:9".into());
+        s.printer_message =
+            Some("Printer not answering. cannot reach Moonraker at http://127.0.0.1:9".into());
         s.last_success = Some(90.0);
-        let v = tick_payload(100.0, None, job(&Value::Null), Value::Null, None, &[], &Config::default(), &s);
+        let v = tick_payload(
+            100.0,
+            None,
+            job(&Value::Null),
+            Value::Null,
+            None,
+            &[],
+            &Config::default(),
+            &s,
+        );
         assert_eq!(v["observer"]["printer_state"], "unreachable");
         assert_eq!(v["observer"]["last_success"], 90.0);
         let mut db = store();
-        put(&mut db, 100.0, json!({"motion_report":{"live_position":[1,2,3]}}));
+        put(
+            &mut db,
+            100.0,
+            json!({"motion_report":{"live_position":[1,2,3]}}),
+        );
         let fallback = tick(&db, &Config::default(), &s).unwrap();
         assert_eq!(fallback["observer"]["printer_state"], "unreachable");
-        assert!(fallback["observer"]["printer_message"].as_str().unwrap().contains("cannot reach Moonraker"));
+        assert!(fallback["observer"]["printer_message"]
+            .as_str()
+            .unwrap()
+            .contains("cannot reach Moonraker"));
         // Klipper's own state word rides along too: the HUD unlocks the two restarts on it.
         s.printer_state = "not_ready".into();
         s.klipper_state = "error".into();
-        let v = tick_payload(100.0, None, job(&Value::Null), Value::Null, None, &[], &Config::default(), &s);
+        let v = tick_payload(
+            100.0,
+            None,
+            job(&Value::Null),
+            Value::Null,
+            None,
+            &[],
+            &Config::default(),
+            &s,
+        );
         assert_eq!(v["observer"]["klipper_state"], "error");
-        assert_eq!(tick(&db, &Config::default(), &s).unwrap()["observer"]["klipper_state"], "error");
+        assert_eq!(
+            tick(&db, &Config::default(), &s).unwrap()["observer"]["klipper_state"],
+            "error"
+        );
     }
     #[test]
-    fn demo_mesh_matches_a_nine_by_nine_probe_count() {
+    fn demo_mesh_matches_owner_nine_by_nine_probe_count() {
         let d = model::demo(10.0, &Config::default());
         let m = matrix(&d["bed_mesh"]["probed_matrix"])
             .expect("demo must exercise the real 9x9 probe count");
@@ -1491,11 +1564,11 @@ mod tests {
     fn snapshot_has_explicit_observer_time_namespace() {
         assert!(snap(&store(), 100.0).get("observer_now").is_some());
     }
-    /// A mesh and a stretch in the resonance band that the recorder stored only in deltas,
-    /// between two keyframes, reach the trends. The json_extract reads before saw keyframes only:
-    /// no mesh and no second in the band here. Samples 120-130 keep the same velocity, so their
-    /// deltas do not carry it at all: only counting every sample at the velocity in force finds
-    /// them.
+    /// WO-16 (2026-09-23): a mesh and a stretch in the resonance band that the recorder stored
+    /// only in deltas, between two keyframes, reach the trends. The json_extract reads before
+    /// WO-16 saw keyframes only: no mesh and no second in the band here. Samples 120-130 keep the
+    /// same velocity, so their deltas do not carry it at all: only counting every sample at the
+    /// velocity in force finds them.
     #[test]
     fn trends_see_changes_stored_only_in_deltas() {
         let mut db = store();
@@ -1509,8 +1582,7 @@ mod tests {
                     "max_accel": 3000.0, "square_corner_velocity": 5.0,
                     "minimum_cruise_ratio": 0.5, "extruder": "extruder", "stalls": 0},
                 "idle_timeout": {"state": "Printing", "printing_time": 12.0},
-                "webhooks": {"state": "ready", "state_message": "Printer is ready"},
-                "configfile": {"settings": {"input_shaper": {"shaper_freq_y": 43.4}}}
+                "webhooks": {"state": "ready", "state_message": "Printer is ready"}
             })
         };
         let (empty, grid) = (json!([[]]), json!([[0.01, -0.02], [0.0, 0.03]]));
@@ -1556,4 +1628,11 @@ mod tests {
             "samples 125 and 130 at the 85 mm/s in force since 115"
         );
     }
+}
+
+/// The tick the recorder held at `ts`: the same point and job a live tick carries, from the sample at or before it
+/// (finish-2 F02: the 3D model follows a rewind with it). None when nothing was recorded by then.
+pub fn recorded_tick(db: &Store, ts: f64) -> Option<Value> {
+    let (t, d) = bounded_at(db, ts, 2 * 1024 * 1024).ok()??;
+    Some(json!({"point":point(t, &d, false),"job":job(&d)}))
 }

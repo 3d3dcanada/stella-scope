@@ -12,7 +12,15 @@
 <link rel="apple-touch-icon" href="/logo.svg">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<script src="/paint.js"></script>
 <link rel="stylesheet" href="/next.css">
+<link rel="stylesheet" href="/next-control.css">
+<link rel="stylesheet" href="/next-pages.css">
+<link rel="stylesheet" href="/next-frame.css">
+<link rel="stylesheet" href="/next-look.css">
+<link rel="stylesheet" href="/next-hud.css">
+<link rel="stylesheet" href="/next-pro.css">
+<script src="/printer-scope.js"></script>
 <script type="module" src="/next.js"></script>
 </head>
 <body data-layout="desktop" data-mode="checking">
@@ -21,7 +29,7 @@
 <canvas id="nx-scene" aria-label="Live 3D view of the printer"></canvas>
 <div id="nx-ui">
  <header id="nx-top">
-  <a class="nx-id" href="/" aria-label="Stella Scope home">
+  <a class="nx-id" href="/" title="Stella Scope home">
    <img class="nx-id-mark" src="/logo.svg" alt="">
    <span class="nx-id-text"><b id="nx-id-name">STELLA SCOPE</b><small id="nx-id-model"></small></span>
   </a>
@@ -33,14 +41,17 @@
   </div>
  </header>
  <nav id="nx-rail" aria-label="Pages"></nav>
- <section id="nx-left" class="nx-cluster" aria-label="Temperatures"></section>
- <section id="nx-right" class="nx-cluster" aria-label="Motion and cooling"></section>
- <div id="nx-pager" aria-label="Instruments" hidden></div>
- <div id="nx-pos" class="nx-pos" aria-label="Toolhead position"></div>
- <nav id="nx-dock" class="nx-dock" aria-label="Printer actions"></nav>
+ <div id="nx-gauges">
+  <section id="nx-left" class="nx-cluster" aria-label="Temperatures"></section>
+  <section id="nx-right" class="nx-cluster" aria-label="Motion and cooling"></section>
+ </div>
+ <nav id="nx-dock" class="nx-dock nx-glass" aria-label="Printer actions" data-msg>
+  <div id="nx-pos" class="nx-pos" aria-label="Head position"></div>
+  <div class="nx-keyrow"><div class="nx-keys"><div class="nx-dock-msg"><i class="nx-dock-spin" aria-hidden="true"></i><span>Connecting to the printer…</span></div></div></div>
+ </nav>
  <div id="nx-kit" hidden></div>
 </div>
-<aside id="nx-sheet" class="nx-sheet" aria-modal="true" role="dialog" hidden></aside>
+<aside id="nx-sheet" class="nx-sheet" role="dialog" hidden></aside>
 <div id="nx-radial" class="nx-radial" hidden></div>
 <div id="nx-toasts" class="nx-toasts" role="status" aria-live="polite"></div>
 <div id="nx-tip" class="nx-tip" role="tooltip" hidden></div>
