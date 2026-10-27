@@ -595,3 +595,13 @@ body:has(#nx-sheet:not([hidden])) .nx-stagecard .nx-md-tools{opacity:0!important
 .nx-sheet canvas{border-radius:12px}
 /* material cards: wider fields, a dash when empty */
 .nx-matprof{grid-template-columns:repeat(auto-fill,minmax(330px,1fr))!important}
+
+/* ---------- 30. Feedback (2026-10-27: feedback in every app): the message, who you are, what is sent, the reference that comes back ---------- */
+.nx-feedback .nx-fb-text{font:500 15px/1.5 var(--sans);min-height:150px;padding:12px 14px;resize:vertical;width:100%}
+.nx-feedback .nx-fb-count{display:block;text-align:right;color:var(--sp-t3,#8a919a);font:500 11px/1 var(--mono);margin-top:6px}
+.nx-feedback .nx-grid2 .nx-input{width:100%}
+.nx-fb-check{display:flex;gap:10px;align-items:flex-start;margin:14px 0 6px;font:500 13.5px/1.4 var(--sans);color:var(--sp-t1,#e9edf1);cursor:pointer}
+.nx-fb-check input{width:18px;height:18px;margin-top:1px;accent-color:var(--accent)}
+.nx-fb-sends{font-size:12.5px;opacity:.8}
+.nx-fb-said[data-tone=ok]{color:var(--ok,#18E36B)}
+.nx-fb-said[data-tone=alarm]{color:var(--alarm,#ff4d4d)}

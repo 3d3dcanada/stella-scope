@@ -1,3 +1,11 @@
+# Stella Scope 0.6.1
+
+Released 2026-10-27.
+
+- **Windows.** The first Windows build: `stella-scope_0.6.1_x64-setup.exe` for Windows 10 and 11 (64-bit). It installs the app, the recorder, the phone link and the printer models, and installs Microsoft's WebView2 if the computer does not have it.
+- **Feedback.** All pages › Feedback (and More › Feedback on the farm wall) sends what you write to 3D3D. It is sent only when you press Send, with the app's version, the computer's system and, if you leave the box ticked, how many printers of each kind you run. The reply is a reference number.
+- The Input shaper page's measurements no longer draw over its title; Health leaves out heat-ups that took no time.
+
 # Stella Scope 0.6.0
 
 Released 2026-10-26. Linux x86-64 (`stella-scope_0.6.0_amd64.deb`) and Android (`stella_0.6.0_arm64.apk`). Source: AGPL-3.0.

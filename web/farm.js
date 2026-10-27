@@ -15,6 +15,7 @@ import {control,key,CONTROLS} from './next-control.js';
 import {fileTitle,noPrinterYet} from './next-core.js';
 import {sheetPrinters,sheetAddPrinter,licenceState,licenceEntry,licenceDismissed,dismissLicence,demoFarmAdd,swatches,ACCENTS,plainDetail} from './next-farm.js';
 import {sheetQueue,plateCleared,startNext} from './next-queue.js';
+import {sheetFeedback} from './next-feedback.js';
 import {modelsSheet} from './next-models.js';
 import {sheetAlerts} from './next-notify.js';
 import {startPops,camerasView,sheetSpools,sheetAnalytics,sheetBackup,sheetSlicer} from './next-fleet.js';
@@ -644,7 +645,7 @@ const stickyH=()=>{const s=document.querySelector('.fm-sticky');if(!s)return;con
  a.append(hk('files','Queue','Sliced files waiting for a printer that fits them.',()=>sheetQueue(),'queue'));
  startPops(a,{onWatch:e=>{if(openId!==e.printer)toggleOpen(e.printer);tiles.get(e.printer)?.root.scrollIntoView({block:'center',behavior:'smooth'});}});   // U07: Watch grows that printer's tile, its camera or machine bigger
  const models=async()=>{const d=await fetch('/api/printers',{cache:'no-store'}).then(r=>r.json()).catch(()=>({}));modelsSheet({token:d.writable&&d.token?d.token:null});};
- const more=hk('more','More','Printers, spools, analytics, models, alert settings, backup, the wall screen, Help and About.',()=>openSheet({title:'Farm',icon:'i-printers',build:body=>{
+ const more=hk('more','More','Printers, spools, analytics, models, alert settings, backup, the wall screen, Feedback, Help and About.',()=>openSheet({title:'Farm',icon:'i-printers',build:body=>{
   const list=el('div','fl-more');
   const item=(ico,label,does,go,manage=false)=>{const b=button({icon:ico,label,size:'row',title:label,does,onPress:()=>{closeSheet(true);go();}});if(manage&&!canManage)b.hidden=true;const row=el('div','fl-more-row');row.append(b,el('small','',does));list.append(row);};
   // On a phone the header keeps only the alarms and this menu; the rest of its buttons are here.
@@ -658,6 +659,7 @@ const stickyH=()=>{const s=document.querySelector('.fm-sticky');if(!s)return;con
   item('i-key','Slicer upload','Send files from OrcaSlicer or PrusaSlicer straight into the queue.',()=>sheetSlicer(),true);
   item('i-backup','Backup','Save the farm to a file, or restore it.',()=>sheetBackup(),true);
   item('i-fullscreen','Wall screen','The wall for a screen across the room: no buttons, big tiles.',()=>{location.href='/farm?tv=1';});
+  item('i-chat','Feedback','Tell 3D3D what to fix or add. Sent only when you press Send.',()=>sheetFeedback());
   item('i-help','Help','The user guide: set up, add a printer, cameras, the queue, alerts, backup and what to do when something is wrong.',()=>{location.href='/help';});
   item('i-view','About','The version, the licences, who made what is inside Stella Scope, and how to reach 3D3D.',()=>sheetAbout());
   body.append(list);}}),'more');a.append(more);

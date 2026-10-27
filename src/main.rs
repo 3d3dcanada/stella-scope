@@ -13,6 +13,7 @@ mod dry_run;
 #[cfg(test)]
 mod fakes;
 mod farm;
+mod feedback;
 #[cfg(test)]
 mod farm_tests;
 mod fleet;

@@ -175,6 +175,10 @@ The optional **failure watch** looks at the camera every ten seconds for spaghet
 
 Printer controls (heat, move, start, pause, cancel and the rest) are on once Stella Scope is set up from the desktop window. Each one that changes the printer is shown to you first, with the exact command, and goes out once. If a control says **Printer controls are switched off**, Stella Scope was started with controls off: open the settings file (`~/.config/ca.threedthreed.stellascope/stella-scope.json`), set `controls_enabled` to `true` and restart Stella Scope.
 
+## Feedback
+
+All pages › Feedback on a printer's page, or More › Feedback on the farm wall. Write what works, what does not or what you would add, and press Send. It goes to 3D3D with the app's version and your computer's system; leave the box ticked to also say how many printers of each kind you run (never their names, addresses or files). Nothing is sent before you press Send. Leave an email if you want an answer. You get a reference number back.
+
 ## Licence
 
 Stella Scope is **free for up to five printers**. A **perpetual** licence for more is bought by Interac e-Transfer, and the payment details come with the invoice. To buy, write to **info@3d3d.ca** with your farm name and how many printers. 3D3D replies with an invoice. After payment you get one line of text that starts `SFL1.`; open More, Printers, press **Enter licence** and paste it. It is checked on your computer, with no internet, and it is not an account.

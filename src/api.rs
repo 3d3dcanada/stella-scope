@@ -71,6 +71,7 @@ pub fn asset(method: &str, path: &str) -> Option<Response> {
         "/next-pro.css" => Some(Response::text(200,"text/css; charset=utf-8",include_str!("../web/next-pro.css"))),
         "/next-calibrate.js" => Some(Response::text(200,"text/javascript; charset=utf-8",include_str!("../web/next-calibrate.js"))),
         "/next-report.js" => Some(Response::text(200,"text/javascript; charset=utf-8",include_str!("../web/next-report.js"))),
+        "/next-feedback.js" => Some(Response::text(200,"text/javascript; charset=utf-8",include_str!("../web/next-feedback.js"))),
         "/next-health.js" => Some(Response::text(200,"text/javascript; charset=utf-8",include_str!("../web/next-health.js"))),
         "/next-pages.js" => Some(Response::text(200,"text/javascript; charset=utf-8",include_str!("../web/next-pages.js"))),
         // The farm wall: every printer of this service on one page (farm board WO-07).

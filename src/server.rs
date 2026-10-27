@@ -1738,6 +1738,47 @@ fn phone_access_route(request: &HttpRequest, farm: &Arc<Farm>, path: &str, lan: 
     }
 }
 
+/// `POST /api/feedback`: what the person typed on the Feedback page, sent to 3D3D (feedback.rs). The desktop window only, with its Origin
+/// and the farm's control token, like every other thing that leaves the computer on a press.
+fn feedback_route(request: &HttpRequest, farm: &Arc<Farm>, path: &str, lan: bool) -> Option<Response> {
+    if path != "/api/feedback" {
+        return None;
+    }
+    let fail = |code: u16, e: &str| Some(Response::json(code, json!({"error":e})));
+    if request.method != "POST" {
+        return fail(405, "use POST /api/feedback");
+    }
+    if lan {
+        return fail(403, "feedback is sent from the Stella Scope window on the computer");
+    }
+    if request.headers.get("origin") != Some(&format!("http://{}", farm.base.host())) {
+        return fail(403, "Origin does not match the configured loopback listener");
+    }
+    let valid = match (farm.token.as_ref(), request.headers.get("x-stella-control-token")) {
+        (Some(e), Some(g)) => e.len() == g.len() && e.bytes().zip(g.bytes()).fold(0_u8, |d, (a, b)| d | (a ^ b)) == 0,
+        _ => false,
+    };
+    if !valid {
+        return fail(401, "missing or invalid Stella control token");
+    }
+    if request.headers.get("content-type").is_none_or(|v| v != "application/json") {
+        return fail(415, "Content-Type must be exactly application/json");
+    }
+    let v: serde_json::Value = match serde_json::from_slice(&request.body) {
+        Ok(v) => v,
+        Err(e) => return fail(400, &format!("invalid JSON: {e}")),
+    };
+    let drivers: Vec<String> = farm.list().iter().map(|p| p.entry.driver.clone()).collect();
+    let payload = match crate::feedback::payload(&v, &drivers) {
+        Ok(p) => p,
+        Err(e) => return fail(400, &e),
+    };
+    match crate::feedback::send(&payload) {
+        Ok(reference) => Some(Response::json(200, json!({"ref":reference,"sent":payload["answers"]}))),
+        Err(e) => fail(502, &e),
+    }
+}
+
 /// One printer's plate: the picture of the empty plate, the check, "plate cleared" and starting the next
 /// file (`/api/p/<id>/plate...` and `/api/p/<id>/queue/start`). Writes carry the printer's own control
 /// token, so a paired phone can do them; the same safety as every other control.
@@ -1965,6 +2006,12 @@ fn connection(mut stream: TcpStream, farm: &Arc<Farm>, lan: bool) {
             }
             if let Some(r) = licence_route(&request, farm, path, lan) {
                 if let Err(e) = send(&mut stream, r, "GET, POST, DELETE") {
+                    eprintln!("HTTP response was interrupted: {e}");
+                }
+                return;
+            }
+            if let Some(r) = feedback_route(&request, farm, path, lan) {
+                if let Err(e) = send(&mut stream, r, "POST") {
                     eprintln!("HTTP response was interrupted: {e}");
                 }
                 return;

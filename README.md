@@ -30,7 +30,9 @@ Stella Scope is a recorder first. Printer controls are **off** unless you set `c
 
 ## Install
 
-**Linux (Debian, Ubuntu and derivatives):** download the `.deb` from [3d3d.ca/software/stella](https://3d3d.ca/software/stella#download) or from this repository's releases, then `sudo apt install ./stella-scope_0.6.0_amd64.deb`.
+**Linux (Debian, Ubuntu and derivatives):** download the `.deb` from [3d3d.ca/software/stella](https://3d3d.ca/software/stella#download) or from this repository's releases, then `sudo apt install ./stella-scope_0.6.1_amd64.deb`.
+
+**Windows 10 and 11:** download `stella-scope_0.6.1_x64-setup.exe` from the same places and run it.
 
 **Android:** download the `.apk` from the same page, sideload it, then scan the pairing code shown on your computer.
 
@@ -87,7 +89,7 @@ for t in scripts/*-tests.mjs; do node "$t" || break; done
 
 ## Status
 
-Version 0.6.0. Linux (x86-64) and Android builds are current; Windows and macOS are not available yet. It is run daily on a Voron 2.4 R2 350 (Klipper), a Prusa CORE One L (PrusaLink) and a FlashForge Adventurer 5M; other printers of those families should work but have not all been tested. Bambu Lab printers are not supported yet. The 3D models are drawn from open-licence files where they exist and are schematic elsewhere. Known gaps are listed in the release notes.
+Version 0.6.1. Linux (x86-64), Windows (x64) and Android builds are current; macOS is not available yet. The Windows build is new and has had less use than Linux: use Feedback inside the app to tell us what goes wrong. It is run daily on a Voron 2.4 R2 350 (Klipper), a Prusa CORE One L (PrusaLink) and a FlashForge Adventurer 5M; other printers of those families should work but have not all been tested. Bambu Lab printers are not supported yet. The 3D models are drawn from open-licence files where they exist and are schematic elsewhere. Known gaps are listed in the release notes.
 
 ## Licence
 
